@@ -7,6 +7,12 @@ import { getConfig } from './config'
 import { Providers } from './provider'
 import { Navbar } from '@/components/navbar'
 
+//metadata
+export const metadata = {
+  title: "Markium - Crypto Market",
+  description: "Trade and invest in the cryptocurrency market with confidence.",
+}
+
 export default async function Layout({ children }: { children: ReactNode }) {
   const initialState = cookieToInitialState(
     getConfig(),
