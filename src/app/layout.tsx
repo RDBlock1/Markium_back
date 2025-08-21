@@ -1,46 +1,25 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-import {Providers} from "./provider"
+import { type ReactNode } from 'react'
+import { headers } from 'next/headers'
+import { cookieToInitialState } from 'wagmi'
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-})
+import './globals.css'
+import { getConfig } from './config'
+import { Providers } from './provider'
+import { Navbar } from '@/components/navbar'
 
-export const metadata: Metadata = {
-  title: "Markium - Crypto Market",
-  description: "Trade and invest in the cryptocurrency market with confidence.",
-}
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default async function Layout({ children }: { children: ReactNode }) {
+  const initialState = cookieToInitialState(
+    getConfig(),
+    (await headers()).get('cookie')
+  )
   return (
-    <html lang="en" className="dark">
-      <head>
-        <style>{`
-html {
-  font-family: ${inter.style.fontFamily};
-  --font-sans: ${inter.variable};
-}
-        `}</style>
-      </head>
-      <body className={`${inter.variable} antialiased`}>
+    <html lang="en" className='dark'>
+      <body className="h-screen bg-[#0A0B0D] flex flex-col">
+        <Providers initialState={initialState}>
+          <Navbar />
+          {children}
 
-        <div className="h-screen bg-[#0A0B0D] flex flex-col">
-          <Providers>
-            <Navbar />
-            {children}
-            <Footer />
-          </Providers>
-        </div>
+        </Providers>
       </body>
     </html>
   )

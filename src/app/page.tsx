@@ -19,8 +19,8 @@ export default async function Page() {
   
 
   return (
- 
-      <main className="flex-1 overflow-y-auto">
+
+      <main className="flex-1 overflow-y-auto ">
         <Suspense fallback={<Loading />}>
           <MarketsSection initialData={data.data} />
         </Suspense>
