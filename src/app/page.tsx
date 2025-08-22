@@ -1,11 +1,12 @@
-
+// no cache
+export const revalidate = 0; // disables ISR
+export const dynamic = "force-dynamic"; // always render on request
 import MarketsSection from "@/components/market/market-section"
 import { Suspense } from "react";
 import Loading from "./loading";
 import { baseUrl } from "@/utils";
 import { Metadata } from "next";
-
-// Main page layout
+import MarketDashboard from "@/components/market/market-dashboard";
 
 
 export const metadata: Metadata = {
@@ -118,9 +119,8 @@ export const metadata: Metadata = {
 export default async function Page() {
 
   const response = await fetch(`${baseUrl}/api/market`, {
-    // cache: 'no-store', // optional: disable caching for dynamic data
+    cache: 'no-store', // optional: disable caching for dynamic data
     //i have to enable caching for dynamic data
-    cache: 'force-cache',
   });
   const data = await response.json();
 
@@ -130,9 +130,14 @@ export default async function Page() {
 
       <main className="flex-1 overflow-y-auto ">
         <Suspense fallback={<Loading />}>
-          <MarketsSection initialData={data.data} />
+          {/* <MarketsSection initialData={data.data} />
+           */}
+
+           <MarketDashboard marketData={data.data}/>
         </Suspense>
       </main>
 
   );
+
+
 }

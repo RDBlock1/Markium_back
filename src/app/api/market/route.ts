@@ -1,8 +1,7 @@
-// app/api/market/route.ts
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 
-// Cache to store fetched data (optional, for performance)
+// Cache to store fetched data
 let cachedData: any = null;
 let cacheTimestamp: number = 0;
 const CACHE_DURATION = 60000; // 1 minute cache
@@ -13,11 +12,12 @@ export async function GET(request: NextRequest) {
     
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '500');
     const offset = parseInt(searchParams.get('offset') || '0');
     const forceRefresh = searchParams.get('refresh') === 'true';
+    const sortBy = searchParams.get('sortBy') || 'volume'; // Add sort parameter
     
-    console.log(`Fetching markets - Limit: ${limit}, Offset: ${offset}`);
+    console.log(`Fetching markets - Limit: ${limit}, Offset: ${offset}, Sort: ${sortBy}`);
     
     // Check if we should use cached data
     const now = Date.now();
@@ -29,75 +29,83 @@ export async function GET(request: NextRequest) {
       console.log('Using cached data');
       allMarkets = cachedData;
     } else {
-      // Fetch fresh data from Polymarket
       console.log('Fetching fresh data from Polymarket');
       
-      // Fetch more than needed to ensure we have enough data
-      const fetchLimit = Math.min(500, offset + limit + 100);
+      // Fetch multiple pages to get more data
+      const marketsPerPage = 100; // Max allowed by API
+      const totalPagesToFetch = 5; // Fetch 5 pages = 500 markets
+      let fetchedMarkets = [];
       
-      const response = await fetch(
-        `https://gamma-api.polymarket.com/markets?active=true&closed=false&order=volume24hr&ascending=false&limit=${fetchLimit}&offset=0`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'NextJS-App'
-          },
-          // Don't cache at fetch level to ensure fresh data
-          cache: 'no-store'
-        }
-      );
+      // Fetch multiple pages in parallel for better performance
+      const fetchPromises = [];
       
-      if (!response.ok) {
-        throw new Error(`Polymarket API responded with status: ${response.status}`);
+      for (let page = 0; page < totalPagesToFetch; page++) {
+        const pageOffset = page * marketsPerPage;
+        
+        fetchPromises.push(
+          fetch(
+            `https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=${marketsPerPage}&offset=${pageOffset}`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'NextJS-App'
+              },
+              cache: 'no-store'
+            }
+          ).then(async (response) => {
+            if (!response.ok) {
+              console.error(`Failed to fetch page ${page}: ${response.status}`);
+              return [];
+            }
+            const data = await response.json();
+            return Array.isArray(data) ? data : [];
+          }).catch(error => {
+            console.error(`Error fetching page ${page}:`, error);
+            return [];
+          })
+        );
       }
       
-      const data = await response.json();
+      // Wait for all fetches to complete
+      const results = await Promise.all(fetchPromises);
       
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid response format from Polymarket API');
-      }
+      // Combine all results
+      fetchedMarkets = results.flat();
       
-      allMarkets = data;
+
       
-      // Update cache
-      cachedData = data;
+      // Sort markets based on the requested field
+      allMarkets = sortMarkets(fetchedMarkets, sortBy);
+      
+      // Update cache with sorted data
+      cachedData = allMarkets;
       cacheTimestamp = now;
-      
-      console.log(`Fetched ${allMarkets.length} total markets from Polymarket`);
     }
     
-    // Apply pagination
+    // If cached data was used, still apply the current sort preference
+    if (useCache) {
+      allMarkets = sortMarkets(allMarkets, sortBy);
+    }
+    
+    // Apply pagination to sorted data
     const paginatedMarkets = allMarkets.slice(offset, offset + limit);
     
-    console.log(`Returning ${paginatedMarkets.length} markets (offset: ${offset}, limit: ${limit})`);
+
     
-    // Transform the data
-    const transformedMarkets = paginatedMarkets.map((market: any) => ({
-      id: market.id || market.conditionId || `market-${Math.random()}`, // Ensure unique ID
-      question: market.question || market.title || 'Unknown Market',
-      slug: market.slug || market.id,
-      image: market.image || '',
-      outcomes: market.outcomes || [],
-      outcomePrices: market.outcomePrices || '',
-      volume24hr: parseFloat(market.volume || market.volume24hr || 0),
-      liquidity: parseFloat(market.liquidity || 0),
-      endDate: market.endDate || market.end_date_iso || new Date().toISOString(),
-      active: market.active !== false,
-      spread: parseFloat(market.spread || 0),
-      lastTradePrice: parseFloat(market.lastTradePrice || market.last_trade_price || 0),
-      oneDayPriceChange: parseFloat(market.oneDayPriceChange || market.price_change_24h || 0),
-      // Additional fields for compatibility
-      name: market.name || '',
-      ticker: market.ticker || '',
-      logo: market.logo || '',
-      price: parseFloat(market.price || 0),
-      marketCap: parseFloat(market.marketCap || market.market_cap || 0),
-      volume: parseFloat(market.volume || 0),
-      change24h: parseFloat(market.change24h || 0),
-      sparklineData: market.sparklineData || [],
-      status: market.status || 'active'
+    // Transform the data if needed (keeping original structure for now)
+    const transformedMarkets = paginatedMarkets.map((market: { liquidity: any; volume: any; volume24hr: any; startDate: any; createdAt: any; endDate: any; }) => ({
+      ...market,
+      // Ensure liquidity is a number for proper sorting
+      liquidity: parseFloat(market.liquidity || '0'),
+      volume: parseFloat(market.volume || '0'),
+      volume24hr: parseFloat(market.volume24hr || '0'),
+      // Parse dates properly
+      startDate: market.startDate || market.createdAt || null,
+      endDate: market.endDate || null,
     }));
-    console.log('Transformed markets:', transformedMarkets);
+    
+
+    
     // Check if there are more markets available
     const hasMore = (offset + limit) < allMarkets.length;
     const totalAvailable = allMarkets.length;
@@ -111,6 +119,7 @@ export async function GET(request: NextRequest) {
       total: totalAvailable,
       returned: transformedMarkets.length,
       nextOffset: hasMore ? offset + limit : null,
+      sortedBy: sortBy,
       message: `Successfully fetched markets ${offset + 1} to ${offset + transformedMarkets.length} of ${totalAvailable}`
     }, {
       headers: {
@@ -132,6 +141,52 @@ export async function GET(request: NextRequest) {
     }, {
       status: 500
     });
+  }
+}
+
+// Helper function to sort markets
+function sortMarkets(markets: any[], sortBy: string): any[] {
+  const sortedMarkets = [...markets];
+  
+  switch (sortBy) {
+    case 'liquidity':
+      return sortedMarkets.sort((a, b) => {
+        const liquidityA = parseFloat(a.liquidity || '0');
+        const liquidityB = parseFloat(b.liquidity || '0');
+        return liquidityB - liquidityA; // Descending order (highest first)
+      });
+      
+    case 'volume':
+      return sortedMarkets.sort((a, b) => {
+        const volumeA = parseFloat(a.volume || '0');
+        const volumeB = parseFloat(b.volume || '0');
+        return volumeB - volumeA;
+      });
+      
+    case 'volume24hr':
+      return sortedMarkets.sort((a, b) => {
+        const volume24hrA = parseFloat(a.volume24hr || '0');
+        const volume24hrB = parseFloat(b.volume24hr || '0');
+        return volume24hrB - volume24hrA;
+      });
+      
+    case 'newest':
+      return sortedMarkets.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.startDate || 0).getTime();
+        const dateB = new Date(b.createdAt || b.startDate || 0).getTime();
+        return dateB - dateA;
+      });
+      
+    case 'ending_soon':
+      return sortedMarkets.sort((a, b) => {
+        const endA = new Date(a.endDate || '9999-12-31').getTime();
+        const endB = new Date(b.endDate || '9999-12-31').getTime();
+        return endA - endB;
+      });
+      
+    default:
+      // Default to liquidity
+      return sortMarkets(markets, 'liquidity');
   }
 }
 

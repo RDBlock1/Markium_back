@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Calendar, TrendingUp, Users, DollarSign } from "lucide-react"
 import type { Market, MarketSlug } from "@/types/market"
 import Image from "next/image"
+import { formatVolume } from "@/utils"
 
 interface MarketHeroProps {
   market: MarketSlug
@@ -54,15 +55,6 @@ const noPercentage = (noPrice * 100).toFixed(0);
     })
   }
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1000000) {
-      return `$${(volume / 1000000).toFixed(1)}M`
-    }
-    if (volume >= 1000) {
-      return `$${(volume / 1000).toFixed(1)}K`
-    }
-    return `$${Number(volume).toFixed(0)}`
-  }
 
   return (
     <motion.div

@@ -12,10 +12,10 @@ import WalletConnectButton from "./wallet-connect-button"
 import Image from "next/image"
 
 const navItems: NavItem[] = [
-  { label: "MARKET", href: "/market" },
-  { label: "PRE-IPO", href: "/pre-ipo" },
-  { label: "TRADE", href: "/trade" },
-  { label: "LEADERBOARD", href: "/leaderboard" },
+  { label: "MARKET", href: "/" },
+  { label: "PRE-IPO", href: "#" },
+  { label: "TRADE", href: "#" },
+  { label: "LEADERBOARD", href: "#" },
 ]
 
 interface NavbarProps {
