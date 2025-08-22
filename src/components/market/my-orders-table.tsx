@@ -173,6 +173,7 @@ export function MyOrdersTable(currentMarketTokens: CurrentMarketTokens) {
       return;
     }
     
+
     setIsLoading(true);
     await fetchOrders();
     setIsLoading(false);
@@ -182,7 +183,7 @@ export function MyOrdersTable(currentMarketTokens: CurrentMarketTokens) {
   if (!isConnected) {
     return (
       <div className="text-center py-8">
-        <h1 className="text-2xl font-bold mb-4">📑 My Orders</h1>
+        <h2 className="text-2xl font-bold mb-4">📑 My Orders</h2>
         <p className="text-muted-foreground">Please connect your wallet to view orders</p>
       </div>
     );
@@ -192,7 +193,7 @@ export function MyOrdersTable(currentMarketTokens: CurrentMarketTokens) {
   if (isConnected && !isApiReady) {
     return (
       <div className="text-center py-8">
-        <h1 className="text-2xl font-bold mb-4">📑 My Orders</h1>
+        <h2 className="text-2xl font-bold mb-4">📑 My Orders</h2>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         <p className="text-muted-foreground mt-4">Initializing trading client...</p>
         <p className="text-xs text-muted-foreground mt-2">
@@ -211,7 +212,7 @@ export function MyOrdersTable(currentMarketTokens: CurrentMarketTokens) {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="text-center"
       >
-        <h1 className="text-3xl font-bold tracking-tight">📑 My Orders</h1>
+        <h2 className="text-3xl font-bold tracking-tight">📑 My Orders</h2>
         <p className="text-muted-foreground mt-2">Track and manage your trading orders</p>
         
         {/* Status indicators */}
