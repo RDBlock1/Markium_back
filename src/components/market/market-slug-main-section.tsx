@@ -183,7 +183,7 @@ export default function MarketSlugMainSection({ params, marketData }: MarketPage
               <div className="xl:col-span-2">
                 
                   {topHolders && topHolders.length > 0 && topHolders[0].holdersYes && (
-                    <TradingChart marketId={topHolders[0].tokenYes!} conditionId={market.conditionId} />
+                    <TradingChart marketId={topHolders[0].tokenYes!} conditionId={market.conditionId} yesId={""} noId={""} />
                   )}
                 
               </div>

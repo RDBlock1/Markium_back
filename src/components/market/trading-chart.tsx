@@ -35,6 +35,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MarketSlug } from "@/types/market"
+import { MyOrdersTable } from "./my-orders-table"
+import { OrderBook } from "./order-book"
+import { RecentTrades } from "./recent-trades"
 
 // Types for Polymarket API responses
 interface PolymarketPricePoint {
@@ -68,9 +71,9 @@ const INTERVAL_MAP: Record<string, string> = {
   "1M": "1d", // Will aggregate 30 days
 }
 
-export function TradingChart({ marketId, conditionId }: { marketId: string; conditionId: string }) {
+export function TradingChart({ marketId, conditionId, yesId, noId }: { marketId: string; conditionId: string; yesId: string; noId: string }) {
   const [chartType, setChartType] = useState<"line" | "area" | "candle">("area")
-  const [timeframe, setTimeframe] = useState("1D")
+  const [timeframe, setTimeframe] = useState("4H")
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showVolume, setShowVolume] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
@@ -372,12 +375,12 @@ export function TradingChart({ marketId, conditionId }: { marketId: string; cond
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={cn("space-y-4", isFullscreen && "fixed inset-0 z-50 bg-[#0A0B0D] p-6")}
+      className={cn("space-y-4 w-full ", isFullscreen && "fixed inset-0 z-50 bg-[#101010] p-6")}
     >
 
 
       {/* Main Chart Card */}
-      <Card className="bg-[#12161C] border-[#1E2329] p-6">
+      <Card className="bg-black rounded-md border-[#1E2329] p-6 m-2">
         {/* Chart Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
@@ -448,6 +451,8 @@ export function TradingChart({ marketId, conditionId }: { marketId: string; cond
           </div>
         </div>
 
+
+
         {/* Timeframe Selector */}
         <div className="flex items-center justify-between mb-6">
           <Tabs value={timeframe} onValueChange={setTimeframe}>
@@ -487,8 +492,6 @@ export function TradingChart({ marketId, conditionId }: { marketId: string; cond
           )}
         </div>
 
-
-
         {/* Chart Info */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#1E2329]">
           <div className="flex items-center gap-6 text-sm">
@@ -515,7 +518,22 @@ export function TradingChart({ marketId, conditionId }: { marketId: string; cond
             {marketId ? "Live Data" : "Demo Mode"} • Last updated: {new Date().toLocaleTimeString()}
           </div>
         </div>
+
+
+
       </Card>
-    </motion.div>
+
+
+    <div className="mx-4">
+            {/* Order Book and Recent Trades */}
+                    <div className="mx-auto max-w-7xl">
+              <MyOrdersTable yesTokenId={yesId} noTokenId={noId} />
+            </div>
+                  <div className="mt-5">
+                    <RecentTrades tokenId={noId} marketId={marketId} />
+                  </div>
+    </div> 
+    
+   </motion.div>
   )
 }

@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   ExternalLink, 
   Copy, 
@@ -16,15 +23,28 @@ import {
   Users,
   Bitcoin,
   Sparkles,
-  X
+  X,
+  ArrowUpDown,
+  DollarSign,
+  Activity,
+  Clock,
+  CalendarDays
 } from "lucide-react"
 import { MarketSlug } from "@/types/market"
 import PolymarketMiniChart from "./mini-chart"
 import { formatVolume, toLocalString } from "@/utils"
 import { Progress } from "../ui/progress"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
-const timeFilters = ["1m", "5m", "30m", "1h"]
+// Sort options with icons
+const sortOptions = [
+  { value: "volume", label: "Volume", icon: DollarSign },
+  { value: "liquidity", label: "Liquidity", icon: Activity },
+  { value: "volume24hr", label: "24h Volume", icon: TrendingUp },
+  { value: "newest", label: "Newest", icon: CalendarDays },
+  { value: "ending_soon", label: "Ending Soon", icon: Clock },
+]
 
 // Category filters with icons
 const categoryFilters = [
@@ -37,24 +57,35 @@ const categoryFilters = [
 
 type Props = {
   marketData: MarketSlug[]
+  onSortChange: (sortBy: string) => void
+  sortBy: string
 }
 
-export default function MarketDashboard({ marketData }: Props) {
+export default function MarketDashboard({ marketData, onSortChange, sortBy }: Props) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [activeTimeFilter, setActiveTimeFilter] = useState("1h")
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [isChangingSort, setIsChangingSort] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     console.log("Market Data received:", marketData);
     if (marketData && marketData.length > 0) {
       console.log("First item structure:", marketData[0]);
-      console.log("startDate value:", marketData[0].startDate);
-      console.log("startDate type:", typeof marketData[0].startDate);
+      console.log("Current sort:", sortBy);
     }
-  }, [marketData]);
+  }, [marketData, sortBy]);
 
-  // Filter markets based on search and category
+  // Handle sort change with loading state
+  const handleSortSelection = async (newSortBy: string) => {
+    if (newSortBy === sortBy) return;
+    
+    setIsChangingSort(true);
+    await onSortChange(newSortBy);
+    setTimeout(() => setIsChangingSort(false), 300);
+  };
+
+  // Filter markets based on search and category (client-side filtering)
   const filteredMarkets = useMemo(() => {
     if (!marketData) return [];
     
@@ -72,8 +103,6 @@ export default function MarketDashboard({ marketData }: Props) {
     // Apply category filter
     if (selectedCategory !== "all") {
       filtered = filtered.filter(market => {
-        // You'll need to add a category field to your MarketSlug type
-        // For now, we'll use keyword matching in the question
         const question = market.question?.toLowerCase() || "";
         
         switch(selectedCategory) {
@@ -83,7 +112,9 @@ export default function MarketDashboard({ marketData }: Props) {
                    question.includes("congress") ||
                    question.includes("senate") ||
                    question.includes("political") ||
-                   question.includes("government");
+                   question.includes("government") ||
+                   question.includes("trump") ||
+                   question.includes("biden");
           case "sports":
             return question.includes("game") || 
                    question.includes("win") || 
@@ -92,14 +123,17 @@ export default function MarketDashboard({ marketData }: Props) {
                    question.includes("player") ||
                    question.includes("nfl") ||
                    question.includes("nba") ||
-                   question.includes("soccer");
+                   question.includes("soccer") ||
+                   question.includes("football");
           case "pop-culture":
             return question.includes("movie") || 
                    question.includes("music") || 
                    question.includes("celebrity") ||
                    question.includes("entertainment") ||
                    question.includes("oscar") ||
-                   question.includes("grammy");
+                   question.includes("grammy") ||
+                   question.includes("taylor") ||
+                   question.includes("netflix");
           case "crypto":
             return question.includes("bitcoin") || 
                    question.includes("ethereum") || 
@@ -107,7 +141,8 @@ export default function MarketDashboard({ marketData }: Props) {
                    question.includes("btc") ||
                    question.includes("eth") ||
                    question.includes("defi") ||
-                   question.includes("blockchain");
+                   question.includes("blockchain") ||
+                   question.includes("solana");
           default:
             return true;
         }
@@ -141,6 +176,9 @@ export default function MarketDashboard({ marketData }: Props) {
     return { yesPrice, noPrice, yesPercentage, noPercentage };
   }
 
+  // Get current sort option for display
+  const currentSortOption = sortOptions.find(opt => opt.value === sortBy) || sortOptions[0];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header with Search and Filters */}
@@ -150,7 +188,7 @@ export default function MarketDashboard({ marketData }: Props) {
         className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50"
       >
         <div className="container mx-auto px-4 py-4">
-          {/* Search Bar */}
+          {/* Search Bar and Sort */}
           <div className="flex flex-col gap-4">
             <div className="flex gap-3 items-center">
               <div className="relative flex-1 max-w-xl">
@@ -171,6 +209,34 @@ export default function MarketDashboard({ marketData }: Props) {
                   </button>
                 )}
               </div>
+              
+              {/* Sort Dropdown */}
+              <Select value={sortBy} onValueChange={handleSortSelection}>
+                <SelectTrigger className="w-[180px] h-10">
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        <currentSortOption.icon className="h-4 w-4" />
+                        <span>{currentSortOption.label}</span>
+                      </div>
+                    </SelectValue>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {sortOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{option.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
               
               {/* Mobile Filter Toggle */}
               <Button
@@ -212,24 +278,16 @@ export default function MarketDashboard({ marketData }: Props) {
                 })}
               </div>
 
-              {/* Time Filters */}
-              {/* <div className="flex gap-1">
-                {timeFilters.map((filter) => (
-                  <motion.button
-                    key={filter}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setActiveTimeFilter(filter)}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      activeTimeFilter === filter
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {filter}
-                  </motion.button>
-                ))}
-              </div> */}
+              {/* Sort Info Badge */}
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="px-3 py-1">
+                  <currentSortOption.icon className="h-3 w-3 mr-1" />
+                  Sorted by {currentSortOption.label}
+                </Badge>
+                {isChangingSort && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                )}
+              </div>
             </div>
 
             {/* Category Filters - Mobile (Collapsible) */}
@@ -241,27 +299,52 @@ export default function MarketDashboard({ marketData }: Props) {
                   exit={{ height: 0, opacity: 0 }}
                   className="lg:hidden overflow-hidden"
                 >
-                  <div className="flex flex-wrap gap-2 pb-2">
-                    {categoryFilters.map((filter) => {
-                      const Icon = filter.icon;
-                      return (
-                        <button
-                          key={filter.id}
-                          onClick={() => {
-                            setSelectedCategory(filter.id);
-                            setShowMobileFilters(false);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                            selectedCategory === filter.id
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground bg-muted"
-                          }`}
-                        >
-                          <Icon className="h-3 w-3" />
-                          <span>{filter.label}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="space-y-3">
+                    {/* Mobile Sort Selector */}
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-xs text-muted-foreground">Sort by:</span>
+                      {sortOptions.map((option) => {
+                        const Icon = option.icon;
+                        return (
+                          <button
+                            key={option.value}
+                            onClick={() => handleSortSelection(option.value)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                              sortBy === option.value
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground bg-muted"
+                            }`}
+                          >
+                            <Icon className="h-3 w-3" />
+                            <span>{option.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Category Filters */}
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-xs text-muted-foreground">Filter:</span>
+                      {categoryFilters.map((filter) => {
+                        const Icon = filter.icon;
+                        return (
+                          <button
+                            key={filter.id}
+                            onClick={() => {
+                              setSelectedCategory(filter.id);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                              selectedCategory === filter.id
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground bg-muted"
+                            }`}
+                          >
+                            <Icon className="h-3 w-3" />
+                            <span>{filter.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -292,9 +375,30 @@ export default function MarketDashboard({ marketData }: Props) {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ delay: 0.1 }}
+        >
+          {/* Loading Overlay for Sort Changes */}
+          <AnimatePresence>
+            {isChangingSort && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-background/50 backdrop-blur-sm z-40 flex items-center justify-center"
+              >
+                <div className="bg-card p-4 rounded-lg shadow-lg flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <span className="text-sm font-medium">Updating sort order...</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* No Results Message */}
-          {filteredMarkets.length === 0 && (
+          {filteredMarkets.length === 0 && !isChangingSort && (
             <div className="text-center py-12">
               <div className="text-muted-foreground">
                 <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -314,8 +418,28 @@ export default function MarketDashboard({ marketData }: Props) {
                       <tr className="text-left">
                         <th className="p-4 font-medium text-muted-foreground">Market Info</th>
                         <th className="p-4 font-medium text-muted-foreground">Chart</th>
-                        <th className="p-4 font-medium text-muted-foreground">Liquidity</th>
-                        <th className="p-4 font-medium text-muted-foreground">Volume</th>
+                        <th className="p-4 font-medium text-muted-foreground">
+                          <button
+                            onClick={() => handleSortSelection('liquidity')}
+                            className={`flex items-center gap-1 hover:text-foreground transition-colors ${
+                              sortBy === 'liquidity' ? 'text-primary' : ''
+                            }`}
+                          >
+                            Liquidity
+                            {sortBy === 'liquidity' && <ArrowUpDown className="h-3 w-3" />}
+                          </button>
+                        </th>
+                        <th className="p-4 font-medium text-muted-foreground">
+                          <button
+                            onClick={() => handleSortSelection('volume')}
+                            className={`flex items-center gap-1 hover:text-foreground transition-colors ${
+                              sortBy === 'volume' ? 'text-primary' : ''
+                            }`}
+                          >
+                            Volume
+                            {sortBy === 'volume' && <ArrowUpDown className="h-3 w-3" />}
+                          </button>
+                        </th>
                         <th className="p-4 font-medium text-muted-foreground">Probability</th>
                         <th className="p-4 font-medium text-muted-foreground">Action</th>
                       </tr>
@@ -328,8 +452,9 @@ export default function MarketDashboard({ marketData }: Props) {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            transition={{ delay: index * 0.05 }}
+                            transition={{ delay: index * 0.02 }}
                             className="border-b border-border hover:bg-muted/50 transition-colors"
+                            onClick={() => router.push(`/market/${token.slug}`)}
                           >
                             {/* Market Info */}
                             <td className="p-4">
@@ -340,7 +465,7 @@ export default function MarketDashboard({ marketData }: Props) {
                                   className="w-10 h-10 rounded-full"
                                 />
                                 <div className="max-w-sm">
-                                  <div className="font-semibold truncate">{token.question}</div>
+                                  <div className="font-semibold truncate ">{token.question}</div>
                                   <div className="text-sm text-muted-foreground">
                                     {token.startDate ? toLocalString(token.startDate) : "—"}
                                   </div>
@@ -362,7 +487,14 @@ export default function MarketDashboard({ marketData }: Props) {
 
                             {/* Volume */}
                             <td className="p-4">
-                              <span className="font-semibold">{formatVolume(Number(token.volume))}</span>
+                              <div className="space-y-1">
+                                <div className="font-semibold">{formatVolume(Number(token.volume))}</div>
+                                {token.volume24hr && (
+                                  <div className="text-xs text-muted-foreground">
+                                    24h: {formatVolume(Number(token.volume24hr))}
+                                  </div>
+                                )}
+                              </div>
                             </td>
 
                             {/* Probability */}
@@ -401,11 +533,11 @@ export default function MarketDashboard({ marketData }: Props) {
                             {/* Action */}
                             <td className="p-4">
                               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                 <Link href={`/market/${token.slug}`}>
-                        <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
-                          Trade
-                        </Button>
-                    </Link>
+                                <Link href={`/market/${token.slug}`}>
+                                  <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
+                                    Trade
+                                  </Button>
+                                </Link>
                               </motion.div>
                             </td>
                           </motion.tr>
@@ -427,7 +559,7 @@ export default function MarketDashboard({ marketData }: Props) {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.02 }}
                 >
                   <Card className="p-4">
@@ -439,18 +571,18 @@ export default function MarketDashboard({ marketData }: Props) {
                           className="w-12 h-12 rounded-full flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm truncate">{token.question}</div>
+                                  <div className="font-semibold truncate w-[120px] md:w-full">{token.question}</div>
                           <div className="text-xs text-muted-foreground">
                             {token.startDate ? toLocalString(token.startDate) : "—"}
                           </div>
                         </div>
                       </div>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Link href={`/market/${token.slug}`}>
-                        <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
-                          Trade
-                        </Button>
-                    </Link>
+                        <Link href={`/market/${token.slug}`}>
+                          <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
+                            Trade
+                          </Button>
+                        </Link>
                       </motion.div>
                     </div>
 
@@ -462,6 +594,11 @@ export default function MarketDashboard({ marketData }: Props) {
                       <div>
                         <span className="text-muted-foreground">Volume</span>
                         <div className="font-semibold">{formatVolume(Number(token.volume))}</div>
+                        {token.volume24hr && (
+                          <div className="text-xs text-muted-foreground">
+                            24h: {formatVolume(Number(token.volume24hr))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -488,6 +625,14 @@ export default function MarketDashboard({ marketData }: Props) {
                           </div>
                         );
                       })()}
+                    </div>
+
+                    {/* Sort Badge on Mobile */}
+                    <div className="mt-2 flex justify-end">
+                      <Badge variant="outline" className="text-xs">
+                        <currentSortOption.icon className="h-3 w-3 mr-1" />
+                        {currentSortOption.label}
+                      </Badge>
                     </div>
                   </Card>
                 </motion.div>

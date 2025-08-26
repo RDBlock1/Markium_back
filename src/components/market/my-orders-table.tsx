@@ -284,7 +284,7 @@ export function MyOrdersTable(currentMarketTokens: CurrentMarketTokens) {
           animate="visible"
           className="rounded-lg border bg-card shadow-sm"
         >
-          <Table>
+          <Table className="bg-black">
             <TableHeader>
               <TableRow>
                 <TableHead>Order ID</TableHead>

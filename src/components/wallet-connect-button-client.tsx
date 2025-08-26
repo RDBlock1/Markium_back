@@ -1,23 +1,25 @@
-'use client'
+// components/wallet-connect-button-client.tsx
+'use client';
+
 import useClobAPIStore from "@/store/clobAPIState";
-import { ClobClient } from "@polymarket/clob-client";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 
-export default function WalletConnectButton() {
+// Dynamic import for ClobClient to ensure it's only loaded client-side
+let ClobClient: any = null;
+
+export default function WalletConnectButtonClient() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   
-  // Local state for initialization status
   const [isInitializing, setIsInitializing] = useState(false);
   const [initializationError, setInitializationError] = useState<string | null>(null);
+  const [clientLoaded, setClientLoaded] = useState(false);
   
-  // Add a ref to prevent duplicate initialization attempts
   const initializationInProgress = useRef(false);
   
-  // Use ALL relevant store state including credentials
   const { 
     clobClient, 
     setClobClient,
@@ -33,18 +35,30 @@ export default function WalletConnectButton() {
   const host = "https://clob.polymarket.com";
   const chainId = 137;
 
+  // Load ClobClient dynamically
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !ClobClient) {
+      import('@polymarket/clob-client').then((module) => {
+        ClobClient = module.ClobClient;
+        setClientLoaded(true);
+        console.log('ClobClient loaded successfully');
+      }).catch((error) => {
+        console.error('Failed to load ClobClient:', error);
+        setInitializationError('Failed to load trading client');
+      });
+    }
+  }, []);
+
   const initializeClobClient = async (): Promise<void> => {
-    if (!walletClient || !address) {
-      throw new Error('Wallet not connected');
+    if (!walletClient || !address || !ClobClient) {
+      throw new Error('Prerequisites not met');
     }
 
-    // Double-check we're not already initialized
     if (initializedAddress === address && clobClient && isApiReady) {
       console.log('Client already initialized, skipping...');
       return;
     }
 
-    // Prevent concurrent initialization
     if (initializationInProgress.current) {
       console.log('Initialization already in progress, skipping...');
       return;
@@ -57,7 +71,6 @@ export default function WalletConnectButton() {
       setApiReady(false);
       setInitializationError(null);
 
-      // Convert viem wallet client to ethers signer
       const provider = new ethers.providers.Web3Provider(
         walletClient.transport as any
       );
@@ -65,23 +78,20 @@ export default function WalletConnectButton() {
 
       let creds;
       
-      // Check if we have stored credentials for this address
       if (apiCredentials && initializedAddress === address) {
         console.log('Using stored API credentials');
         creds = apiCredentials;
       } else {
-        // Create initial client without credentials for API key creation
         let client = new ClobClient(
           host,
           chainId,
           signer,
           undefined,
-          0 // SignatureType.EOA
+          0
         );
 
         console.log('Creating/deriving API credentials...');
 
-        // Create or derive API credentials
         try {
           creds = await client.deriveApiKey();
           console.log('Derived existing API credentials');
@@ -101,11 +111,9 @@ export default function WalletConnectButton() {
           throw new Error('Invalid API credentials received');
         }
 
-        // Store the credentials
         setApiCredentials(creds);
       }
 
-      // Create new authenticated client with credentials
       const authenticatedClient = new ClobClient(
         host,
         chainId,
@@ -114,27 +122,23 @@ export default function WalletConnectButton() {
         0
       );
 
-
       // @ts-ignore
       authenticatedClient.apiCreds = creds;
 
-      // Test the authentication
       try {
         console.log('Testing authentication...');
         const openOrders = await authenticatedClient.getOpenOrders();
         console.log('Authentication test successful, open orders:', openOrders.length);
       } catch (testError: any) {
         console.warn('Auth test warning:', testError.message);
-        // If stored credentials failed, clear them and retry
         if (apiCredentials) {
           console.log('Stored credentials failed, clearing and retrying...');
           setApiCredentials(null);
           initializationInProgress.current = false;
-          return await initializeClobClient(); // Recursive retry without stored creds
+          return await initializeClobClient();
         }
       }
 
-      // Store everything in zustand
       setClobClient(authenticatedClient);
       setInitializedAddress(address);
       setApiReady(true);
@@ -150,11 +154,9 @@ export default function WalletConnectButton() {
     }
   };
 
-  // Reconstruct client from stored credentials on mount
   useEffect(() => {
     const reconstructClient = async () => {
-      // Check if we have stored state but no client object (happens after page navigation)
-      if (initializedAddress === address && apiCredentials && !clobClient && walletClient) {
+      if (initializedAddress === address && apiCredentials && !clobClient && walletClient && ClobClient) {
         console.log('Reconstructing client from stored credentials...');
         
         try {
@@ -171,7 +173,6 @@ export default function WalletConnectButton() {
             0
           );
 
-
           // @ts-ignore
           authenticatedClient.apiCreds = apiCredentials;
           setClobClient(authenticatedClient);
@@ -179,20 +180,18 @@ export default function WalletConnectButton() {
           console.log('Client reconstructed successfully');
         } catch (error) {
           console.error('Failed to reconstruct client:', error);
-          // Clear stored state and re-initialize
           reset();
         }
       }
     };
 
-    reconstructClient();
-  }, [address, apiCredentials, clobClient, initializedAddress, walletClient, setClobClient, setApiReady, reset]);
+    if (clientLoaded) {
+      reconstructClient();
+    }
+  }, [address, apiCredentials, clobClient, initializedAddress, walletClient, setClobClient, setApiReady, reset, clientLoaded]);
 
-  // Effect to handle wallet connection changes
   useEffect(() => {
-    // Skip if not connected or no wallet client
-    if (!isConnected || !walletClient || !address) {
-      // Handle disconnection
+    if (!isConnected || !walletClient || !address || !clientLoaded) {
       if (!isConnected && initializedAddress) {
         console.log('Wallet disconnected, resetting state');
         reset();
@@ -201,7 +200,6 @@ export default function WalletConnectButton() {
       return;
     }
 
-    // Check if address changed (user switched accounts)
     if (initializedAddress && initializedAddress !== address) {
       console.log('Address changed from', initializedAddress, 'to', address, '- resetting state');
       reset();
@@ -209,25 +207,21 @@ export default function WalletConnectButton() {
       return;
     }
 
-    // CRITICAL CHECK: Skip if already initialized for this address
     if (initializedAddress === address && clobClient && isApiReady) {
       console.log('Already initialized for address:', address, '- skipping initialization');
       return;
     }
 
-    // Skip if we have credentials for this address (will be reconstructed)
     if (initializedAddress === address && apiCredentials) {
       console.log('Have stored credentials for address:', address, '- waiting for reconstruction');
       return;
     }
 
-    // Skip if already initializing
     if (isInitializing || initializationInProgress.current) {
       console.log('Initialization already in progress - skipping');
       return;
     }
 
-    // Initialize only if we need to
     const initialize = async () => {
       console.log('Starting initialization for address:', address);
       setIsInitializing(true);
@@ -244,15 +238,13 @@ export default function WalletConnectButton() {
 
     initialize();
     
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, walletClient, initializedAddress, apiCredentials]);
+  }, [isConnected, address, walletClient, initializedAddress, apiCredentials, clientLoaded]);
 
-  // Manual retry function
   const retryInitialization = async () => {
-    if (isInitializing || initializationInProgress.current) return;
+    if (isInitializing || initializationInProgress.current || !clientLoaded) return;
     
     console.log('Manual retry initiated');
-    reset(); // Clear store state to force re-initialization
+    reset();
     setInitializationError(null);
     
     setIsInitializing(true);
@@ -275,10 +267,14 @@ export default function WalletConnectButton() {
         }}
         chainStatus="icon"
       />
-      
-
+      {initializationError && (
+        <div className="text-xs text-red-500">
+          {initializationError}
+          <button onClick={retryInitialization} className="ml-2 underline">
+            Retry
+          </button>
+        </div>
+      )}
     </div>
   );    
-
-
 }

@@ -99,7 +99,7 @@ export function MarketInfo({ market }: MarketInfoProps) {
   return (
     <div className="space-y-8">
       {/* Market Description */}
-      <Card className="bg-[#12161C] border-[#1E2329] p-6">
+      <Card className="bg-black p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white flex items-center gap-2">
             <FileText className="w-5 h-5 text-[#6366F1]" />
@@ -164,7 +164,7 @@ export function MarketInfo({ market }: MarketInfoProps) {
       </Card>
 
       {/* Market Details */}
-      <Card className="bg-[#12161C] border-[#1E2329] p-6">
+      <Card className="bg-black border-[#1E2329] p-6">
         <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
           <User className="w-5 h-5 text-[#6366F1]" />
           Market Details
@@ -250,66 +250,7 @@ export function MarketInfo({ market }: MarketInfoProps) {
         </div>
       </Card>
 
-      {/* Related Markets */}
-      <Card className="bg-[#12161C] border-[#1E2329] p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-white">Related Markets</h3>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={prevSlide}
-              className="border-[#1E2329] text-[#94A3B8] hover:text-white h-8 w-8 p-0 bg-transparent"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={nextSlide}
-              className="border-[#1E2329] text-[#94A3B8] hover:text-white h-8 w-8 p-0 bg-transparent"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
 
-        <div className="overflow-hidden">
-          <motion.div
-            className="flex gap-4"
-            animate={{ x: -currentSlide * 100 + "%" }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            {Array.from({ length: Math.ceil(relatedMarkets.length / 2) }, (_, slideIndex) => (
-              <div key={slideIndex} className="flex gap-4 min-w-full">
-                {relatedMarkets.slice(slideIndex * 2, slideIndex * 2 + 2).map((relatedMarket) => (
-                  <Card
-                    key={relatedMarket.id}
-                    className="bg-[#1E2329] border-[#2A2F36] p-4 flex-1 cursor-pointer hover:border-[#6366F1]/50 transition-colors"
-                  >
-                    <div className="flex gap-3">
-                      <img
-                        src={relatedMarket.image || "/placeholder.svg"}
-                        alt={relatedMarket.question}
-                        className="w-16 h-12 object-cover rounded bg-[#2A2F36]"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-white text-sm font-medium line-clamp-2 mb-2">{relatedMarket.question}</h4>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-[#00D395] font-medium">
-                            {(relatedMarket.yesPrice * 100).toFixed(0)}¢
-                          </span>
-                          <span className="text-[#94A3B8]">${relatedMarket.volume.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </Card>
     </div>
   )
 }

@@ -275,7 +275,7 @@ export function RecentTrades({ tokenId, marketId }: RecentTradesProps) {
   }, [tokenId, marketId])
 
   return (
-    <Card className="bg-[#12161C] border-[#1E2329] p-6">
+    <Card className="bg-black p-6 w-full max-w-7xl">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-white">Recent Trades</h3>
         <div className="flex items-center gap-3">

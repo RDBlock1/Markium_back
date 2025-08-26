@@ -289,7 +289,7 @@ export function CommentsSection() {
   )
 
   return (
-    <Card className="bg-[#12161C] border-[#1E2329] p-6">
+    <Card className="bg-black p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-white">Comments</h3>
         <div className="flex items-center gap-2">

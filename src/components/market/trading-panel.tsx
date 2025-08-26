@@ -18,6 +18,9 @@ import { ClobClient } from "@polymarket/clob-client"
 import { useAccount, useReadContract } from "wagmi"
 import { formatUnits } from "viem"
 import BuyButton from "../buy"
+import { OrderBook } from "./order-book"
+import { MyOrdersTable } from "./my-orders-table"
+import { RecentTrades } from "./recent-trades"
 
 interface TradingPanelProps {
   market: MarketSlug
@@ -194,7 +197,8 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
   }
 
   return (
-    <Card className="bg-[#12161C] border-[#1E2329] p-6 sticky top-24">
+<div className="w-full lg:max-w-md">
+      <Card className="bg-black border-[#1E2329] p-6 sticky  top-24 m-2">
       <TradingPanelContent
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -217,6 +221,11 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
         handleTrade={handleTrade}
         market={market} yesTokenId={cloudIds[0]} noTokenId={cloudIds[1]} udscBalance={formattedBalance} />
     </Card>
+
+    <div className="m-2">
+      <OrderBook />
+    </div>
+</div>
   )
 }
 
@@ -360,7 +369,7 @@ function TradingPanelContent({
   }, [market.id, activeTab, amount, selectedOutcome]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full lg:max-w-5xl">
       {/* Buy/Sell Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "buy" | "sell")}>
         <TabsList className="grid w-full grid-cols-2 bg-[#1E2329] border border-[#2A2F36]">

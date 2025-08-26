@@ -1,15 +1,15 @@
+// components/navbar.tsx
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { NavItem } from "@/types/market"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
-import WalletConnectButton from "./wallet-connect-button"
 import Image from "next/image"
+// Import the wrapper instead of the actual component
+import { WalletConnectButton } from "./wallet-connect-buttion-wrapper"
 
 const navItems: NavItem[] = [
   { label: "MARKET", href: "/" },
@@ -34,7 +34,7 @@ export function Navbar({ activeTab = "MARKET" }: NavbarProps) {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="sticky top-0 z-50 w-full  backdrop-blur-md border-b border-dashed border-[#282727]"
+      className="sticky top-0 z-50 w-full backdrop-blur-md border-b border-dashed border-[#282727]"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -63,7 +63,6 @@ export function Navbar({ activeTab = "MARKET" }: NavbarProps) {
                 >
                   {item.label}
                 </Link>
-        
               </motion.div>
             ))}
           </nav>
@@ -71,7 +70,7 @@ export function Navbar({ activeTab = "MARKET" }: NavbarProps) {
           {/* Desktop Login Button */}
           <div className="hidden md:flex items-center">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-               <WalletConnectButton />
+              <WalletConnectButton />
             </motion.div>
           </div>
 

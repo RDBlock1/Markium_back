@@ -269,7 +269,7 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
   )
 
   return (
-    <Card className="bg-[#12161C] border-[#1E2329] p-4 md:p-6">
+    <Card className="bg-black p-4 md:p-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h3 className="text-lg font-semibold text-white">Position Holders</h3>
         <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-[#1E2329]">
+        <TabsList className="grid w-full grid-cols-2 bg-black">
           <TabsTrigger value="yes" className="data-[state=active]:bg-[#00D395] data-[state=active]:text-white">
             Yes Holders ({yesHolders.length})
           </TabsTrigger>

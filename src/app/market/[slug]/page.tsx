@@ -4,6 +4,7 @@ import MarketSlugMainSection from "@/components/market/market-slug-main-section"
 import { baseUrl } from "@/utils";
 import MarketSmall from "@/components/market/market-small";
 import { Metadata } from 'next';
+import MarketDetailSection from "@/components/market/market-detail-section";
 
 // Fetch market data function (reusable)
 async function fetchMarketData(slug: string) {
@@ -216,7 +217,11 @@ export default async function MarketPage({
         />
         
         <Suspense fallback={<Loading />}>
-          <MarketSlugMainSection 
+          {/* <MarketSlugMainSection 
+            params={{ slug }} 
+            marketData={marketData} 
+          /> */}
+          <MarketDetailSection 
             params={{ slug }} 
             marketData={marketData} 
           />
