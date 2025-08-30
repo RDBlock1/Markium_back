@@ -1,4 +1,3 @@
-// components/wallet-connect-button-client.tsx
 'use client';
 
 import useClobAPIStore from "@/store/clobAPIState";
@@ -6,6 +5,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
+import { useUserCreation } from "@/hooks/useUserCreation";
 
 // Dynamic import for ClobClient to ensure it's only loaded client-side
 let ClobClient: any = null;
@@ -19,6 +19,8 @@ export default function WalletConnectButtonClient() {
   const [clientLoaded, setClientLoaded] = useState(false);
   
   const initializationInProgress = useRef(false);
+  // Track the last processed address to prevent duplicate user creation
+  const lastProcessedAddress = useRef<string | null>(null);
   
   const { 
     clobClient, 
@@ -31,6 +33,15 @@ export default function WalletConnectButtonClient() {
     setApiCredentials,
     reset
   } = useClobAPIStore();
+
+  // Add user creation hook
+  const { 
+    createOrGetUser, 
+    isCreatingUser, 
+    userCreationError, 
+    currentUser,
+    reset: resetUserCreation 
+  } = useUserCreation();
 
   const host = "https://clob.polymarket.com";
   const chainId = 137;
@@ -48,6 +59,28 @@ export default function WalletConnectButtonClient() {
       });
     }
   }, []);
+
+  // Create user when wallet is connected - FIXED VERSION
+  useEffect(() => {
+    // Only process if connected, have an address, and it's different from last processed
+    if (isConnected && address && address !== lastProcessedAddress.current) {
+      console.log('Processing user creation for new address:', address);
+      lastProcessedAddress.current = address;
+      
+      createOrGetUser(address).then((result) => {
+        if (result) {
+          console.log(`User ${result.isNewUser ? 'created' : 'retrieved'} successfully:`, result.user.id);
+        }
+      });
+    }
+    
+    // Reset when disconnected
+    if (!isConnected && lastProcessedAddress.current) {
+      console.log('Wallet disconnected, resetting user state');
+      lastProcessedAddress.current = null;
+      resetUserCreation();
+    }
+  }, [isConnected, address, createOrGetUser, resetUserCreation]);
 
   const initializeClobClient = async (): Promise<void> => {
     if (!walletClient || !address || !ClobClient) {
@@ -245,10 +278,18 @@ export default function WalletConnectButtonClient() {
     
     console.log('Manual retry initiated');
     reset();
+    resetUserCreation();
     setInitializationError(null);
+    lastProcessedAddress.current = null; // Reset to allow re-creation
     
     setIsInitializing(true);
     try {
+      // Re-create user if needed
+      if (address && address !== lastProcessedAddress.current) {
+        lastProcessedAddress.current = address;
+        await createOrGetUser(address);
+      }
+      
       await initializeClobClient();
     } catch (error) {
       console.error('Retry failed:', error);
@@ -267,14 +308,8 @@ export default function WalletConnectButtonClient() {
         }}
         chainStatus="icon"
       />
-      {initializationError && (
-        <div className="text-xs text-red-500">
-          {initializationError}
-          <button onClick={retryInitialization} className="ml-2 underline">
-            Retry
-          </button>
-        </div>
-      )}
+      
+ 
     </div>
   );    
 }

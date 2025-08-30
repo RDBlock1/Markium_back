@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id    String @id @default(cuid())
+  walletAddress String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  watchLists WatchList[]
+}
+
+model WatchList {
+  id            String   @id @default(cuid())
+  userId        String
+  marketId      String
+  triggerType   String   // e.g. "PRICE_ABOVE", "MARKET_CLOSE", "VOLUME_SPIKE"
+  triggerValue  Float?   // threshold, e.g. 0.7 for PRICE_ABOVE
+  frequency     String   @default("IMMEDIATE")
+  isActive      Boolean  @default(true)
+
+  isEmailNotification    Boolean @default(false)
+  isTelegramNotification Boolean @default(false)
+  lastNotifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+

@@ -8,6 +8,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { getConfig } from './config'
 import { ThemeProvider } from 'next-themes';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { Toaster } from 'sonner';
 
 type Props = {
   children: ReactNode,
@@ -29,6 +30,12 @@ export function Providers({ children, initialState }: Props) {
             defaultTheme="dark"
           >
             {children}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 3000,
+              }}
+            />
           </ThemeProvider>
         </RainbowKitProvider>
       </QueryClientProvider>

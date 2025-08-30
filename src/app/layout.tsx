@@ -7,6 +7,7 @@ import { getConfig } from './config'
 import { Providers } from './provider'
 import { Navbar } from '@/components/navbar'
 import Script from 'next/script'
+import { Footer } from '@/components/footer'
 
 //metadata
 export const metadata = {
@@ -241,7 +242,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
         <Providers initialState={initialState}>
           <Navbar />
           {children}
-
+          <Footer/> 
         </Providers>
       </body>
     </html>

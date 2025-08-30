@@ -11,19 +11,18 @@ import Image from "next/image"
 // Import the wrapper instead of the actual component
 import { WalletConnectButton } from "./wallet-connect-buttion-wrapper"
 
+  import { usePathname } from "next/navigation"
+
 const navItems: NavItem[] = [
   { label: "MARKET", href: "/" },
-  { label: "PRE-IPO", href: "#" },
-  { label: "TRADE", href: "#" },
-  { label: "LEADERBOARD", href: "#" },
+  { label: "WATCHLIST", href: "/watchlist" },
 ]
 
-interface NavbarProps {
-  activeTab?: string
-}
 
-export function Navbar({ activeTab = "MARKET" }: NavbarProps) {
+export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const path = usePathname()
+  const activeNavItem = navItems.find(item => item.href === path)?.label
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -58,7 +57,7 @@ export function Navbar({ activeTab = "MARKET" }: NavbarProps) {
                   href={item.href}
                   className={cn(
                     "text-sm font-medium transition-colors duration-200 py-2 px-1",
-                    activeTab === item.label ? "text-[#00D395]" : "text-gray-400 hover:text-white",
+                    activeNavItem === item.label ? "text-[#00D395]" : "text-gray-400 hover:text-white",
                   )}
                 >
                   {item.label}
@@ -110,7 +109,7 @@ export function Navbar({ activeTab = "MARKET" }: NavbarProps) {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={cn(
                         "block px-3 py-2 text-base font-medium transition-colors duration-200 rounded-md",
-                        activeTab === item.label
+                        activeNavItem === item.label
                           ? "text-white bg-[#00D395]/10 border-l-2 border-[#00D395]"
                           : "text-gray-400 hover:text-white hover:bg-white/5",
                       )}

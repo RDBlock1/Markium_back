@@ -1,8 +1,5 @@
-import { Suspense } from "react";
-import Loading from "@/app/loading";
-import MarketSlugMainSection from "@/components/market/market-slug-main-section";
+
 import { baseUrl } from "@/utils";
-import MarketSmall from "@/components/market/market-small";
 import { Metadata } from 'next';
 import MarketDetailSection from "@/components/market/market-detail-section";
 
@@ -215,17 +212,11 @@ export default async function MarketPage({
             })
           }}
         />
-        
-        <Suspense fallback={<Loading />}>
-          {/* <MarketSlugMainSection 
-            params={{ slug }} 
-            marketData={marketData} 
-          /> */}
+
           <MarketDetailSection 
             params={{ slug }} 
             marketData={marketData} 
           />
-        </Suspense>
       </div>
     );
     

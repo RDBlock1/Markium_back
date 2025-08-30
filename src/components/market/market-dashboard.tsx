@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,7 +28,10 @@ import {
   DollarSign,
   Activity,
   Clock,
-  CalendarDays
+  CalendarDays,
+  Bell,
+  BellIcon,
+  CheckIcon
 } from "lucide-react"
 import { MarketSlug } from "@/types/market"
 import PolymarketMiniChart from "./mini-chart"
@@ -36,6 +39,10 @@ import { formatVolume, toLocalString } from "@/utils"
 import { Progress } from "../ui/progress"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { WatchlistAlertDialog } from "../watchlist/alert-dialog"
+import { useAccount } from "wagmi"
+import { toast } from "sonner"
+import { watchlistAPI } from "@/lib/watchlist-api"
 
 // Sort options with icons
 const sortOptions = [
@@ -61,12 +68,36 @@ type Props = {
   sortBy: string
 }
 
+type WatchlistItem = {
+  id: string
+  userId: string
+  marketId: string
+  question: string
+  endDate: Date | null
+  liquidity: number | null
+  volume24hr: number | null
+  triggerType: string
+  triggerValue: number
+  frequency: string
+  isActive: boolean
+  isEmailNotification: boolean
+  isTelegramNotification: boolean
+  lastNotifiedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
 export default function MarketDashboard({ marketData, onSortChange, sortBy }: Props) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [isChangingSort, setIsChangingSort] = useState(false)
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]) // Ensure it's always an array
+  const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(false)
   const router = useRouter()
+
+  const { address, isConnected } = useAccount()
+
 
   useEffect(() => {
     console.log("Market Data received:", marketData);
@@ -75,6 +106,11 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
       console.log("Current sort:", sortBy);
     }
   }, [marketData, sortBy]);
+
+  // Memoized function to check if item is in watchlist
+  const isInWatchlist = useCallback((marketId: string) => {
+    return Array.isArray(watchlist) && watchlist.some(item => item.marketId === marketId)
+  }, [watchlist])
 
   // Handle sort change with loading state
   const handleSortSelection = async (newSortBy: string) => {
@@ -85,99 +121,187 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
     setTimeout(() => setIsChangingSort(false), 300);
   };
 
-  // Filter markets based on search and category (client-side filtering)
+  // Optimized filter function with better category matching
+  const getCategoryMatch = useCallback((question: string, category: string) => {
+    const lowerQuestion = question.toLowerCase();
+    
+    const categoryMatchers = {
+      politics: [
+        'president', 'election', 'congress', 'senate', 'political', 'government',
+        'trump', 'biden', 'harris', 'democrat', 'republican', 'vote', 'campaign',
+        'white house', 'policy', 'governor', 'mayor', 'congress'
+      ],
+      sports: [
+        'game', 'win', 'championship', 'team', 'player', 'nfl', 'nba', 'soccer',
+        'football', 'baseball', 'basketball', 'super bowl', 'world cup', 'olympics',
+        'playoff', 'season', 'league', 'match', 'tournament'
+      ],
+      'pop-culture': [
+        'movie', 'music', 'celebrity', 'entertainment', 'oscar', 'grammy',
+        'taylor', 'netflix', 'hollywood', 'album', 'film', 'tv show', 'series',
+        'actor', 'actress', 'director', 'streaming', 'box office'
+      ],
+      crypto: [
+        'bitcoin', 'ethereum', 'crypto', 'btc', 'eth', 'defi', 'blockchain',
+        'solana', 'dogecoin', 'nft', 'web3', 'cryptocurrency', 'token', 'coin',
+        'mining', 'wallet', 'exchange'
+      ]
+    };
+
+    const matchers = categoryMatchers[category as keyof typeof categoryMatchers];
+    return matchers ? matchers.some(term => lowerQuestion.includes(term)) : true;
+  }, []);
+
+  // Filter markets based on search and category (optimized with useMemo)
   const filteredMarkets = useMemo(() => {
-    if (!marketData) return [];
+    if (!Array.isArray(marketData)) return [];
     
     let filtered = [...marketData];
     
     // Apply search filter
     if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
       filtered = filtered.filter(market => 
-        market.question?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        market.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        market.id?.toLowerCase().includes(searchQuery.toLowerCase())
+        market.question?.toLowerCase().includes(searchLower) ||
+        market.description?.toLowerCase().includes(searchLower) ||
+        market.id?.toLowerCase().includes(searchLower)
       );
     }
     
     // Apply category filter
     if (selectedCategory !== "all") {
       filtered = filtered.filter(market => {
-        const question = market.question?.toLowerCase() || "";
-        
-        switch(selectedCategory) {
-          case "politics":
-            return question.includes("president") || 
-                   question.includes("election") || 
-                   question.includes("congress") ||
-                   question.includes("senate") ||
-                   question.includes("political") ||
-                   question.includes("government") ||
-                   question.includes("trump") ||
-                   question.includes("biden");
-          case "sports":
-            return question.includes("game") || 
-                   question.includes("win") || 
-                   question.includes("championship") ||
-                   question.includes("team") ||
-                   question.includes("player") ||
-                   question.includes("nfl") ||
-                   question.includes("nba") ||
-                   question.includes("soccer") ||
-                   question.includes("football");
-          case "pop-culture":
-            return question.includes("movie") || 
-                   question.includes("music") || 
-                   question.includes("celebrity") ||
-                   question.includes("entertainment") ||
-                   question.includes("oscar") ||
-                   question.includes("grammy") ||
-                   question.includes("taylor") ||
-                   question.includes("netflix");
-          case "crypto":
-            return question.includes("bitcoin") || 
-                   question.includes("ethereum") || 
-                   question.includes("crypto") ||
-                   question.includes("btc") ||
-                   question.includes("eth") ||
-                   question.includes("defi") ||
-                   question.includes("blockchain") ||
-                   question.includes("solana");
-          default:
-            return true;
-        }
+        const question = market.question || "";
+        return getCategoryMatch(question, selectedCategory);
       });
     }
     
     return filtered;
-  }, [marketData, searchQuery, selectedCategory]);
+  }, [marketData, searchQuery, selectedCategory, getCategoryMatch]);
 
-  function getYesAndNoPrices(market: any) {
+  // Optimized price calculation function
+  const getYesAndNoPrices = useCallback((market: any) => {
     let prices: number[] = [0, 0];
 
-    if (Array.isArray(market.outcomePrices)) {
-      prices = market.outcomePrices.map((p: string) => parseFloat(p));
-    } else if (typeof market.outcomePrices === "string") {
-      try {
+    try {
+      if (Array.isArray(market.outcomePrices)) {
+        prices = market.outcomePrices.map((p: string | number) => 
+          typeof p === 'string' ? parseFloat(p) : Number(p)
+        );
+      } else if (typeof market.outcomePrices === "string") {
         const parsed = JSON.parse(market.outcomePrices);
         if (Array.isArray(parsed)) {
-          prices = parsed.map(p => parseFloat(p));
+          prices = parsed.map(p => typeof p === 'string' ? parseFloat(p) : Number(p));
         }
-      } catch (err) {
-        console.error("Failed to parse outcomePrices:", market.outcomePrices, err);
       }
+    } catch (err) {
+      console.error("Failed to parse outcomePrices:", market.outcomePrices, err);
     }
 
-    const yesPrice = prices[0] ?? 0;
-    const noPrice = prices[1] ?? 0;
+    const yesPrice = Math.max(0, Math.min(1, prices[0] ?? 0));
+    const noPrice = Math.max(0, Math.min(1, prices[1] ?? 0));
     const yesPercentage = (yesPrice * 100).toFixed(0);
     const noPercentage = (noPrice * 100).toFixed(0);
 
     return { yesPrice, noPrice, yesPercentage, noPercentage };
-  }
+  }, []);
+
+  // Fetch watchlist with proper error handling
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      if (!isConnected || !address) {
+        setWatchlist([]);
+        return;
+      }
+
+      setIsLoadingWatchlist(true);
+      try {
+        const response = await fetch(`/api/watchlist?walletAddress=${address}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched watchlist:', data);
+          // Ensure data is an array
+          setWatchlist(Array.isArray(data.watchLists) ? data.watchLists : []);
+        } else {
+          console.error('Failed to fetch watchlist:', response.statusText);
+          setWatchlist([]);
+        }
+      } catch (error) {
+        console.error('Error fetching watchlist:', error);
+        setWatchlist([]);
+      } finally {
+        setIsLoadingWatchlist(false);
+      }
+    };
+
+    fetchWatchlist();
+  }, [address, isConnected]);
+
+  // Optimized watchlist toggle function
+  const handleAddToWatchlist = useCallback(async (marketId: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (!isConnected || !address) {
+      toast.info("Please connect your wallet to manage your watchlist.");
+      return;
+    }
+
+    const isCurrentlyInWatchlist = isInWatchlist(marketId);
+
+    try {
+      if (isCurrentlyInWatchlist) {
+        // Remove from watchlist
+        await watchlistAPI.deleteWatchlist(marketId, address);
+        setWatchlist(prev => prev.filter(item => item.marketId !== marketId));
+        toast.success("Market removed from watchlist");
+      } else {
+        // Add to watchlist
+        const response = await watchlistAPI.createWatchlist({
+          walletAddress: address,
+          marketId: marketId,
+          triggerType: "price_above"
+        });
+
+    
+        const updatedWatchlist = response.watchList;
+        console.log('Updated watchlist:', updatedWatchlist);
+        console.log('watchlist:', watchlist);
+        setWatchlist(prev => [...prev, updatedWatchlist]);
+        toast.success("Market added to watchlist");
+      }
+    } catch (error) {
+      console.error("Error managing watchlist:", error);
+      toast.error(isCurrentlyInWatchlist ? "Failed to remove from watchlist" : "Failed to add to watchlist");
+    }
+  }, [isConnected, address, isInWatchlist]);
 
   // Get current sort option for display
   const currentSortOption = sortOptions.find(opt => opt.value === sortBy) || sortOptions[0];
+
+  // Clear filters function
+  const clearFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+  }, []);
+
+  // Watchlist button component
+  const WatchlistButton = useCallback(({ marketId, className = "" }: { marketId: string; className?: string }) => (
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={(e) => handleAddToWatchlist(marketId, e)}
+      className={`${className} ${isLoadingWatchlist ? 'opacity-50 cursor-not-allowed' : ''} mx-3`}
+      disabled={isLoadingWatchlist}
+    >
+      {isInWatchlist(marketId) ? (
+        <p>Watching</p>
+      ) : (
+        <p>Watch</p>
+      )}
+    </Button>
+  ), [handleAddToWatchlist, isInWatchlist, isLoadingWatchlist]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -538,6 +662,8 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                                     Trade
                                   </Button>
                                 </Link>
+                                                              <WatchlistButton marketId={token.id} />
+
                               </motion.div>
                             </td>
                           </motion.tr>
@@ -583,6 +709,8 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                             Trade
                           </Button>
                         </Link>
+                                                        <WatchlistButton marketId={token.id} />
+
                       </motion.div>
                     </div>
 

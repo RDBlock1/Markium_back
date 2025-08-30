@@ -12,6 +12,7 @@ import { CommentsSection } from "./commments-section";
 import { TokenHolders } from "@/types/holder";
 import { useEffect, useState } from "react";
 import { getTopHolders } from "@/app/actions/market";
+import { NewsFeed } from "./news/news-feed";
 
 interface MarketPageProps {
   params: {
@@ -44,9 +45,9 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
         <div>
 
 
-            <div className=" w-full">
-                <div className="flex flex-col md:flex-row space-x-4 p-4 border mt-4 mx-4">
-                   <div className="flex  gap-2">
+            <div className=" w-full md:max-w-[90%] mx-auto">
+                <div className="w-full flex flex-col md:flex-row lg:justify-between  space-x-4 p-4 border mt-4 mx-4">
+                   <div className="flex  gap-2 md:w-full">
                      <Image
                         src={marketData?.image || '/og-market-default.jpg'}
                         alt={marketData?.id || 'Market Image'}
@@ -63,7 +64,7 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
                     </div>
                    </div>
 
-                    <div className= " md:w-full  ">
+                    <div className= " md:w-full  lg:flex justify-end ">
                         <ul className="flex flex-wrap mt-10 md:mt-0 gap-x-5">
                             <li className="flex flex-col">
                                 <span className="text-gray-400">
@@ -119,22 +120,29 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
                        {/* Market Info Tabs */}
             <Tabs defaultValue="info" className="w-full mx-4 mt-4">
               <TabsList className="grid w-full grid-cols-4 bg-black border border-[#1E2329]">
-                <TabsTrigger value="info">Market Info</TabsTrigger>
-                <TabsTrigger value="holders">Top Holders</TabsTrigger>
-                <TabsTrigger value="comments">Comments</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="info">Breaking News</TabsTrigger>
+                <TabsTrigger value="holders">Market Info</TabsTrigger>
+                <TabsTrigger value="comments">Top Holders</TabsTrigger>
+                <TabsTrigger value="activity">Comments</TabsTrigger>
               </TabsList>
               <TabsContent value="info" className="mt-6">
-                <MarketInfo market={market!} />
+
+
+        <NewsFeed slug={marketData?.question || ""} />
+
               </TabsContent>
               <TabsContent value="holders" className="mt-6">
-                <YesNoHolders data={topHolders} />
+                                <MarketInfo market={market!} />
+
               </TabsContent>
               <TabsContent value="comments" className="mt-6">
-                <CommentsSection />
+                                <YesNoHolders data={topHolders} />
+
               </TabsContent>
               <TabsContent value="activity" className="mt-6">
-                <div className="text-center py-12 text-[#94A3B8]">Activity feed coming soon...</div>
+
+                                <CommentsSection />
+
               </TabsContent>
             </Tabs>
             </div>
