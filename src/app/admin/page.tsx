@@ -14,7 +14,7 @@ export default async function AdminPage() {
 
     // rugdetectives@gmail.com
 
-  if (!session?.user || session.user.email !== 'pratikmbade18@gmail.com') {
+  if (!session?.user || session.user.email !== 'rugdetectives@gmail.com') {
       return (
         <div className="flex flex-col items-center justify-center h-screen">
           <h1 className="text-2xl font-bold text-center">
