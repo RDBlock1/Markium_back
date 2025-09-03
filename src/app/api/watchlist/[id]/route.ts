@@ -12,7 +12,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const { id } = await params;
     const body = await request.json();
     const {
-      walletAddress,
+      email,
       triggerType,
       triggerValue,
       frequency,
@@ -21,7 +21,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       isActive
     } = body;
 
-    if (!walletAddress) {
+    if (!email) {
       return NextResponse.json(
         { error: 'Wallet address is required' },
         { status: 400 }
@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const watchList = await prisma.watchList.findFirst({
       where: {
         id,
-        user: { walletAddress }
+        user: { email }
       }
     });
 
@@ -71,24 +71,54 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const walletAddress = searchParams.get('walletAddress');
 
-    if (!walletAddress) {
+    const email = searchParams.get('email');
+    let dbId;
+    let marketId
+    if(id.startsWith("cm")) {
+      dbId = id;
+    }
+    else {
+      marketId = id;
+    }
+
+    console.log('Deleting watchlist for email:', email);
+    console.log('marketId:', marketId);
+
+    if (!email) {
       return NextResponse.json(
-        { error: 'Wallet address is required' },
+        { error: 'Email is required' },
         { status: 400 }
       );
     }
 
+    console.log('Deleting watchlist for email:', email);
+    console.log('marketId:', id);
     // Verify the watchlist belongs to the user
-    const watchList = await prisma.watchList.findFirst({
-      where: {
-        marketId: id,
-        user: { walletAddress }
-      }
-    });
+    let watchList
+
+    if (marketId) {
+      console.log('Deleting watchlist for email:', email);
+      console.log('marketId:', marketId);
+      watchList = await prisma.watchList.findFirst({
+        where: {
+          marketId,
+          user: { email }
+        }
+      });
+      console.log('Found watchlist by marketId:', watchList);
+    }
+    else if (dbId) {
+      watchList = await prisma.watchList.findFirst({
+        where: {
+          id: dbId,
+          user: { email }
+        }
+      });
+    }
 
     if (!watchList) {
+      console.log('Watchlist not found or unauthorized',watchList);
       return NextResponse.json(
         { error: 'Watchlist not found or unauthorized' },
         { status: 404 }

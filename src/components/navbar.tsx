@@ -8,25 +8,73 @@ import { Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { NavItem } from "@/types/market"
 import Image from "next/image"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { signIn, signOut, useSession } from 'next-auth/react';
 // Import the wrapper instead of the actual component
 import { WalletConnectButton } from "./wallet-connect-buttion-wrapper"
 
-  import { usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
+import { Button } from "./ui/button"
+import { UserMenu } from "./ui/user-menu"
+import { toast } from "sonner"
 
 const navItems: NavItem[] = [
   { label: "MARKET", href: "/" },
   { label: "WATCHLIST", href: "/watchlist" },
+  { label: "BLOG", href: "/blog" },
 ]
 
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const path = usePathname()
+  const { data: session } = useSession()
   const activeNavItem = navItems.find(item => item.href === path)?.label
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
   }
+  const handleLogout = async () => {
+    console.log('Logging out...');
+    try {
+      await signOut({ redirect: false });
+      toast.success('Logout successful');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
+
+  const handleSocialLogin = async (provider: string) => {
+    console.log(`Login with ${provider}`);
+    try {
+      const isOut = await signOut({ redirect: false });
+
+      if (isOut) {
+        console.log('Sign out successful');
+
+        const res = await signIn(provider, {
+          prompt: 'login',
+          callbackUrl: `${window.location.origin}/uptime/new/monitors`,
+        });
+        console.log('res', res);
+
+        // if (res?) {
+        //   console.log('res', res);
+        //   console.error('Sign in error:', res.error);
+        //   toast.error(mapErrorMessage(res.error), {
+        //     duration: 5000, // Optional: Adjust duration if needed
+        //   });
+
+        //   return;
+        // }
+      } else {
+        console.log('Sign out failed:', isOut);
+      }
+    } catch (error) {
+      console.log('Error during social login:', error);
+    }
+    // Implement social login logic
+  };
 
   return (
     <motion.header
@@ -67,10 +115,33 @@ export function Navbar() {
           </nav>
 
           {/* Desktop Login Button */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center ">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <WalletConnectButton />
             </motion.div>
+
+
+            {
+              session?.user ? (
+                // i have to show user profile photo and name
+                <UserMenu
+                  name={session.user.name!}
+                  email={session.user.email!}
+                  imageUrl={session.user.image!}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => handleSocialLogin('google')}
+                  className="w-fit py-2 px-4 ml-4 flex items-center space-x-2"
+                >
+                  Login
+                </Button>
+              )
+            }
+
           </div>
 
           {/* Mobile Menu Button */}

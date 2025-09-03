@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
 import { watchlistAPI } from "@/lib/watchlist-api"
 import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 
 export type AlertType = "price_above" | "price_below" | "price_crosses" | "yes_above" | "yes_below" | "no_above" | "no_below"
 
@@ -27,7 +28,7 @@ interface WatchlistAlertDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   marketId: string
-  walletAddress: string
+  userEmail: string
   watchlistId?: string // For editing existing alerts
   existingAlert?: {
     triggerType: string
@@ -44,7 +45,7 @@ export function WatchlistAlertDialog({
   open,
   onOpenChange,
   marketId,
-  walletAddress,
+  userEmail,
   watchlistId,
   existingAlert,
   onSuccess,
@@ -93,6 +94,7 @@ export function WatchlistAlertDialog({
     existingAlert?.isTelegramNotification || false
   )
   
+  const {data:session} = useSession()
   const [email, setEmail] = useState<string>("")
   const [telegramHandle, setTelegramHandle] = useState<string>("")
 
@@ -125,6 +127,24 @@ export function WatchlistAlertDialog({
   }, [existingAlert])
 
   const handleSubmit = async () => {
+
+    console.log('Submitting alert:', {
+      watchlistId,
+      marketId,
+      existingAlert,
+      alertType,
+      threshold,
+      percentageThreshold,
+      outcome,
+      percentageCondition,
+      cancelAfter,
+      notifyEmail,
+      notifyTelegram
+    });
+
+    if(!watchlistId){
+      toast.success('you don\'t have a watchlist yet')
+    }
     // Validation
     if (activeTab === "price") {
       if (!threshold || isNaN(parseFloat(threshold))) {
@@ -135,7 +155,7 @@ export function WatchlistAlertDialog({
       }
     }
 
-    if (notifyEmail && !email) {
+    if (notifyEmail &&  !session?.user?.email) {
       toast.error("Email required", {
         description: "Please enter an email address for notifications",
       })
@@ -167,7 +187,7 @@ export function WatchlistAlertDialog({
         : percentageThreshold / 100 // Convert percentage to decimal
 
       const data = {
-        walletAddress,
+        email: session?.user?.email || "",
         marketId,
         triggerType: triggerTypeMap[alertType],
         triggerValue,
@@ -181,14 +201,18 @@ export function WatchlistAlertDialog({
         // Update existing watchlist
         result = await watchlistAPI.updateWatchlist(watchlistId, {
           ...data,
-          isActive: true
+          isActive: true,
+          email: session?.user?.email || ""
         })
         toast.success("Alert updated", {
           description: "Your alert has been successfully updated",
         })
       } else {
         // Create new watchlist
-        result = await watchlistAPI.createWatchlist(data)
+        result = await watchlistAPI.createWatchlist({
+          ...data,
+          email: session?.user?.email || ""
+        })
         toast.success("Alert created", {
           description: "Your alert has been successfully created",
         })
@@ -393,7 +417,7 @@ export function WatchlistAlertDialog({
               {notifyEmail && (
                 <Input
                   placeholder="your@email.com"
-                  value={email}
+                  value={email ? email : session?.user?.email || ""}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               )}

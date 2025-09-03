@@ -75,11 +75,11 @@ export async function fetchMarketsByCondition(conditionId: string[]): Promise<Po
 
 
 // Alternative: Server action that combines watchlist data with market data
-export async function getWatchlistsWithMarketData(walletAddress: string): Promise<WatchlistWithMarketData[]> {
+export async function getWatchlistsWithMarketData(email: string): Promise<WatchlistWithMarketData[]> {
   try {
     // First, fetch the user's watchlists (assuming you have prisma available)
     const user = await prisma.user.findUnique({
-      where: { walletAddress },
+      where: { email },
       include: {
         watchLists: {
           orderBy: { createdAt: 'desc' }

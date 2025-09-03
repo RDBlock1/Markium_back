@@ -9,6 +9,7 @@ import { getConfig } from './config'
 import { ThemeProvider } from 'next-themes';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { Toaster } from 'sonner';
+import { SessionProvider } from 'next-auth/react';
 
 type Props = {
   children: ReactNode,
@@ -22,7 +23,9 @@ export function Providers({ children, initialState }: Props) {
 
   return (
 
+    <SessionProvider>
     <WagmiProvider config={config} initialState={initialState}>
+
 
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
@@ -31,15 +34,19 @@ export function Providers({ children, initialState }: Props) {
           >
             {children}
             <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 3000,
-              }}
+              position="top-center"
+              duration={1400}
+              closeButton
+              theme='dark'
+              richColors
             />
           </ThemeProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
 
     </WagmiProvider>
+    </SessionProvider>
+
+
   )
 }

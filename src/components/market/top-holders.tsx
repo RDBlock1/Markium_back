@@ -167,8 +167,8 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
             </div>
 
             {/* Desktop Layout */}
-            <div className="hidden md:grid md:grid-cols-4 gap-4 items-center">
-              <div className="flex items-center gap-3">
+            <div className="hidden md:grid md:grid-cols-4 gap-4 items-center w-full">
+              <div className="flex items-center gap-3  w-fit">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={holder.profileImage || holder.profileImageOptimized} />
                   <AvatarFallback className="bg-[#6366F1] text-white text-xs">
@@ -179,11 +179,10 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
               </div>
 
 
-            <div>
-              <div className="text-sm text-[#94A3B8] truncate">
-                {truncateAddress(holder.proxyWallet)}
+              <div className="text-sm text-[#94A3B8]  -translate-x-16">
+                {holder.proxyWallet}
               </div>
-            </div>
+
               <div className="flex flex-col">
                 <div className="font-semibold text-white">
                   {holder.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}

@@ -12,6 +12,7 @@ import { watchlistAPI } from "@/lib/watchlist-api"
 import { toast } from "sonner"
 import { WatchlistAlertDialog } from "./alert-dialog"
 import { formatVolume } from "@/utils"
+import { useRouter } from "next/navigation"
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -29,7 +30,7 @@ type Props = {
   exp_data: string
   liquidity: string
   volume24h: string
-  walletAddress: string
+  email: string
   onDelete?: () => void
   existingAlert?: {
     triggerType: string
@@ -47,6 +48,7 @@ export default function WatchListCards(props: Props) {
   // Responsive chart width
   const chartWrapRef = useRef<HTMLDivElement | null>(null)
   const [chartWidth, setChartWidth] = useState<number>(320)
+  const router = useRouter()
 
   useEffect(() => {
     const update = () => {
@@ -59,27 +61,34 @@ export default function WatchListCards(props: Props) {
     return () => window.removeEventListener("resize", update)
   }, [])
 
-  const handleDelete = async () => {
-    if (!props.watchlist_id) return
+// In your handleDelete function in WatchListCards component
+const handleDelete = async () => {
+  if (!props.watchlist_id) return
 
-    setDeleting(true)
-    try {
-      await watchlistAPI.deleteWatchlist(props.watchlist_id, props.walletAddress)
-
+  setDeleting(true)
+  try {
+    const response = await watchlistAPI.deleteWatchlist(props.watchlist_id, props.email)
+    console.log('response:', response);
+    if(response) {
       toast.success("Watchlist removed", {
         description: "The item has been removed from your watchlist",
       })
-      
+
+      // Call onDelete immediately to update UI
       if (props.onDelete) {
         props.onDelete()
       }
-    } catch (error) {
-      console.error("Error deleting watchlist:", error)
-      toast.error("Failed to remove from watchlist. Please try again.")
-    } finally {
-      setDeleting(false)
+      
+      // Optional: keep router.refresh() for server-side sync
+      router.refresh()
     }
+  } catch (error) {
+    console.error("Error deleting watchlist:", error)
+    toast.error("Failed to remove from watchlist. Please try again.")
+  } finally {
+    setDeleting(false)
   }
+}
 
   return (
     <>
@@ -166,7 +175,7 @@ export default function WatchListCards(props: Props) {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         marketId={props.market_id}
-        walletAddress={props.walletAddress}
+        userEmail={props.email}
         watchlistId={props.watchlist_id}
         existingAlert={props.existingAlert}
         marketTitle={props.question}

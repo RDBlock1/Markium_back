@@ -2,6 +2,9 @@
 import WatchListCards from "@/components/watchlist/watchlist-cards";
 import { useAccount } from "wagmi";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 
 
 interface PolymarketMarket {
@@ -48,17 +51,19 @@ export default function WatchListPage(){
     const {address,isConnected} = useAccount()
     const [watchlist, setWatchlist] = useState<WatchlistWithMarketData[]>([]);
     const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(false);
+    const router = useRouter();
+    const {data:session} = useSession()
 
       useEffect(() => {
         const fetchWatchlist = async () => {
-          if (!isConnected || !address) {
+          if (!session?.user || !session.user.email) {
             setWatchlist([]);
             return;
           }
     
           setIsLoadingWatchlist(true);
           try {
-            const response = await fetch(`/api/watchlist?walletAddress=${address}&includeMarketData=true`);
+            const response = await fetch(`/api/watchlist?email=${session.user.email}&includeMarketData=true`);
             if (response.ok) {
               const data = await response.json();
               console.log('Fetched watchlist:', data);
@@ -77,13 +82,19 @@ export default function WatchListPage(){
         };
     
         fetchWatchlist();
-      }, [address, isConnected]);
+      }, [session?.user?.email]);
 
-    return (
-        <div className="min-h-screen mx-10 p-2">
-            <h1 className="text-4xl mb-4">Watchlist</h1>
-            {
-                isLoadingWatchlist ? (
+ const onDelete = (watchlistId: string) => {
+    setWatchlist(prevWatchlist => 
+      prevWatchlist.filter(item => item.id !== watchlistId)
+    );
+  }
+
+  return (
+    <div className="min-h-screen mx-10 p-2">
+      <h1 className="text-4xl mb-4">Watchlist</h1>
+      {
+        isLoadingWatchlist ? (
                     <p>Loading...</p>
                 ) : (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3  gap-4">
@@ -92,12 +103,14 @@ export default function WatchListPage(){
                         watchlist.map(item => (
                             <WatchListCards
                                 key={item.id}
+                                watchlist_id={item.id}
                                 market_id={item.marketId}
                                 question={item.marketData?.question || ''}
                                 exp_data={item.marketData?.endDate || ''}
                                 liquidity={item.marketData?.liquidity || ''}
                                 volume24h={item.marketData?.volume24hr || ''}
-                                walletAddress={address!}
+                                email={session?.user?.email || ""}
+                                onDelete={() => onDelete(item.id)}
                             />
                         ))
                     ) : (

@@ -8,12 +8,55 @@ datasource db {
 }
 
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
 model User {
-  id    String @id @default(cuid())
-  walletAddress String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  watchLists WatchList[]
+  id                    String               @id @default(cuid())
+  name                  String?
+  email                 String               @unique
+    emailVerified         DateTime?            @map("email_verified")  // Add this line
+  password              String? // for Credentials
+  verifyToken           String? // for email verification
+  verifyTokenExpiry     DateTime? // for email verification
+  image                 String?
+  accounts              Account[]
+  sessions              Session[]
+  blogPost              BlogPost[]
+  createdAt             DateTime             @default(now()) @map("created_at")
+  accessToken           String?              @map("access_token")
+  telegramIntegrationId String?              @map("telegram_integration_id")
+  telegramIntegration   TelegramIntegration?
+  watchLists            WatchList[]
+
+  @@map("users")
 }
 
 model WatchList {
@@ -33,5 +76,32 @@ model WatchList {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+}
+
+
+model TelegramIntegration {
+  id               String   @id @default(cuid())
+  userId           String   // or organizationId depending on your app's design
+  userName         String
+  chatId           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdById      String @unique
+  createdBy        User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  category  String
+  excerpt   String?
+  content   String   @db.Text
+  tags      String
+  author    String
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 

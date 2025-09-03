@@ -6,24 +6,24 @@ import { getWatchlistsWithMarketData } from '@/app/actions/watchlist';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const walletAddress = searchParams.get('walletAddress');
+    const email = searchParams.get('email');
     const includeMarketData = searchParams.get('includeMarketData') === 'true';
 
-    if (!walletAddress) {
+    if (!email) {
       return NextResponse.json(
-        { error: 'Wallet address is required' },
+        { error: 'Email  is required' },
         { status: 400 }
       );
     }
 
     if (includeMarketData) {
       // Fetch watchlists with market data
-      const watchlistsWithMarketData = await getWatchlistsWithMarketData(walletAddress);
+      const watchlistsWithMarketData = await getWatchlistsWithMarketData(email);
       return NextResponse.json({ watchLists: watchlistsWithMarketData });
     } else {
       // Original functionality - just watchlists
       const user = await prisma.user.findUnique({
-        where: { walletAddress },
+        where: { email },
         include: {
           watchLists: {
             orderBy: { createdAt: 'desc' }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      walletAddress,
+      email,
       marketId,
       triggerType,
       triggerValue,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!walletAddress || !marketId || !triggerType) {
+    if (!email || !marketId || !triggerType) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -89,9 +89,9 @@ export async function POST(request: NextRequest) {
 
     // Find or create user
     const user = await prisma.user.upsert({
-      where: { walletAddress },
+      where: { email },
       update: {},
-      create: { walletAddress }
+      create: { email }
     });
 
     // Create watchlist

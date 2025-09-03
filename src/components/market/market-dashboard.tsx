@@ -43,6 +43,7 @@ import { WatchlistAlertDialog } from "../watchlist/alert-dialog"
 import { useAccount } from "wagmi"
 import { toast } from "sonner"
 import { watchlistAPI } from "@/lib/watchlist-api"
+import { useSession } from "next-auth/react"
 
 // Sort options with icons
 const sortOptions = [
@@ -94,6 +95,7 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
   const [isChangingSort, setIsChangingSort] = useState(false)
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]) // Ensure it's always an array
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(false)
+  const {data: session} = useSession()
   const router = useRouter()
 
   const { address, isConnected } = useAccount()
@@ -209,14 +211,14 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
   // Fetch watchlist with proper error handling
   useEffect(() => {
     const fetchWatchlist = async () => {
-      if (!isConnected || !address) {
+      if (!session?.user || !session.user.email) {
         setWatchlist([]);
         return;
       }
 
       setIsLoadingWatchlist(true);
       try {
-        const response = await fetch(`/api/watchlist?walletAddress=${address}`);
+        const response = await fetch(`/api/watchlist?email=${session.user.email}`);
         if (response.ok) {
           const data = await response.json();
           console.log('Fetched watchlist:', data);
@@ -235,7 +237,7 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
     };
 
     fetchWatchlist();
-  }, [address, isConnected]);
+  }, [session?.user]);
 
   // Optimized watchlist toggle function
   const handleAddToWatchlist = useCallback(async (marketId: string, event?: React.MouseEvent) => {
@@ -243,8 +245,11 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
       event.stopPropagation();
     }
 
-    if (!isConnected || !address) {
-      toast.info("Please connect your wallet to manage your watchlist.");
+    if (!session?.user?.email ) {
+      
+      toast.info("Please log in to manage your watchlist.",{
+        description:`${session?.user?.email}`
+      });
       return;
     }
 
@@ -253,13 +258,13 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
     try {
       if (isCurrentlyInWatchlist) {
         // Remove from watchlist
-        await watchlistAPI.deleteWatchlist(marketId, address);
+        await watchlistAPI.deleteWatchlist(marketId, session.user.email);
         setWatchlist(prev => prev.filter(item => item.marketId !== marketId));
         toast.success("Market removed from watchlist");
       } else {
         // Add to watchlist
         const response = await watchlistAPI.createWatchlist({
-          walletAddress: address,
+          email: session.user.email,
           marketId: marketId,
           triggerType: "price_above"
         });
@@ -275,7 +280,7 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
       console.error("Error managing watchlist:", error);
       toast.error(isCurrentlyInWatchlist ? "Failed to remove from watchlist" : "Failed to add to watchlist");
     }
-  }, [isConnected, address, isInWatchlist]);
+  }, [isInWatchlist]);
 
   // Get current sort option for display
   const currentSortOption = sortOptions.find(opt => opt.value === sortBy) || sortOptions[0];

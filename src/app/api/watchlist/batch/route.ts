@@ -6,9 +6,9 @@ import {prisma} from '@/db/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { walletAddress, watchLists } = body;
+    const { email, watchLists } = body;
 
-    if (!walletAddress || !watchLists || !Array.isArray(watchLists)) {
+    if (!email || !watchLists || !Array.isArray(watchLists)) {
       return NextResponse.json(
         { error: 'Invalid request body' },
         { status: 400 }
@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
 
     // Find or create user
     const user = await prisma.user.upsert({
-      where: { walletAddress },
+      where: { email },
       update: {},
-      create: { walletAddress }
+      create: { email }
     });
 
     // Create multiple watchlists

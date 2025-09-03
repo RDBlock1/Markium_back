@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'volume'; // Add sort parameter
     
     console.log(`Fetching markets - Limit: ${limit}, Offset: ${offset}, Sort: ${sortBy}`);
-    
+    console.log(`User location: ${navigator.language}, Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+
     // Check if we should use cached data
     const now = Date.now();
     const useCache = !forceRefresh && cachedData && (now - cacheTimestamp) < CACHE_DURATION;
