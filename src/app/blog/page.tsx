@@ -42,18 +42,13 @@ export default async function BlogPage() {
 
   if (blogs?.length === 0) {
     return (
-      <main className="container mx-auto px-4 py-12 md:py-16 bg-orange-50/30 min-h-[60vh] ">
+      <main className="min-h-screen mx-auto px-4 py-12 md:py-16   ">
         <div>
           <PageHeader
             title="No Blogs Available"
             subtitle="Currently, there are no blogs available. Please check back later."
             className="mb-12"
           />
-          <div className="text-center">
-            <p className="text-lg text-muted-foreground">
-              We are working hard to bring you the latest insights and updates.
-            </p>
-          </div>
         </div>
       </main>
     );

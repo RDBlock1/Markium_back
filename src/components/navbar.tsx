@@ -193,10 +193,33 @@ export function Navbar() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: navItems.length * 0.1 }}
-                  className="pt-4 border-t border-[#1a1a1a] mt-4"
+                  className="pt-4 border-t border-[#1a1a1a] mt-4 flex  justify-around items-center space-x-4"
                 >
                   <WalletConnectButton />
+
+                          {
+              session?.user ? (
+                // i have to show user profile photo and name
+                <UserMenu
+                  name={session.user.name!}
+                  email={session.user.email!}
+                  imageUrl={session.user.image!}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <Button
+                  variant="default"
+                  type="button"
+                  onClick={() => handleSocialLogin('google')}
+                  className="w-fit py-2 px-12  flex items-center space-x-2"
+                >
+                  Login
+                </Button>
+              )
+            }
                 </motion.div>
+
+         
               </div>
             </motion.div>
           )}
