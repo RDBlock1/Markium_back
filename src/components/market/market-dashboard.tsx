@@ -708,15 +708,6 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                           </div>
                         </div>
                       </div>
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Link href={`/market/${token.slug}`}>
-                          <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
-                            Trade
-                          </Button>
-                        </Link>
-                                                        <WatchlistButton marketId={token.id} />
-
-                      </motion.div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -761,7 +752,16 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                     </div>
 
                     {/* Sort Badge on Mobile */}
-                    <div className="mt-2 flex justify-end">
+                    <div className="mt-2 flex justify-between items-center">
+                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Link href={`/market/${token.slug}`}>
+                          <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
+                            Trade
+                          </Button>
+                        </Link>
+                                                        <WatchlistButton marketId={token.id} />
+
+                      </motion.div>
                       <Badge variant="outline" className="text-xs">
                         <currentSortOption.icon className="h-3 w-3 mr-1" />
                         {currentSortOption.label}
