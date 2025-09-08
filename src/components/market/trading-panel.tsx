@@ -10,10 +10,12 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Wallet, TrendingUp, TrendingDown, Settings, Info, ChevronUp, ChevronDown } from "lucide-react"
-import type { Market, MarketSlug, PriceReturns } from "@/types/market"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Wallet, TrendingUp, TrendingDown, Settings, Info, ChevronUp, ChevronDown, AlertCircle } from "lucide-react"
+import type { MarketSlug, PriceReturns } from "@/types/market"
 import { cn } from "@/lib/utils"
 import useClobAPIStore from "@/store/clobAPIState"
+import useMarketSelectionStore from "@/store/marketSelectionStore"
 import { ClobClient } from "@polymarket/clob-client"
 import { useAccount, useReadContract } from "wagmi"
 import { formatUnits } from "viem"
@@ -21,9 +23,10 @@ import BuyButton from "../buy"
 import { OrderBook } from "./order-book"
 import { MyOrdersTable } from "./my-orders-table"
 import { RecentTrades } from "./recent-trades"
+import React from "react"
 
 interface TradingPanelProps {
-  market: MarketSlug
+  market?: MarketSlug[] | MarketSlug | null 
   isMobile?: boolean
 }
 
@@ -68,7 +71,13 @@ const USDC_ABI = [
   },
 ] as const;
 
-export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
+export function TradingPanel({ market: propMarket, isMobile = false }: TradingPanelProps) {
+  // Get selected market from global state
+  const { selectedMarket, isLoadingMarket } = useMarketSelectionStore()
+  
+  // Use global selected market if available, otherwise fall back to prop
+  const market = selectedMarket || propMarket
+  
   const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy")
   const [selectedOutcome, setSelectedOutcome] = useState<"Yes" | "No">("Yes")
   const [amount, setAmount] = useState("")
@@ -76,13 +85,50 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
   const [maxSlippage, setMaxSlippage] = useState([1])
   const [isExpanded, setIsExpanded] = useState(!isMobile)
   const [walletBalance] = useState(1250.75) // Mock wallet balance
-  const prices = Array.isArray(market.outcomePrices)
-    ? market.outcomePrices.map(price => Number.parseFloat(price))
-    : typeof market.outcomePrices === "string"
-      ? market.outcomePrices.split(",").map(price => Number.parseFloat(price))
+  
+  // Handle the case where market might be an array, single object, or null
+  const currentMarket = React.useMemo(() => {
+    if (!market) return null;
+    if (Array.isArray(market)) {
+      return market.length > 0 ? market[0] : null; // Use first market if array
+    }
+    return market;
+  }, [market]);
+
+  // Reset form when selected market changes
+  useEffect(() => {
+    if (selectedMarket) {
+      setAmount("")
+      setSelectedOutcome("Yes")
+      setActiveTab("buy")
+    }
+  }, [selectedMarket?.id])
+
+  // Add early return if no market data
+  if (!currentMarket) {
+    return (
+      <div className="w-full lg:max-w-md">
+        <Card className="bg-black border-[#1E2329] p-6 m-2">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertCircle className="w-12 h-12 text-gray-500 mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">No Market Selected</h3>
+            <p className="text-sm text-gray-400">
+              Please select a market from the list to start trading
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const prices = Array.isArray(currentMarket.outcomePrices)
+    ? currentMarket.outcomePrices.map((price: any) => Number.parseFloat(price))
+    : typeof currentMarket.outcomePrices === "string"
+      ? currentMarket.outcomePrices.split(",").map((price: any) => Number.parseFloat(price))
       : [0, 0];
-  const yesPrice = prices[0];
-  const noPrice = prices[1];
+
+  const yesPrice = prices[0] || 0;
+  const noPrice = prices[1] || 0;
   const currentPrice = selectedOutcome === "Yes" ? yesPrice : noPrice
   const {address} = useAccount()
   const { data: usdcBalance, refetch: refetchBalance } = useReadContract({
@@ -95,19 +141,25 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
       }
     });
 
-      const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : "0";
+  const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : "0";
     
 
   // Calculate estimated shares and returns
   const amountValue = Number.parseFloat(amount) || 0
-  const estimatedShares = amountValue / currentPrice
+  const estimatedShares = currentPrice > 0 ? amountValue / currentPrice : 0
   const potentialReturn = selectedOutcome === "Yes" ? estimatedShares * (1 - yesPrice) : estimatedShares * (1 - noPrice)
   const priceImpact = amountValue > 1000 ? (amountValue / 10000) * 2 : 0
 
   const quickAmounts = [10, 50, 100, 500]
 
-  // i have data in the cloudIds '['0x123', '0x456']' so how i can extract from this data
-  const cloudIds = JSON.parse(market.clobTokenIds || "[]") as string[];
+  // Handle clobTokenIds safely
+  const cloudIds = React.useMemo(() => {
+    try {
+      return JSON.parse(currentMarket.clobTokenIds || "[]") as string[];
+    } catch {
+      return [] as string[];
+    }
+  }, [currentMarket.clobTokenIds]);
 
   const handleQuickAmount = (value: number) => {
     setAmount(value.toString())
@@ -125,8 +177,10 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
       amount: amountValue,
       shares: estimatedShares,
       slippage: maxSlippage[0],
+      marketId: currentMarket.id,
     })
   }
+
 
   if (isMobile) {
     return (
@@ -184,10 +238,11 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
                 handleQuickAmount={handleQuickAmount}
                 handleMaxAmount={handleMaxAmount}
                 handleTrade={handleTrade}
-                market={market}
+                market={currentMarket}
                 yesTokenId={cloudIds[1]}
                 noTokenId={cloudIds[0]}
                 udscBalance={formattedBalance}
+                isLoadingMarket={isLoadingMarket}
               />
             </motion.div>
           )}
@@ -197,35 +252,57 @@ export function TradingPanel({ market, isMobile = false }: TradingPanelProps) {
   }
 
   return (
-<div className="w-full lg:max-w-md">
-      <Card className="bg-black border-[#1E2329] p-6 sticky  top-24 m-2">
-      <TradingPanelContent
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        selectedOutcome={selectedOutcome}
-        setSelectedOutcome={setSelectedOutcome}
-        amount={amount}
-        setAmount={setAmount}
-        positionSize={positionSize}
-        setPositionSize={setPositionSize}
-        maxSlippage={maxSlippage}
-        setMaxSlippage={setMaxSlippage}
-        walletBalance={walletBalance}
-        currentPrice={currentPrice}
-        estimatedShares={estimatedShares}
-        potentialReturn={potentialReturn}
-        priceImpact={priceImpact}
-        quickAmounts={quickAmounts}
-        handleQuickAmount={handleQuickAmount}
-        handleMaxAmount={handleMaxAmount}
-        handleTrade={handleTrade}
-        market={market} yesTokenId={cloudIds[0]} noTokenId={cloudIds[1]} udscBalance={formattedBalance} />
-    </Card>
-
-    <div className="m-2">
-      <OrderBook />
+    <div className="w-full lg:max-w-md">
+      <Card className="bg-black border-[#1E2329] p-6 sticky top-24 mt-2 md:mt-0 mx-2">
+        {/* Market info header */}
+        {selectedMarket && (
+          <div className="mb-4 p-3 bg-[#1E2329] rounded-lg">
+            <div className="flex items-center gap-3">
+              <img
+                src={selectedMarket.image || "/placeholder.svg"}
+                alt="Market"
+                className="w-10 h-10 rounded-full"
+              />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-white line-clamp-2">
+                  {selectedMarket.question}
+                </h3>
+                <Badge variant="secondary" className="text-xs mt-1">
+                  {selectedMarket.category}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <TradingPanelContent
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          selectedOutcome={selectedOutcome}
+          setSelectedOutcome={setSelectedOutcome}
+          amount={amount}
+          setAmount={setAmount}
+          positionSize={positionSize}
+          setPositionSize={setPositionSize}
+          maxSlippage={maxSlippage}
+          setMaxSlippage={setMaxSlippage}
+          walletBalance={walletBalance}
+          currentPrice={currentPrice}
+          estimatedShares={estimatedShares}
+          potentialReturn={potentialReturn}
+          priceImpact={priceImpact}
+          quickAmounts={quickAmounts}
+          handleQuickAmount={handleQuickAmount}
+          handleMaxAmount={handleMaxAmount}
+          handleTrade={handleTrade}
+          market={currentMarket}
+          yesTokenId={cloudIds[0]}
+          noTokenId={cloudIds[1]}
+          udscBalance={formattedBalance}
+          isLoadingMarket={isLoadingMarket}
+        />
+      </Card>
     </div>
-</div>
   )
 }
 
@@ -253,6 +330,7 @@ interface TradingPanelContentProps {
   yesTokenId: string
   noTokenId: string
   udscBalance: string
+  isLoadingMarket?: boolean
 }
 
 function TradingPanelContent({
@@ -266,6 +344,7 @@ function TradingPanelContent({
   setPositionSize,
   maxSlippage,
   setMaxSlippage,
+  walletBalance,
   currentPrice,
   estimatedShares,
   potentialReturn,
@@ -278,6 +357,7 @@ function TradingPanelContent({
   yesTokenId,
   noTokenId,
   udscBalance,
+  isLoadingMarket = false,
 }: TradingPanelContentProps) {
   const outcomePrices = JSON.parse(market.outcomePrices); // now ["0.0015", "0.9985"]
 
@@ -319,10 +399,10 @@ function TradingPanelContent({
       const potential_payout = investment_amount / current_price;
       const profit = potential_payout - investment_amount;
       console.log(`\n=== Calculation Results ===`);
-      console.log(`Investment Amount: $${investment_amount}`);
-      console.log(`Share Price: $${current_price}`);
-      console.log(`Potential Payout: $${potential_payout.toFixed(2)}`);
-      console.log(`Profit: $${profit.toFixed(2)}`);
+      console.log(`Investment Amount: ${investment_amount}`);
+      console.log(`Share Price: ${current_price}`);
+      console.log(`Potential Payout: ${potential_payout.toFixed(2)}`);
+      console.log(`Profit: ${profit.toFixed(2)}`);
       console.log(`Profit Percentage: ${((profit / investment_amount) * 100).toFixed(2)}%`);
 
       return {
@@ -370,12 +450,23 @@ function TradingPanelContent({
 
   return (
     <div className="space-y-6 w-full lg:max-w-5xl">
+      {/* Loading overlay */}
+      {isLoadingMarket && (
+        <Alert className="mb-4 bg-blue-500/10 border-blue-500/50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Loading market data...
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {/* Buy/Sell Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "buy" | "sell")}>
         <TabsList className="grid w-full grid-cols-2 bg-[#1E2329] border border-[#2A2F36]">
           <TabsTrigger
             value="buy"
             className="data-[state=active]:bg-[#00D395] data-[state=active]:text-black font-semibold"
+            disabled={isLoadingMarket}
           >
             <TrendingUp className="w-4 h-4 mr-2" />
             Buy
@@ -383,6 +474,7 @@ function TradingPanelContent({
           <TabsTrigger
             value="sell"
             className="data-[state=active]:bg-[#FF3B69] data-[state=active]:text-white font-semibold"
+            disabled={isLoadingMarket}
           >
             <TrendingDown className="w-4 h-4 mr-2" />
             Sell
@@ -397,6 +489,7 @@ function TradingPanelContent({
           <Button
             variant={selectedOutcome === "Yes" ? "default" : "outline"}
             onClick={() => setSelectedOutcome("Yes")}
+            disabled={isLoadingMarket}
             className={cn(
               "h-12 font-semibold transition-all",
               selectedOutcome === "Yes"
@@ -410,6 +503,7 @@ function TradingPanelContent({
           <Button
             variant={selectedOutcome === "No" ? "default" : "outline"}
             onClick={() => setSelectedOutcome("No")}
+            disabled={isLoadingMarket}
             className={cn(
               "h-12 font-semibold transition-all",
               selectedOutcome === "No"
@@ -438,6 +532,7 @@ function TradingPanelContent({
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            disabled={isLoadingMarket}
             className="h-12 pl-8 pr-16 bg-[#1E2329] border-[#2A2F36] text-white placeholder:text-[#94A3B8] text-lg font-medium"
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]">$</div>
@@ -445,6 +540,7 @@ function TradingPanelContent({
             variant="ghost"
             size="sm"
             onClick={handleMaxAmount}
+            disabled={isLoadingMarket}
             className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-2 text-xs text-[#6366F1] hover:text-[#6366F1]/80"
           >
             MAX
@@ -459,6 +555,7 @@ function TradingPanelContent({
               variant="outline"
               size="sm"
               onClick={() => handleQuickAmount(value)}
+              disabled={isLoadingMarket}
               className="h-8 text-xs border-[#1E2329] text-[#94A3B8] hover:border-[#6366F1]/50 hover:text-[#6366F1]"
             >
               ${value}
@@ -466,8 +563,6 @@ function TradingPanelContent({
           ))}
         </div>
       </div>
-
-
 
       {/* Trading Summary */}
       <div className="space-y-3 p-4 bg-[#1E2329] rounded-lg">
@@ -491,25 +586,19 @@ function TradingPanelContent({
         )}
       </div>
 
-
-
       <Separator className="bg-[#1E2329]" />
 
       {/* Trade Button */}
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-   {
-        activeTab === "buy" ? (
+        {activeTab === "buy" ? (
           selectedOutcome === "Yes" ? 
-          <BuyButton tokenID={yesTokenId} amount={amount} type="Buy" outcome="Yes" />
+            <BuyButton tokenID={yesTokenId} amount={amount} type="Buy" outcome="Yes" />
           :
-          <BuyButton tokenID={noTokenId} amount={amount} type="Buy" outcome="No" />
-
+            <BuyButton tokenID={noTokenId} amount={amount} type="Buy" outcome="No" />
         ) : (
           <BuyButton tokenID={noTokenId} amount={amount} type="Sell" outcome="No" />
-        )
-   }
+        )}
       </motion.div>
-
     </div>
   )
 }

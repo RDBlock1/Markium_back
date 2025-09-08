@@ -34,7 +34,7 @@ export default function BlogContent({ blog }: BlogContentProps) {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-muted-foreground mb-8">
           <div className="flex items-center">
             <User className="h-4 w-4 mr-2" />
-            <span>{blog.author}</span>
+            <span>Markium</span>
           </div>
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-2" />

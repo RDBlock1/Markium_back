@@ -29,7 +29,6 @@ export function NewsFeed({ slug }: { slug: string }) {
       setLoading(true)
     }
 
-    // Simulate API call delay
     //get news from server action
     const news = await getGoogleNewsArticles(slug);
     if(news.articles.length > 0){

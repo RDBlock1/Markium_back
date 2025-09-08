@@ -11,7 +11,7 @@ import { Calendar, User, FileText, Scale, Share2, Copy, ChevronLeft, ChevronRigh
 import type { Market, MarketSlug } from "@/types/market"
 
 interface MarketInfoProps {
-  market: MarketSlug
+  market: MarketSlug 
 }
 
 // Mock related markets

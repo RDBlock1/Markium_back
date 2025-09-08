@@ -141,7 +141,7 @@ keywords: [
 async function getInitialMarkets() {
   try {
     // Fetch only first 50 markets for initial page load
-    const response = await fetch(`${baseUrl}/api/market?limit=50&offset=0`, {
+    const response = await fetch(`${baseUrl}/api/market?limit=50&offset=0&filter=${'trending'}`, {
       next: { 
         revalidate: 60,
         tags: ['markets']

@@ -31,7 +31,10 @@ import {
   CalendarDays,
   Bell,
   BellIcon,
-  CheckIcon
+  CheckIcon,
+  Building,
+  Cpu,
+  Globe
 } from "lucide-react"
 import { MarketSlug } from "@/types/market"
 import PolymarketMiniChart from "./mini-chart"
@@ -54,19 +57,29 @@ const sortOptions = [
   { value: "ending_soon", label: "Ending Soon", icon: Clock },
 ]
 
-// Category filters with icons
+// Updated category filters with proper categorization
 const categoryFilters = [
-  { id: "all", label: "All", icon: Sparkles },
-  { id: "politics", label: "Politics", icon: TrendingUp },
-  { id: "sports", label: "Sports", icon: Trophy },
-  { id: "pop-culture", label: "Pop Culture", icon: Users },
-  { id: "crypto", label: "Crypto", icon: Bitcoin },
+  { id: "trending", label: "Trending", icon: TrendingUp, isFilter: true },
+  { id: "new", label: "New", icon: CalendarDays, isFilter: true },
+  { id: "politics", label: "Politics", icon: Building, isFilter: false },
+  { id: "crypto", label: "Crypto", icon: Bitcoin, isFilter: false },
+  { id: "tech", label: "Tech", icon: Cpu, isFilter: false },
+  { id: "pop-culture", label: "Pop Culture", icon: Users, isFilter: false },
+  { id: "sports", label: "Sports", icon: Trophy, isFilter: false },
+  { id: "geopolitics", label: "Geopolitics", icon: Globe, isFilter: false },
 ]
 
 type Props = {
   marketData: MarketSlug[]
   onSortChange: (sortBy: string) => void
   sortBy: string
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  isSearching?: boolean
+  selectedCategory?: string
+  onCategoryChange?: (category: string) => void
+  selectedFilter?: string
+  onFilterChange?: (filter: string) => void
 }
 
 type WatchlistItem = {
@@ -88,26 +101,35 @@ type WatchlistItem = {
   updatedAt: Date
 }
 
-export default function MarketDashboard({ marketData, onSortChange, sortBy }: Props) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
+export default function MarketDashboard({ 
+  marketData, 
+  onSortChange, 
+  sortBy, 
+  searchQuery, 
+  onSearchChange,
+  isSearching = false,
+  selectedCategory = 'trending',
+  onCategoryChange,
+  selectedFilter = '',
+  onFilterChange
+}: Props) {
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [isChangingSort, setIsChangingSort] = useState(false)
-  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]) // Ensure it's always an array
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([])
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(false)
   const {data: session} = useSession()
   const router = useRouter()
-
   const { address, isConnected } = useAccount()
-
 
   useEffect(() => {
     console.log("Market Data received:", marketData);
     if (marketData && marketData.length > 0) {
       console.log("First item structure:", marketData[0]);
       console.log("Current sort:", sortBy);
+      console.log("Current category:", selectedCategory);
+      console.log("Current filter:", selectedFilter);
     }
-  }, [marketData, sortBy]);
+  }, [marketData, sortBy, selectedCategory, selectedFilter]);
 
   // Memoized function to check if item is in watchlist
   const isInWatchlist = useCallback((marketId: string) => {
@@ -123,63 +145,47 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
     setTimeout(() => setIsChangingSort(false), 300);
   };
 
-  // Optimized filter function with better category matching
-  const getCategoryMatch = useCallback((question: string, category: string) => {
-    const lowerQuestion = question.toLowerCase();
-    
-    const categoryMatchers = {
-      politics: [
-        'president', 'election', 'congress', 'senate', 'political', 'government',
-        'trump', 'biden', 'harris', 'democrat', 'republican', 'vote', 'campaign',
-        'white house', 'policy', 'governor', 'mayor', 'congress'
-      ],
-      sports: [
-        'game', 'win', 'championship', 'team', 'player', 'nfl', 'nba', 'soccer',
-        'football', 'baseball', 'basketball', 'super bowl', 'world cup', 'olympics',
-        'playoff', 'season', 'league', 'match', 'tournament'
-      ],
-      'pop-culture': [
-        'movie', 'music', 'celebrity', 'entertainment', 'oscar', 'grammy',
-        'taylor', 'netflix', 'hollywood', 'album', 'film', 'tv show', 'series',
-        'actor', 'actress', 'director', 'streaming', 'box office'
-      ],
-      crypto: [
-        'bitcoin', 'ethereum', 'crypto', 'btc', 'eth', 'defi', 'blockchain',
-        'solana', 'dogecoin', 'nft', 'web3', 'cryptocurrency', 'token', 'coin',
-        'mining', 'wallet', 'exchange'
-      ]
-    };
+  // Handle category/filter click
+  const handleFilterClick = (filter: typeof categoryFilters[0]) => {
+    if (filter.isFilter) {
+      // It's a filter (trending, new)
+      if (selectedFilter === filter.id) {
+        onFilterChange?.(''); // Clear if already selected
+      } else {
+        onFilterChange?.(filter.id);
+      }
+    } else {
+      // It's a category (politics, crypto, etc.)
+      onCategoryChange?.(filter.id);
+    }
+  };
 
-    const matchers = categoryMatchers[category as keyof typeof categoryMatchers];
-    return matchers ? matchers.some(term => lowerQuestion.includes(term)) : true;
-  }, []);
+  // Check if a filter is active
+  const isFilterActive = (filter: typeof categoryFilters[0]) => {
+    if (filter.isFilter) {
+      return selectedFilter === filter.id;
+    } else {
+      return selectedCategory === filter.id;
+    }
+  };
 
-  // Filter markets based on search and category (optimized with useMemo)
+  // Get current active filter label for display
+  const getActiveFilterLabel = () => {
+    if (selectedFilter) {
+      const filter = categoryFilters.find(f => f.id === selectedFilter);
+      return filter?.label;
+    }
+    if (selectedCategory !== 'trending') {
+      const category = categoryFilters.find(f => f.id === selectedCategory);
+      return category?.label;
+    }
+    return 'Trending';
+  };
+
+  // Markets are already filtered by API, so we just display them
   const filteredMarkets = useMemo(() => {
-    if (!Array.isArray(marketData)) return [];
-    
-    let filtered = [...marketData];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase();
-      filtered = filtered.filter(market => 
-        market.question?.toLowerCase().includes(searchLower) ||
-        market.description?.toLowerCase().includes(searchLower) ||
-        market.id?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    // Apply category filter
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(market => {
-        const question = market.question || "";
-        return getCategoryMatch(question, selectedCategory);
-      });
-    }
-    
-    return filtered;
-  }, [marketData, searchQuery, selectedCategory, getCategoryMatch]);
+    return Array.isArray(marketData) ? marketData : [];
+  }, [marketData]);
 
   // Optimized price calculation function
   const getYesAndNoPrices = useCallback((market: any) => {
@@ -222,7 +228,6 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
         if (response.ok) {
           const data = await response.json();
           console.log('Fetched watchlist:', data);
-          // Ensure data is an array
           setWatchlist(Array.isArray(data.watchLists) ? data.watchLists : []);
         } else {
           console.error('Failed to fetch watchlist:', response.statusText);
@@ -245,11 +250,8 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
       event.stopPropagation();
     }
 
-    if (!session?.user?.email ) {
-      
-      toast.info("Please log in to manage your watchlist.",{
-        description:`${session?.user?.email}`
-      });
+    if (!session?.user?.email) {
+      toast.info("Please log in to manage your watchlist.");
       return;
     }
 
@@ -257,22 +259,17 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
 
     try {
       if (isCurrentlyInWatchlist) {
-        // Remove from watchlist
         await watchlistAPI.deleteWatchlist(marketId, session.user.email);
         setWatchlist(prev => prev.filter(item => item.marketId !== marketId));
         toast.success("Market removed from watchlist");
       } else {
-        // Add to watchlist
         const response = await watchlistAPI.createWatchlist({
           email: session.user.email,
           marketId: marketId,
           triggerType: "price_above"
         });
-
-    
+        
         const updatedWatchlist = response.watchList;
-        console.log('Updated watchlist:', updatedWatchlist);
-        console.log('watchlist:', watchlist);
         setWatchlist(prev => [...prev, updatedWatchlist]);
         toast.success("Market added to watchlist");
       }
@@ -280,16 +277,10 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
       console.error("Error managing watchlist:", error);
       toast.error(isCurrentlyInWatchlist ? "Failed to remove from watchlist" : "Failed to add to watchlist");
     }
-  }, [isInWatchlist]);
+  }, [isInWatchlist, session?.user?.email]);
 
   // Get current sort option for display
   const currentSortOption = sortOptions.find(opt => opt.value === sortBy) || sortOptions[0];
-
-  // Clear filters function
-  const clearFilters = useCallback(() => {
-    setSearchQuery("");
-    setSelectedCategory("all");
-  }, []);
 
   // Watchlist button component
   const WatchlistButton = useCallback(({ marketId, className = "" }: { marketId: string; className?: string }) => (
@@ -308,6 +299,8 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
     </Button>
   ), [handleAddToWatchlist, isInWatchlist, isLoadingWatchlist]);
 
+
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header with Search and Filters */}
@@ -317,27 +310,32 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
         className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50"
       >
         <div className="container mx-auto px-4 py-4">
-          {/* Search Bar and Sort */}
+           {/* Search Bar and Sort */}
           <div className="flex flex-col gap-4">
             <div className="flex gap-3 items-center">
-              <div className="relative flex-1 max-w-xl">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search markets..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-10"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+          <div className="relative flex-1 max-w-xl">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    <Input
+      type="text"
+      placeholder="Search markets..."
+      value={searchQuery}
+      onChange={(e) => onSearchChange(e.target.value)}
+      className="pl-10 pr-10 h-10"
+    />
+    {searchQuery && (
+      <button
+        onClick={() => onSearchChange("")}
+        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    )}
+    {isSearching && (
+      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+      </div>
+    )}
+  </div>
               
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={handleSortSelection}>
@@ -379,25 +377,27 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
             </div>
 
             {/* Category Filters - Desktop */}
+        {/* Category Filters - Desktop */}
             <div className="hidden lg:flex items-center justify-between">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {categoryFilters.map((filter) => {
                   const Icon = filter.icon;
+                  const isActive = isFilterActive(filter);
                   return (
                     <motion.button
                       key={filter.id}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedCategory(filter.id)}
+                      onClick={() => handleFilterClick(filter)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                        selectedCategory === filter.id
+                        isActive
                           ? "bg-primary text-primary-foreground shadow-lg"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span>{filter.label}</span>
-                      {selectedCategory === filter.id && filteredMarkets.length > 0 && (
+                      {isActive && filteredMarkets.length > 0 && (
                         <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
                           {filteredMarkets.length}
                         </Badge>
@@ -407,19 +407,7 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                 })}
               </div>
 
-              {/* Sort Info Badge */}
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="px-3 py-1">
-                  <currentSortOption.icon className="h-3 w-3 mr-1" />
-                  Sorted by {currentSortOption.label}
-                </Badge>
-                {isChangingSort && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                )}
-              </div>
-            </div>
-
-            {/* Category Filters - Mobile (Collapsible) */}
+             {/* Category Filters - Mobile (Collapsible) */}
             <AnimatePresence>
               {showMobileFilters && (
                 <motion.div
@@ -431,7 +419,7 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                   <div className="space-y-3">
                     {/* Mobile Sort Selector */}
                     <div className="flex flex-wrap gap-2">
-                      <span className="text-xs text-muted-foreground">Sort by:</span>
+                      <span className="text-xs text-muted-foreground w-full">Sort by:</span>
                       {sortOptions.map((option) => {
                         const Icon = option.icon;
                         return (
@@ -453,17 +441,16 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
                     
                     {/* Category Filters */}
                     <div className="flex flex-wrap gap-2">
-                      <span className="text-xs text-muted-foreground">Filter:</span>
+                      <span className="text-xs text-muted-foreground w-full">Categories:</span>
                       {categoryFilters.map((filter) => {
                         const Icon = filter.icon;
+                        const isActive = isFilterActive(filter);
                         return (
                           <button
                             key={filter.id}
-                            onClick={() => {
-                              setSelectedCategory(filter.id);
-                            }}
+                            onClick={() => handleFilterClick(filter)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                              selectedCategory === filter.id
+                              isActive
                                 ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground bg-muted"
                             }`}
@@ -481,16 +468,22 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
           </div>
 
           {/* Results Count */}
-          {(searchQuery || selectedCategory !== "all") && (
+          {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Showing {filteredMarkets.length} of {marketData?.length || 0} markets</span>
-              {(searchQuery || selectedCategory !== "all") && (
+              <span>
+                {searchQuery ? 
+                  `Found ${filteredMarkets.length} markets matching "${searchQuery}"` :
+                  `Showing ${filteredMarkets.length} ${getActiveFilterLabel()} markets`
+                }
+              </span>
+              {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setSearchQuery("");
-                    setSelectedCategory("all");
+                    onSearchChange("");
+                    onCategoryChange?.("trending");
+                    onFilterChange?.("");
                   }}
                   className="h-6 px-2 text-xs"
                 >
@@ -499,6 +492,7 @@ export default function MarketDashboard({ marketData, onSortChange, sortBy }: Pr
               )}
             </div>
           )}
+        </div>
         </div>
       </motion.header>
 

@@ -125,7 +125,9 @@ async function searchGoogleNews(
         // Check if date is valid and recent
         const isValidDate = !isNaN(parsedDate.getTime());
         const isRecent = isValidDate && parsedDate >= cutoffDate;
-        
+
+        console.log('Article:', { title, source, pubDateString, isValidDate, isRecent });
+
         return {
           title: title.trim(),
           link: item.link?.[0] || '',
