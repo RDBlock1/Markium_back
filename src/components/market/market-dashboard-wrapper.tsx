@@ -124,18 +124,29 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
     try {
       const url = buildApiUrl(offset);
       
-      // Add timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      // Try multiple fetch strategies for better compatibility
+      let response;
       
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-      
-      clearTimeout(timeoutId);
+      try {
+        // First attempt: Standard fetch with minimal options
+        updateDebug('Attempting standard fetch...');
+        response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          // Remove mode: 'cors' as it can cause issues
+          credentials: 'same-origin', // Important for some browsers
+          cache: 'no-cache',
+        });
+      } catch (fetchError) {
+        updateDebug(`Standard fetch failed: ${fetchError}`);
+        
+        // Fallback: Try with minimal options
+        updateDebug('Attempting fallback fetch with minimal options...');
+        response = await fetch(url);
+      }
       
       updateDebug(`Response status: ${response.status}`);
       
@@ -143,11 +154,23 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const text = await response.text(); // Get as text first
+      updateDebug(`Response received, length: ${text.length} chars`);
+      
+      let data;
+      try {
+        data = JSON.parse(text); // Parse manually for better error handling
+      } catch (parseError) {
+        updateDebug(`JSON parse error: ${parseError}`);
+        updateDebug(`Response text preview: ${text.substring(0, 200)}`);
+        throw new Error('Invalid JSON response');
+      }
+      
       updateDebug(`Received ${data.data?.length || 0} markets, hasMore: ${data.hasMore}`);
       
       // Validate response data
       if (!data || !Array.isArray(data.data)) {
+        updateDebug(`Invalid data structure: ${JSON.stringify(data).substring(0, 200)}`);
         throw new Error('Invalid response format');
       }
       
@@ -166,18 +189,25 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       setCurrentOffset(offset);
     } catch (err) {
       let errorMessage = 'Failed to load markets';
+      let errorDetails = '';
       
       if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          errorMessage = 'Request timeout - please check your connection';
-        } else {
-          errorMessage = err.message;
+        errorMessage = err.message;
+        errorDetails = err.stack || '';
+        
+        // More specific error messages
+        if (err.message === 'Failed to fetch') {
+          errorMessage = 'Network error - please check your connection or try the button below';
+          updateDebug('Failed to fetch - likely CORS or network issue');
         }
       }
       
       setError(errorMessage);
       updateDebug(`Error: ${errorMessage}`);
-      setHasMore(false);
+      updateDebug(`Error details: ${errorDetails}`);
+      
+      // Don't set hasMore to false on error - allow retry
+      // setHasMore(false);
     } finally {
       setIsLoading(false);
       isLoadingRef.current = false;

@@ -8,11 +8,11 @@ const CACHE_DURATION = 60000;
 
 // Add search cache
 let searchCache: Map<string, { data: any; timestamp: number }> = new Map();
-const SEARCH_CACHE_DURATION = 30000; // 30 seconds for search results
+const SEARCH_CACHE_DURATION = 30000;
 
 // Add category cache
 let categoryCache: Map<string, { data: any; timestamp: number }> = new Map();
-const CATEGORY_CACHE_DURATION = 60000; // 1 minute for category results
+const CATEGORY_CACHE_DURATION = 60000;
 
 // Category to tag mapping
 const CATEGORY_MAPPINGS: Record<string, string> = {
@@ -24,9 +24,24 @@ const CATEGORY_MAPPINGS: Record<string, string> = {
   'sports': 'sports',
 };
 
+// CORS headers for all responses
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Max-Age': '86400',
+};
+
+// Handle OPTIONS preflight requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 200, headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('API route called');
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    console.log('Request URL:', request.url);
     
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -34,30 +49,49 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const forceRefresh = searchParams.get('refresh') === 'true';
     const sortBy = searchParams.get('sortBy') || 'volume';
-    const searchQuery = searchParams.get('q') || ''; // Search parameter
-    const category = searchParams.get('category') || ''; // Category filter
-    const filter = searchParams.get('filter') || ''; // Filter type (trending, new, etc.)
+    const searchQuery = searchParams.get('q') || '';
+    const category = searchParams.get('category') || '';
+    const filter = searchParams.get('filter') || '';
 
-    console.log(
-      `Parameters - limit: ${limit}, offset: ${offset}, sortBy: ${sortBy}, searchQuery: "${searchQuery}", category: "${category}", filter: "${filter}", forceRefresh: ${forceRefresh}`
-    );
+    console.log('Request params:', {
+      limit,
+      offset,
+      sortBy,
+      searchQuery,
+      category,
+      filter
+    });
+
+    let responseData: any;
 
     // If there's a search query, use the search API
     if (searchQuery && searchQuery.trim().length > 0) {
-      return handleSearchRequest(searchQuery, limit, offset, sortBy);
+      responseData = await handleSearchRequest(searchQuery, limit, offset, sortBy);
     }
-
     // If there's a category or filter, use specialized endpoints
-    if (category || filter) {
-      return handleFilteredRequest(category, filter, limit, offset, sortBy, forceRefresh);
+    else if (category || filter) {
+      responseData = await handleFilteredRequest(category, filter, limit, offset, sortBy, forceRefresh);
     }
-
     // Otherwise, use existing logic for fetching all markets
-    return handleDefaultRequest(limit, offset, sortBy, forceRefresh);
+    else {
+      responseData = await handleDefaultRequest(limit, offset, sortBy, forceRefresh);
+    }
+    
+    // Return with CORS headers
+    return NextResponse.json(responseData, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=10',
+      }
+    });
     
   } catch (error) {
     console.error('API Error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     
+    // Return error with CORS headers
     return NextResponse.json({
       status: 500,
       error: 'Internal Server Error',
@@ -65,12 +99,16 @@ export async function GET(request: NextRequest) {
       data: [],
       hasMore: false
     }, {
-      status: 500
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      }
     });
   }
 }
 
-// New function to handle category/filter requests
+// Modified handleFilteredRequest with better error handling
 async function handleFilteredRequest(
   category: string, 
   filter: string, 
@@ -78,7 +116,7 @@ async function handleFilteredRequest(
   offset: number, 
   sortBy: string,
   forceRefresh: boolean
-) {
+): Promise<any> {
   const cacheKey = `${category}-${filter}-${limit}-${offset}-${sortBy}`;
   
   // Check category cache
@@ -86,7 +124,7 @@ async function handleFilteredRequest(
     const cached = categoryCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < CATEGORY_CACHE_DURATION) {
       console.log('Returning cached category results for:', category || filter);
-      return NextResponse.json(cached.data);
+      return cached.data;
     }
   }
 
@@ -95,13 +133,10 @@ async function handleFilteredRequest(
     
     // Determine the correct API endpoint based on filter/category
     if (filter === 'trending') {
-      // Trending markets endpoint
       apiUrl = `https://gamma-api.polymarket.com/events/pagination?limit=${limit}&active=true&archived=false&closed=false&order=volume24hr&ascending=false&offset=${offset}`;
     } else if (filter === 'new') {
-      // New markets endpoint (excluding certain tags)
       apiUrl = `https://gamma-api.polymarket.com/events/pagination?limit=${limit}&active=true&archived=false&closed=false&order=startDate&ascending=false&offset=${offset}&exclude_tag_id=100639&exclude_tag_id=102169`;
     } else if (category && CATEGORY_MAPPINGS[category]) {
-      // Category-specific endpoint
       const tagSlug = CATEGORY_MAPPINGS[category];
       const orderParam = sortBy === 'volume24hr' ? 'volume24hr' : 
                         sortBy === 'liquidity' ? 'liquidity' :
@@ -109,21 +144,29 @@ async function handleFilteredRequest(
       
       apiUrl = `https://gamma-api.polymarket.com/events/pagination?limit=${limit}&active=true&archived=false&tag_slug=${tagSlug}&closed=false&order=${orderParam}&ascending=false&offset=${offset}`;
     } else {
-      // Default to trending if no specific filter
       apiUrl = `https://gamma-api.polymarket.com/events/pagination?limit=${limit}&active=true&archived=false&closed=false&order=volume24hr&ascending=false&offset=${offset}`;
     }
     
     console.log('Fetching from Polymarket API:', apiUrl);
     
+    // Use node fetch with better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     const response = await fetch(apiUrl, {
+      signal: controller.signal,
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'NextJS-App'
       },
-      cache: 'no-store'
     });
+    
+    clearTimeout(timeoutId);
+    
+    console.log('Polymarket response status:', response.status);
 
     if (!response.ok) {
+      console.error('Polymarket API error:', response.status, response.statusText);
       throw new Error(`API failed: ${response.status}`);
     }
 
@@ -133,7 +176,6 @@ async function handleFilteredRequest(
     // Extract markets from the response
     let markets = [];
     
-    // The pagination endpoint returns data in a 'data' field
     if (data.data && Array.isArray(data.data)) {
       markets = data.data;
     } else if (Array.isArray(data)) {
@@ -156,7 +198,7 @@ async function handleFilteredRequest(
       category: market.category || null,
     }));
 
-    // Apply additional sorting if needed (for consistency with existing logic)
+    // Apply additional sorting if needed
     const sortedMarkets = sortMarkets(transformedMarkets, sortBy);
 
     // Calculate pagination info
@@ -193,34 +235,43 @@ async function handleFilteredRequest(
       entriesToDelete.forEach(key => categoryCache.delete(key));
     }
 
-    return NextResponse.json(responseData);
+    return responseData;
     
   } catch (error) {
     console.error('Category/Filter error:', error);
     
-    // Fallback to default request on error
-    return handleDefaultRequest(limit, offset, sortBy, false);
+    // Return fallback data instead of throwing
+    return {
+      status: 200,
+      data: [],
+      hasMore: false,
+      offset: offset,
+      limit: limit,
+      total: 0,
+      returned: 0,
+      sortedBy: sortBy,
+      category: category,
+      filter: filter,
+      error: error instanceof Error ? error.message : 'Failed to fetch markets',
+      message: 'Failed to fetch markets, please try again'
+    };
   }
 }
 
-// Your existing handleSearchRequest function remains the same
-async function handleSearchRequest(query: string, limit: number, offset: number, sortBy: string) {
+// Your existing handleSearchRequest function with error handling
+async function handleSearchRequest(query: string, limit: number, offset: number, sortBy: string): Promise<any> {
   const cacheKey = `${query}-${limit}-${offset}-${sortBy}`;
   
-  // Check search cache
   const cached = searchCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < SEARCH_CACHE_DURATION) {
     console.log('Returning cached search results for:', query);
-    return NextResponse.json(cached.data);
+    return cached.data;
   }
 
   try {
     console.log('Fetching search results from Polymarket for:', query);
     
-    // Calculate page number from offset (Polymarket uses page-based pagination)
     const page = Math.floor(offset / limit) + 1;
-    
-    // Make the search API call
     const searchUrl = `https://gamma-api.polymarket.com/public-search?q=${encodeURIComponent(query)}&page=${page}&limit_per_type=${limit}&type=events&events_status=active&sort=${sortBy === 'volume24hr' ? 'volume_24hr' : sortBy}`;
     
     console.log('Search URL:', searchUrl);
@@ -230,7 +281,6 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
         'Accept': 'application/json',
         'User-Agent': 'NextJS-App'
       },
-      cache: 'no-store'
     });
 
     if (!response.ok) {
@@ -238,9 +288,6 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
     }
 
     const searchData = await response.json();
-    console.log('Search API response structure:', Object.keys(searchData));
-
-    // Extract markets from search results
     let markets = [];
     
     if (searchData.events && Array.isArray(searchData.events)) {
@@ -251,7 +298,6 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
       markets = searchData;
     }
 
-    // Transform markets to match your existing structure
     const transformedMarkets = markets.map((market: any) => ({
       ...market,
       liquidity: parseFloat(market.liquidity || '0'),
@@ -266,10 +312,7 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
       outcomePrices: market.outcomePrices || market.outcome_prices || [0.5, 0.5]
     }));
 
-    // Sort the results if needed
     const sortedMarkets = sortMarkets(transformedMarkets, sortBy);
-
-    // Calculate pagination info
     const hasMore = markets.length === limit;
     const totalAvailable = searchData.total || markets.length;
 
@@ -287,13 +330,11 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
       message: `Found ${sortedMarkets.length} markets matching "${query}"`
     };
 
-    // Cache the search results
     searchCache.set(cacheKey, {
       data: responseData,
       timestamp: Date.now()
     });
 
-    // Clean old cache entries
     if (searchCache.size > 100) {
       const entriesToDelete = Array.from(searchCache.entries())
         .filter(([_, value]) => Date.now() - value.timestamp > SEARCH_CACHE_DURATION)
@@ -302,13 +343,13 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
       entriesToDelete.forEach(key => searchCache.delete(key));
     }
 
-    return NextResponse.json(responseData);
+    return responseData;
     
   } catch (error) {
     console.error('Search error:', error);
     
-    return NextResponse.json({
-      status: 500,
+    return {
+      status: 200,
       data: [],
       hasMore: false,
       offset: offset,
@@ -317,13 +358,13 @@ async function handleSearchRequest(query: string, limit: number, offset: number,
       returned: 0,
       searchQuery: query,
       error: error instanceof Error ? error.message : 'Search failed',
-      message: `Failed to search for "${query}"`
-    });
+      message: `Search failed, please try again`
+    };
   }
 }
 
-// Your existing handleDefaultRequest function remains the same
-async function handleDefaultRequest(limit: number, offset: number, sortBy: string, forceRefresh: boolean) {
+// Your existing handleDefaultRequest function
+async function handleDefaultRequest(limit: number, offset: number, sortBy: string, forceRefresh: boolean): Promise<any> {
   const now = Date.now();
   const useCache = !forceRefresh && cachedData && (now - cacheTimestamp) < CACHE_DURATION;
   
@@ -350,7 +391,6 @@ async function handleDefaultRequest(limit: number, offset: number, sortBy: strin
               'Accept': 'application/json',
               'User-Agent': 'NextJS-App'
             },
-            cache: 'no-store'
           }
         ).then(async (response) => {
           if (!response.ok) {
@@ -392,7 +432,7 @@ async function handleDefaultRequest(limit: number, offset: number, sortBy: strin
   const hasMore = (offset + limit) < allMarkets.length;
   const totalAvailable = allMarkets.length;
   
-  return NextResponse.json({
+  return {
     status: 200,
     data: transformedMarkets,
     hasMore: hasMore,
@@ -403,10 +443,10 @@ async function handleDefaultRequest(limit: number, offset: number, sortBy: strin
     nextOffset: hasMore ? offset + limit : null,
     sortedBy: sortBy,
     message: `Successfully fetched markets ${offset + 1} to ${offset + transformedMarkets.length} of ${totalAvailable}`
-  });
+  };
 }
 
-// Your existing sortMarkets function remains the same
+// Your existing sortMarkets function
 function sortMarkets(markets: any[], sortBy: string): any[] {
   const sortedMarkets = [...markets];
   
