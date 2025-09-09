@@ -18,20 +18,26 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   const [marketData, setMarketData] = useState(initialData.data || []);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialData.hasMore || false);
-  const [currentOffset, setCurrentOffset] = useState(initialData.offset || 0);
+  const [currentOffset, setCurrentOffset] = useState(initialData.offset || 50); // Start at 50 since we already have initial data
   const [sortBy, setSortBy] = useState('volume');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('trending');
   const [selectedFilter, setSelectedFilter] = useState('trending');
   const [error, setError] = useState<string | null>(null);
   
-  // Use refs to track loading state and prevent duplicate requests
+  // Debug state - visible on screen
+  const [debugInfo, setDebugInfo] = useState<string>('');
+  
   const isLoadingRef = useRef(false);
-  const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   
-  // Debounce search query with 500ms delay
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  
+  // Update debug info
+  const updateDebug = (message: string) => {
+    console.log(message);
+    setDebugInfo(prev => `${new Date().toLocaleTimeString()}: ${message}\n${prev}`.split('\n').slice(0, 10).join('\n'));
+  };
   
   // Build API URL with filters
   const buildApiUrl = useCallback((offset: number) => {
@@ -49,6 +55,7 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       url += `&filter=${selectedFilter}`;
     }
     
+    updateDebug(`Built URL: ${url}`);
     return url;
   }, [sortBy, searchQuery, selectedCategory, selectedFilter]);
   
@@ -66,28 +73,30 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       
       setIsLoading(true);
       setError(null);
+      updateDebug(`Searching for: ${debouncedSearchQuery}`);
       
       try {
         const response = await fetch(
           `${baseUrl}/api/market?q=${encodeURIComponent(debouncedSearchQuery)}&limit=50&offset=0&sortBy=${sortBy}`,
           {
-            signal: AbortSignal.timeout(15000), // Increased timeout
             headers: {
               'Accept': 'application/json',
             }
           }
         );
         
-        if (!response.ok) throw new Error('Search failed');
+        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
         
         const data = await response.json();
         
         setMarketData(data.data || []);
         setHasMore(data.hasMore || false);
         setCurrentOffset(0);
+        updateDebug(`Search returned ${data.data?.length || 0} results`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Search failed');
-        console.error('Search error:', err);
+        const errorMsg = err instanceof Error ? err.message : 'Search failed';
+        setError(errorMsg);
+        updateDebug(`Search error: ${errorMsg}`);
       } finally {
         setIsLoading(false);
       }
@@ -98,13 +107,15 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
     }
   }, [debouncedSearchQuery, sortBy]);
   
-  // Load markets with better error handling
+  // Load markets - simplified and with better error handling
   const loadMarkets = useCallback(async (offset: number, replace: boolean = false) => {
     // Prevent duplicate requests
     if (isLoadingRef.current && !replace) {
-      console.log('Already loading, skipping request');
+      updateDebug('Already loading, skipping...');
       return;
     }
+    
+    updateDebug(`Loading markets: offset=${offset}, replace=${replace}`);
     
     isLoadingRef.current = true;
     setIsLoading(true);
@@ -112,22 +123,28 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
     
     try {
       const url = buildApiUrl(offset);
-      console.log('Fetching markets from:', url);
+      
+      // Add timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
       
       const response = await fetch(url, {
-        signal: AbortSignal.timeout(15000), // Increased timeout for slower connections
+        signal: controller.signal,
         headers: {
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
         },
-        mode: 'cors', // Explicitly set CORS mode
       });
       
+      clearTimeout(timeoutId);
+      
+      updateDebug(`Response status: ${response.status}`);
+      
       if (!response.ok) {
-        throw new Error(`Failed to load markets: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
+      updateDebug(`Received ${data.data?.length || 0} markets, hasMore: ${data.hasMore}`);
       
       // Validate response data
       if (!data || !Array.isArray(data.data)) {
@@ -138,9 +155,9 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         setMarketData(data.data);
       } else {
         setMarketData(prev => {
-          // Prevent duplicates
           const existingIds = new Set(prev.map(m => m.id));
           const newMarkets = data.data.filter((m: MarketSlug) => !existingIds.has(m.id));
+          updateDebug(`Adding ${newMarkets.length} new markets (${data.data.length - newMarkets.length} duplicates filtered)`);
           return [...prev, ...newMarkets];
         });
       }
@@ -148,11 +165,18 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       setHasMore(data.hasMore || false);
       setCurrentOffset(offset);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load markets';
-      setError(errorMessage);
-      console.error('Error loading markets:', err);
+      let errorMessage = 'Failed to load markets';
       
-      // Reset loading state on error
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          errorMessage = 'Request timeout - please check your connection';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+      updateDebug(`Error: ${errorMessage}`);
       setHasMore(false);
     } finally {
       setIsLoading(false);
@@ -164,90 +188,37 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   const handleCategoryChange = useCallback(async (category: string) => {
     if (category === selectedCategory) return;
     
+    updateDebug(`Changing category to: ${category}`);
     setSelectedCategory(category);
     setSelectedFilter('');
     setSearchQuery('');
     setCurrentOffset(0);
     
-    if (category === 'trending') {
-      loadMarkets(0, true);
-    } else {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const url = `${baseUrl}/api/market?limit=50&offset=0&sortBy=${sortBy}&category=${category}`;
-        const response = await fetch(url, {
-          signal: AbortSignal.timeout(15000),
-          headers: {
-            'Accept': 'application/json',
-          }
-        });
-        
-        if (!response.ok) throw new Error('Failed to load category');
-        
-        const data = await response.json();
-        
-        setMarketData(data.data || []);
-        setHasMore(data.hasMore || false);
-        setCurrentOffset(0);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load category');
-        console.error('Error loading category:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  }, [selectedCategory, sortBy, loadMarkets]);
+    await loadMarkets(0, true);
+  }, [selectedCategory, loadMarkets]);
   
   // Handle filter change
   const handleFilterChange = useCallback(async (filter: string) => {
     if (filter === selectedFilter) return;
     
+    updateDebug(`Changing filter to: ${filter}`);
     setSelectedFilter(filter);
     setSelectedCategory('trending');
     setSearchQuery('');
     setCurrentOffset(0);
     
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${baseUrl}/api/market?limit=50&offset=0&sortBy=${sortBy}&filter=${filter}`;
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(15000),
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-      
-      if (!response.ok) throw new Error('Failed to load filtered markets');
-      
-      const data = await response.json();
-      
-      setMarketData(data.data || []);
-      setHasMore(data.hasMore || false);
-      setCurrentOffset(0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load markets');
-      console.error('Error loading filtered markets:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedFilter, sortBy]);
+    await loadMarkets(0, true);
+  }, [selectedFilter, loadMarkets]);
   
-  // Load more markets with duplicate prevention
+  // Load more markets - simplified
   const loadMore = useCallback(async () => {
     if (isLoadingRef.current || !hasMore || searchQuery) {
-      console.log('Skipping loadMore:', { 
-        isLoading: isLoadingRef.current, 
-        hasMore, 
-        searchQuery: !!searchQuery 
-      });
+      updateDebug(`Not loading more: loading=${isLoadingRef.current}, hasMore=${hasMore}, searching=${!!searchQuery}`);
       return;
     }
     
     const nextOffset = currentOffset + 50;
+    updateDebug(`Loading more from offset ${nextOffset}`);
     await loadMarkets(nextOffset, false);
   }, [currentOffset, hasMore, searchQuery, loadMarkets]);
   
@@ -255,80 +226,64 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   const handleSortChange = useCallback(async (newSortBy: string) => {
     if (newSortBy === sortBy && !searchQuery) return;
     
+    updateDebug(`Changing sort to: ${newSortBy}`);
     setSortBy(newSortBy);
     await loadMarkets(0, true);
   }, [sortBy, searchQuery, loadMarkets]);
   
-  // Use Intersection Observer for infinite scroll (more reliable than scroll events)
+  // Simple scroll-based infinite loading
   useEffect(() => {
-    // Clean up previous observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-    
-    // Don't set up observer if searching or no more data
     if (searchQuery || !hasMore) {
+      updateDebug(`Scroll disabled: searching=${!!searchQuery}, hasMore=${hasMore}`);
       return;
     }
     
-    // Create intersection observer
-    const options = {
-      root: null,
-      rootMargin: '200px', // Start loading 200px before the sentinel is visible
-      threshold: 0.1
-    };
-    
-    observerRef.current = new IntersectionObserver((entries) => {
-      const target = entries[0];
-      if (target.isIntersecting && hasMore && !isLoadingRef.current) {
-        console.log('Sentinel intersecting, loading more...');
+    const handleScroll = () => {
+      // Use multiple methods to get scroll position for better compatibility
+      const scrollTop = window.pageYOffset || 
+                       document.documentElement.scrollTop || 
+                       document.body.scrollTop || 
+                       0;
+      
+      const scrollHeight = document.documentElement.scrollHeight || 
+                          document.body.scrollHeight || 
+                          0;
+      
+      const clientHeight = window.innerHeight || 
+                          document.documentElement.clientHeight || 
+                          document.body.clientHeight || 
+                          0;
+      
+      const scrollPercentage = ((scrollTop + clientHeight) / scrollHeight) * 100;
+      
+      // Trigger when user scrolls to bottom 20% of page
+      if (scrollPercentage > 80 && hasMore && !isLoadingRef.current) {
+        updateDebug(`Scroll trigger at ${scrollPercentage.toFixed(1)}%`);
         loadMore();
       }
-    }, options);
+    };
     
-    // Observe the sentinel element
-    if (sentinelRef.current) {
-      observerRef.current.observe(sentinelRef.current);
-    }
+    // Add both scroll and touchmove for better mobile support
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('touchmove', handleScroll, { passive: true });
     
-    // Cleanup
+    // Also check on resize
+    window.addEventListener('resize', handleScroll, { passive: true });
+    
+    updateDebug('Scroll listeners attached');
+    
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('touchmove', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
   }, [hasMore, searchQuery, loadMore]);
   
-  // Fallback: Traditional scroll event listener for older browsers
-  useEffect(() => {
-    // Only use as fallback if IntersectionObserver is not supported
-    if ('IntersectionObserver' in window) {
-      return;
-    }
-    
-    let ticking = false;
-    
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-          const scrollHeight = document.documentElement.scrollHeight;
-          const clientHeight = window.innerHeight;
-          
-          if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !isLoadingRef.current && !searchQuery) {
-            loadMore();
-          }
-          
-          ticking = false;
-        });
-        
-        ticking = true;
-      }
-    };
-    
-    (window as Window).addEventListener('scroll', handleScroll, { passive: true });
-    return () => (window as Window).removeEventListener('scroll', handleScroll);
-  }, [hasMore, searchQuery, loadMore]);
+  // Manual load more button as fallback
+  const handleManualLoadMore = () => {
+    updateDebug('Manual load more clicked');
+    loadMore();
+  };
   
   return (
     <>
@@ -345,6 +300,14 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         onFilterChange={handleFilterChange}
       />
       
+      {/* Debug info panel - remove in production */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 text-green-400 text-xs p-2 font-mono max-h-32 overflow-y-auto z-50">
+        <div className="whitespace-pre-wrap">{debugInfo}</div>
+        <div className="mt-1 text-yellow-400">
+          State: loading={isLoading.toString()} | hasMore={hasMore.toString()} | offset={currentOffset} | items={marketData.length}
+        </div>
+      </div>
+      
       {/* Loading indicator */}
       {isLoading && !searchQuery && (
         <div className="flex justify-center py-4">
@@ -357,7 +320,7 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         <div className="text-center py-4 text-red-500">
           <p>{error}</p>
           <button 
-            onClick={() => loadMore()} 
+            onClick={handleManualLoadMore} 
             className="mt-2 px-4 py-2 bg-primary text-white rounded hover:opacity-90"
           >
             Retry
@@ -365,23 +328,22 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         </div>
       )}
       
-      {/* Sentinel element for intersection observer */}
-      {hasMore && !searchQuery && (
-        <div 
-          ref={sentinelRef} 
-          className="h-10 flex justify-center items-center"
-          aria-hidden="true"
-        >
-          {isLoading && (
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          )}
+      {/* Manual load more button - always visible when there's more data */}
+      {hasMore && !searchQuery && !isLoading && (
+        <div className="flex justify-center py-8">
+          <button 
+            onClick={handleManualLoadMore}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Load More Markets
+          </button>
         </div>
       )}
       
       {/* End of list message */}
       {!hasMore && marketData.length > 0 && !searchQuery && (
         <div className="text-center py-4 text-gray-500">
-          All markets loaded
+          All {marketData.length} markets loaded
         </div>
       )}
     </>
