@@ -92,13 +92,7 @@ export default function ClientMarketPage() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  if (isLoading) {
-    return (
-      <div className="overflow-y-auto min-h-screen">
-        <MarketPageSkeleton />
-      </div>
-    );
-  }
+
 
   if (error) {
     return (
@@ -111,10 +105,6 @@ export default function ClientMarketPage() {
   if (!marketData) {
     return (
       <div className="overflow-y-auto min-h-screen">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold mb-4">Market Not Found</h1>
-          <p className="text-gray-600">The requested market could not be found.</p>
-        </div>
       </div>
     );
   }
