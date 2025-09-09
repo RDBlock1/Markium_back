@@ -38,6 +38,10 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || ''; // Category filter
     const filter = searchParams.get('filter') || ''; // Filter type (trending, new, etc.)
 
+    console.log(
+      `Parameters - limit: ${limit}, offset: ${offset}, sortBy: ${sortBy}, searchQuery: "${searchQuery}", category: "${category}", filter: "${filter}", forceRefresh: ${forceRefresh}`
+    );
+
     // If there's a search query, use the search API
     if (searchQuery && searchQuery.trim().length > 0) {
       return handleSearchRequest(searchQuery, limit, offset, sortBy);
