@@ -329,14 +329,7 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         selectedFilter={selectedFilter}
         onFilterChange={handleFilterChange}
       />
-      
-      {/* Debug info panel - remove in production */}
-      <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 text-green-400 text-xs p-2 font-mono max-h-32 overflow-y-auto z-50">
-        <div className="whitespace-pre-wrap">{debugInfo}</div>
-        <div className="mt-1 text-yellow-400">
-          State: loading={isLoading.toString()} | hasMore={hasMore.toString()} | offset={currentOffset} | items={marketData.length}
-        </div>
-      </div>
+
       
       {/* Loading indicator */}
       {isLoading && !searchQuery && (
@@ -358,18 +351,19 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         </div>
       )}
       
-      {/* Manual load more button - always visible when there's more data */}
-      {hasMore && !searchQuery && !isLoading && (
-        <div className="flex justify-center py-8">
+      {/* Error message with retry */}
+      {error && (
+        <div className="text-center py-4 text-red-500">
+          <p>{error}</p>
           <button 
-            onClick={handleManualLoadMore}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={handleManualLoadMore} 
+            className="mt-2 px-4 py-2 bg-primary text-white rounded hover:opacity-90"
           >
-            Load More Markets
+            Retry
           </button>
         </div>
       )}
-      
+
       {/* End of list message */}
       {!hasMore && marketData.length > 0 && !searchQuery && (
         <div className="text-center py-4 text-gray-500">
