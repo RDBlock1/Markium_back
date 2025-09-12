@@ -17,13 +17,11 @@ export const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:300
 export function toLocalString(dateStr: string | null | undefined): string {
   // Handle null, undefined, or empty string
   if (!dateStr) {
-    console.log("Date string is null/undefined/empty:", dateStr);
     return "—";
   }
 
   try {
     // Log the original date string for debugging
-    console.log("Original date string:", dateStr);
 
     // Handle different date formats
     let dateToProcess = dateStr;
@@ -31,7 +29,6 @@ export function toLocalString(dateStr: string | null | undefined): string {
     // If the date has microseconds (more than 3 digits after decimal), trim them
     if (dateStr.includes('.') && dateStr.includes('Z')) {
       dateToProcess = dateStr.replace(/(\.\d{3})\d+Z$/, "$1Z");
-      console.log("Processed date string (trimmed microseconds):", dateToProcess);
     }
 
     // Try parsing the date
@@ -53,7 +50,6 @@ export function toLocalString(dateStr: string | null | undefined): string {
       hour12: true
     });
 
-    console.log("Successfully formatted date:", formatted);
     return formatted;
 
   } catch (error) {

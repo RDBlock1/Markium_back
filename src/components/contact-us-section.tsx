@@ -2,37 +2,92 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Mail, Send, ArrowRight, TrendingUp, BarChart3, Globe, Users } from "lucide-react"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Mail, Send, ArrowRight, TrendingUp, BarChart3, Globe, Users, Loader2 } from "lucide-react"
+import {toast} from 'sonner'
+
+// Define the form schema with zod
+const contactFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .max(50, { message: "Name must not exceed 50 characters." }),
+  email: z
+    .string()
+    .email({ message: "Please enter a valid email address." })
+    .min(5, { message: "Email must be at least 5 characters." }),
+  message: z
+    .string()
+    .min(10, { message: "Message must be at least 10 characters." })
+    .max(500, { message: "Message must not exceed 500 characters." }),
+})
+
+type ContactFormValues = z.infer<typeof contactFormSchema>
 
 export function ContactUsPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: "",
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Initialize the form with react-hook-form and zod
+  const form = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      message: "",
+    },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission here
-    console.log("Form submitted:", formData)
-  }
+  const onSubmit = async (data: ContactFormValues) => {
+    setIsSubmitting(true)
+    
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success(
+          "Message sent successfully!",
+          {
+            description: "We'll get back to you within 24 hours.",
+          }
+        )
+        form.reset()
+      } else {
+        throw new Error(result.error || "Failed to send message")
+      }
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : "Failed to send message. Please try again.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-background">
-   
-
       <main className="container mx-auto px-4 py-16">
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* Left Side - Company Information */}
@@ -40,7 +95,7 @@ export function ContactUsPage() {
             <div>
               <h2 className="text-5xl md:text-6xl font-bold text-balance mb-6 leading-tight">
                 <span className=" text-emerald-400 ">
-                  Makrium
+                  Markium
                 </span>
               </h2>
               <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed mb-8">
@@ -118,66 +173,97 @@ export function ContactUsPage() {
                 </CardTitle>
                 <CardDescription className="text-lg">
                   Ready to explore the future of trading? Let's discuss how
-                  <span className="text-emerald-400 font-semibold"> Makrium</span> can transform your investment strategy.
+                  <span className="text-emerald-400 font-semibold"> Markium</span> can transform your investment strategy.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="grid gap-6">
-                    <div className="space-y-3">
-                      <Label htmlFor="name" className="text-base font-semibold text-foreground">
-                        Name
-                      </Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        placeholder="Your full name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                        className="bg-input/50 border-border/50 focus:border-accent focus:ring-accent/20 h-12 text-base transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <Label htmlFor="email" className="text-base font-semibold text-foreground">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        className="bg-input/50 border-border/50 focus:border-accent focus:ring-accent/20 h-12 text-base transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="message" className="text-base font-semibold text-foreground">
-                      Message
-                    </Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      placeholder="Tell us about your trading goals and how we can help..."
-                      rows={6}
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      required
-                      className="bg-input/50 border-border/50 focus:border-accent focus:ring-accent/20 resize-none text-base transition-all duration-200"
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Name
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Your full name"
+                              className="bg-input/50 border-border/50 focus:border-accent focus:ring-accent/20 h-12 text-base transition-all duration-200"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-emerald-500  py-4 text-lg font-semibold group"
-                  >
-                    <Send className="w-6 h-6 mr-3 group-hover:rotate-45 transition-transform duration-200" />
-                    Send Message
-                    <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-200" />
-                  </Button>
-                </form>
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Email
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="your@email.com"
+                              className="bg-input/50 border-border/50 focus:border-accent focus:ring-accent/20 h-12 text-base transition-all duration-200"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Message
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Tell us about your trading goals and how we can help..."
+                              rows={6}
+                              className="bg-input/50 border-border/50 focus:border-accent focus:ring-accent/20 resize-none text-base transition-all duration-200"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {field.value.length}/500 characters
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-emerald-500 py-4 text-lg font-semibold group"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-6 h-6 mr-3 group-hover:rotate-45 transition-transform duration-200" />
+                          Send Message
+                          <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-200" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </Form>
 
                 {/* Contact Info */}
                 <div className="mt-8 pt-8 border-t border-border/50">
@@ -186,7 +272,7 @@ export function ContactUsPage() {
                     <div className="space-y-2">
                       <p className="text-muted-foreground">
                         <Mail className="w-4 h-4 inline mr-2 text-emerald-400" />
-                        hello@makrium.com
+ info@markiumpro.com
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Response within <span className="text-emerald-400 font-semibold">24 hours</span>
@@ -209,11 +295,11 @@ export function ContactUsPage() {
                 <TrendingUp className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold">
-                <span className="text-accent">Makrium</span>
+                <span className="text-accent">Markium</span>
               </span>
             </div>
             <p className="text-muted-foreground">
-              &copy; 2024 Makrium. All rights reserved. The future of
+              &copy; 2025 Markium. All rights reserved. The future of
               <span className="text-accent font-semibold"> financial markets</span>.
             </p>
           </div>

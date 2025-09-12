@@ -216,7 +216,7 @@ export default function MarketSlugMainSection({ params, marketData }: MarketPage
                 <YesNoHolders data={topHolders} />
               </TabsContent>
               <TabsContent value="comments" className="mt-6">
-                <CommentsSection />
+                {/* <CommentsSection /> */}
               </TabsContent>
               <TabsContent value="activity" className="mt-6">
                 <div className="text-center py-12 text-[#94A3B8]">Activity feed coming soon...</div>

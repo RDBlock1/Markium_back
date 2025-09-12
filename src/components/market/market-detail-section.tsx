@@ -33,10 +33,20 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
   const [activeTab, setActiveTab] = useState("info")
   const { selectedMarket, isLoadingMarket } = useMarketSelectionStore()
 
+
   // Use selectedMarket if available, otherwise use first market from marketData
   const activeMarket = useMemo(() => {
     return selectedMarket || market?.markets?.[0] || null;
   }, [selectedMarket, market?.markets]);
+  const activeMarketWithSeries = useMemo(() => {
+    if (activeMarket && market?.series) {
+      return {
+        ...activeMarket,
+        series: market.series.filter(s => s.id === market.series[0]?.id) // Match series by ID
+      };
+    }
+    return null;
+  }, [activeMarket, market?.series]);
 
   // Check if we have the minimum required data
   const hasMarketData = marketData && marketData.markets && marketData.markets.length > 0;
@@ -269,11 +279,13 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
           
           <TabsContent value="activity" className="mt-6">
             {hasActiveMarket ? (
-              <CommentsSection 
-                key={`comments-${activeMarket.id}`} // Force re-render with key
-              />
+              activeMarketWithSeries?.series?.[0] ? (
+                <CommentsSection parentEntityId={Number(activeMarketWithSeries.series[0].id)} type="Series"/>
+              ) : (
+                <CommentsSection parentEntityId={Number(marketData.id)} type="Event"/>
+              )
             ) : (
-              <TabContentSkeleton />
+              ''
             )}
           </TabsContent>
         </Tabs>

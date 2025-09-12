@@ -33,29 +33,35 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   
-  // Update debug info
-  const updateDebug = (message: string) => {
-    console.log(message);
-    setDebugInfo(prev => `${new Date().toLocaleTimeString()}: ${message}\n${prev}`.split('\n').slice(0, 10).join('\n'));
-  };
-  
-  // Build API URL with filters
-  const buildApiUrl = useCallback((offset: number) => {
-    let url = `${baseUrl}/api/market?limit=50&offset=${offset}&sortBy=${sortBy}`;
+
+  // Build API URL with filters - accepts override parameters
+  const buildApiUrl = useCallback((offset: number, overrides?: {
+    category?: string;
+    filter?: string;
+    search?: string;
+    sort?: string;
+  }) => {
+    const currentCategory = overrides?.category !== undefined ? overrides.category : selectedCategory;
+    const currentFilter = overrides?.filter !== undefined ? overrides.filter : selectedFilter;
+    const currentSearch = overrides?.search !== undefined ? overrides.search : searchQuery;
+    const currentSort = overrides?.sort !== undefined ? overrides.sort : sortBy;
     
-    if (searchQuery) {
-      url += `&q=${encodeURIComponent(searchQuery)}`;
+    let url = `${baseUrl}/api/market?limit=50&offset=${offset}&sortBy=${currentSort}`;
+    
+    if (currentSearch) {
+      url += `&q=${encodeURIComponent(currentSearch)}`;
+    } else {
+      // Only apply ONE of filter or category, not both
+      if (currentFilter && currentFilter !== 'trending') {
+        console.log('Applying filter:', currentFilter);
+        url += `&filter=${currentFilter}`;
+      } else if (currentCategory && currentCategory !== 'trending') {
+        console.log('Applying category:', currentCategory);
+        url += `&category=${currentCategory}`;
+      }
+      // If both are 'trending' or empty, don't add any filter/category param
     }
     
-    if (!searchQuery && selectedCategory !== 'trending') {
-      url += `&category=${selectedCategory}`;
-    }
-    
-    if (!searchQuery && selectedFilter) {
-      url += `&filter=${selectedFilter}`;
-    }
-    
-    updateDebug(`Built URL: ${url}`);
     return url;
   }, [sortBy, searchQuery, selectedCategory, selectedFilter]);
   
@@ -73,7 +79,6 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       
       setIsLoading(true);
       setError(null);
-      updateDebug(`Searching for: ${debouncedSearchQuery}`);
       
       try {
         const response = await fetch(
@@ -92,11 +97,9 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         setMarketData(data.data || []);
         setHasMore(data.hasMore || false);
         setCurrentOffset(0);
-        updateDebug(`Search returned ${data.data?.length || 0} results`);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Search failed';
         setError(errorMsg);
-        updateDebug(`Search error: ${errorMsg}`);
       } finally {
         setIsLoading(false);
       }
@@ -107,29 +110,35 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
     }
   }, [debouncedSearchQuery, sortBy]);
   
-  // Load markets - simplified and with better error handling
-  const loadMarkets = useCallback(async (offset: number, replace: boolean = false) => {
+  // Load markets - now accepts overrides parameter
+  const loadMarkets = useCallback(async (
+    offset: number, 
+    replace: boolean = false,
+    overrides?: {
+      category?: string;
+      filter?: string;
+      search?: string;
+      sort?: string;
+    }
+  ) => {
     // Prevent duplicate requests
     if (isLoadingRef.current && !replace) {
-      updateDebug('Already loading, skipping...');
       return;
     }
     
-    updateDebug(`Loading markets: offset=${offset}, replace=${replace}`);
     
     isLoadingRef.current = true;
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = buildApiUrl(offset);
-      
+      const url = buildApiUrl(offset, overrides);
+      console.log('Fetching markets from URL:', url);
       // Try multiple fetch strategies for better compatibility
       let response;
       
       try {
         // First attempt: Standard fetch with minimal options
-        updateDebug('Attempting standard fetch...');
         response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -141,36 +150,27 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
           cache: 'no-cache',
         });
       } catch (fetchError) {
-        updateDebug(`Standard fetch failed: ${fetchError}`);
-        
-        // Fallback: Try with minimal options
-        updateDebug('Attempting fallback fetch with minimal options...');
         response = await fetch(url);
       }
       
-      updateDebug(`Response status: ${response.status}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const text = await response.text(); // Get as text first
-      updateDebug(`Response received, length: ${text.length} chars`);
       
       let data;
       try {
         data = JSON.parse(text); // Parse manually for better error handling
       } catch (parseError) {
-        updateDebug(`JSON parse error: ${parseError}`);
-        updateDebug(`Response text preview: ${text.substring(0, 200)}`);
+
         throw new Error('Invalid JSON response');
       }
       
-      updateDebug(`Received ${data.data?.length || 0} markets, hasMore: ${data.hasMore}`);
       
       // Validate response data
       if (!data || !Array.isArray(data.data)) {
-        updateDebug(`Invalid data structure: ${JSON.stringify(data).substring(0, 200)}`);
         throw new Error('Invalid response format');
       }
       
@@ -180,7 +180,6 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         setMarketData(prev => {
           const existingIds = new Set(prev.map(m => m.id));
           const newMarkets = data.data.filter((m: MarketSlug) => !existingIds.has(m.id));
-          updateDebug(`Adding ${newMarkets.length} new markets (${data.data.length - newMarkets.length} duplicates filtered)`);
           return [...prev, ...newMarkets];
         });
       }
@@ -198,13 +197,10 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
         // More specific error messages
         if (err.message === 'Failed to fetch') {
           errorMessage = 'Network error - please check your connection or try the button below';
-          updateDebug('Failed to fetch - likely CORS or network issue');
         }
       }
       
       setError(errorMessage);
-      updateDebug(`Error: ${errorMessage}`);
-      updateDebug(`Error details: ${errorDetails}`);
       
       // Don't set hasMore to false on error - allow retry
       // setHasMore(false);
@@ -216,39 +212,51 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   
   // Handle category change
   const handleCategoryChange = useCallback(async (category: string) => {
-    if (category === selectedCategory) return;
+    if (category === selectedCategory && !selectedFilter) return;
     
-    updateDebug(`Changing category to: ${category}`);
+    console.log(`Changing category to: ${category}`);
+    
+    // Update state
     setSelectedCategory(category);
-    setSelectedFilter('');
+    setSelectedFilter(''); // Clear filter when selecting a category
     setSearchQuery('');
     setCurrentOffset(0);
     
-    await loadMarkets(0, true);
-  }, [selectedCategory, loadMarkets]);
+    // Pass the new values directly to loadMarkets
+    await loadMarkets(0, true, {
+      category: category,
+      filter: '', // Explicitly clear filter
+      search: ''
+    });
+  }, [selectedCategory, selectedFilter, loadMarkets]);
   
   // Handle filter change
   const handleFilterChange = useCallback(async (filter: string) => {
-    if (filter === selectedFilter) return;
+    if (filter === selectedFilter && selectedCategory === 'trending') return;
+
+    console.log(`Changing filter to: ${filter}`);
     
-    updateDebug(`Changing filter to: ${filter}`);
+    // Update state
     setSelectedFilter(filter);
-    setSelectedCategory('trending');
+    setSelectedCategory('trending'); // Reset to trending when using filters
     setSearchQuery('');
     setCurrentOffset(0);
     
-    await loadMarkets(0, true);
-  }, [selectedFilter, loadMarkets]);
+    // Pass the new values directly to loadMarkets
+    await loadMarkets(0, true, {
+      category: 'trending',
+      filter: filter,
+      search: ''
+    });
+  }, [selectedFilter, selectedCategory, loadMarkets]);
   
   // Load more markets - simplified
   const loadMore = useCallback(async () => {
     if (isLoadingRef.current || !hasMore || searchQuery) {
-      updateDebug(`Not loading more: loading=${isLoadingRef.current}, hasMore=${hasMore}, searching=${!!searchQuery}`);
       return;
     }
     
     const nextOffset = currentOffset + 50;
-    updateDebug(`Loading more from offset ${nextOffset}`);
     await loadMarkets(nextOffset, false);
   }, [currentOffset, hasMore, searchQuery, loadMarkets]);
   
@@ -256,15 +264,17 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   const handleSortChange = useCallback(async (newSortBy: string) => {
     if (newSortBy === sortBy && !searchQuery) return;
     
-    updateDebug(`Changing sort to: ${newSortBy}`);
     setSortBy(newSortBy);
-    await loadMarkets(0, true);
+    
+    // Pass the new sort value directly
+    await loadMarkets(0, true, {
+      sort: newSortBy
+    });
   }, [sortBy, searchQuery, loadMarkets]);
   
   // Simple scroll-based infinite loading
   useEffect(() => {
     if (searchQuery || !hasMore) {
-      updateDebug(`Scroll disabled: searching=${!!searchQuery}, hasMore=${hasMore}`);
       return;
     }
     
@@ -288,7 +298,6 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       
       // Trigger when user scrolls to bottom 20% of page
       if (scrollPercentage > 80 && hasMore && !isLoadingRef.current) {
-        updateDebug(`Scroll trigger at ${scrollPercentage.toFixed(1)}%`);
         loadMore();
       }
     };
@@ -300,7 +309,6 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
     // Also check on resize
     window.addEventListener('resize', handleScroll, { passive: true });
     
-    updateDebug('Scroll listeners attached');
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -311,7 +319,6 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
   
   // Manual load more button as fallback
   const handleManualLoadMore = () => {
-    updateDebug('Manual load more clicked');
     loadMore();
   };
   
@@ -335,19 +342,6 @@ export default function MarketDashboardWrapper({ initialData }: { initialData: M
       {isLoading && !searchQuery && (
         <div className="flex justify-center py-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      )}
-      
-      {/* Error message with retry */}
-      {error && (
-        <div className="text-center py-4 text-red-500">
-          <p>{error}</p>
-          <button 
-            onClick={handleManualLoadMore} 
-            className="mt-2 px-4 py-2 bg-primary text-white rounded hover:opacity-90"
-          >
-            Retry
-          </button>
         </div>
       )}
       

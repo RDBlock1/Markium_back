@@ -35,6 +35,7 @@ export interface PolymarketEvent {
   negRisk?: boolean;
   commentCount?: number;
   markets: MarketSlug[];        // important: multiple markets
+  series: Series[];
   tags?: Tag[];
   cyom?: boolean;
   showAllOutcomes?: boolean;
@@ -50,6 +51,31 @@ export interface PolymarketEvent {
 }
 
 
+export interface Series {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  icon?: string;
+  active: boolean;
+  closed: boolean;
+  archived: boolean;
+  new: boolean;
+  featured: boolean;
+  restricted: boolean;
+  publishedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  commentsEnabled: boolean;
+  competitive: string;
+  volume24hr: number;
+  volume: number;
+  liquidity: number;
+  startDate: string;
+  commentCount: number;
+}
 
 export interface ClobReward {
   id: string;

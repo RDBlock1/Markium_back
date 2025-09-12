@@ -147,6 +147,7 @@ export default function MarketDashboard({
 
   // Handle category/filter click
   const handleFilterClick = (filter: typeof categoryFilters[0]) => {
+    console.log('Filter clicked:', filter);
     if (filter.isFilter) {
       // It's a filter (trending, new)
       if (selectedFilter === filter.id) {
