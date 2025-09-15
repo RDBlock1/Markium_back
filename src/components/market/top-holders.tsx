@@ -12,6 +12,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Copy, User } from "lucide-react"
 import { toast, Toaster } from "sonner"
 import type { HolderData, TokenHolders } from "@/types/holder"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface YesNoHoldersProps {
   data: TokenHolders[]
@@ -134,10 +135,16 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
               
                 <div>
                           <div className="flex-1 min-w-0">
-                  <div className="font-medium text-white">{getDisplayName(holder)}</div>
+                  <div className="font-medium text-white">
+                         <Link href={`/user-profile/${holder.proxyWallet}`} className="hover:underline">
+                  <span className="font-medium text-white">{getDisplayName(holder)}</span>
+                </Link>
+                  </div>
                 </div>
                 <div className="text-sm text-[#94A3B8] truncate">
-                  {holder.proxyWallet}
+                  <Link href={`/user-profile/${holder.proxyWallet}`} className="hover:underline">
+                    {holder.proxyWallet}
+                  </Link>
                 </div>
                 </div>
 
@@ -175,13 +182,16 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
                     <User className="h-3 w-3" />
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium text-white">{getDisplayName(holder)}</span>
+                <Link href={`/user-profile/${holder.proxyWallet}`} className="hover:underline">
+                  <span className="font-medium text-white">{getDisplayName(holder)}</span>
+                </Link>
               </div>
 
 
               <div className="text-sm text-[#94A3B8]  -translate-x-16">
-                {holder.proxyWallet}
-              </div>
+    <Link href={`/user-profile/${holder.proxyWallet}`} className="hover:underline">
+                    {holder.proxyWallet}
+                  </Link>              </div>
 
               <div className="flex flex-col">
                 <div className="font-semibold text-white">

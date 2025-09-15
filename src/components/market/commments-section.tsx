@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Heart, MessageCircle, MoreHorizontal, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface Profile {
   name?: string
@@ -219,7 +220,9 @@ export function CommentsSection({ parentEntityId ,type}: CommentsSectionProps) {
 
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white text-sm">{displayName}</span>
+              <Link href={`/user-profile/${comment.profile?.proxyWallet || comment.userAddress}`} className="hover:underline">
+                            <span className="font-medium text-white text-sm">{displayName}</span>
+</Link>
               {comment.profile?.positions && comment.profile.positions.length > 0 && (
                 <span className="text-xs text-[#6366F1] bg-[#6366F1]/10 px-2 py-0.5 rounded">
                   💰 {formatPositionSize(comment.profile.positions[0].positionSize)}

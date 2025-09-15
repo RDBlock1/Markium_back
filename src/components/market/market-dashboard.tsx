@@ -467,6 +467,31 @@ export default function MarketDashboard({
               )}
             </AnimatePresence>
           </div>
+          
+          {/* i want for mobile device Also */}
+
+        <div className="flex justify-between items-center lg:hidden">
+             <div className="flex flex-wrap gap-2">
+                      {categoryFilters.map((filter) => {
+                        const Icon = filter.icon;
+                        const isActive = isFilterActive(filter);
+                        return (
+                          <button
+                            key={filter.id}
+                            onClick={() => handleFilterClick(filter)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                              isActive
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground bg-muted"
+                            }`}
+                          >
+                            <Icon className="h-3 w-3" />
+                            <span>{filter.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+          </div>
 
           {/* Results Count */}
           {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
@@ -688,6 +713,7 @@ export default function MarketDashboard({
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.02 }}
                 >
+              <Link href={`/market/${token.slug}`}>
                   <Card className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 flex-1">
@@ -763,6 +789,7 @@ export default function MarketDashboard({
                       </Badge>
                     </div>
                   </Card>
+              </Link>
                 </motion.div>
               ))}
             </AnimatePresence>

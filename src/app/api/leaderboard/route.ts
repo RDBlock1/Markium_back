@@ -49,6 +49,14 @@ interface PolymarketResponse {
 type LeaderboardType = 'volume' | 'profit';
 type Period = '1d' | '7d' | '30d' | 'all';
 
+// CORS headers configuration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // You can restrict this to specific domains
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400', // 24 hours
+};
+
 // Cache configuration
 let buildIdCache: { id: string; timestamp: number } | null = null;
 const BUILD_ID_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -230,14 +238,20 @@ export async function GET(request: NextRequest) {
     if (!type || !['volume', 'profit', 'both'].includes(type)) {
       return NextResponse.json(
         { error: 'Invalid or missing type parameter. Use: volume, profit, or both' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: corsHeaders 
+        }
       );
     }
     
     if (!['1d', '7d', '30d', 'all'].includes(mappedPeriod)) {
       return NextResponse.json(
         { error: 'Invalid period parameter. Use: 1d, 7d, 30d, or all' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: corsHeaders 
+        }
       );
     }
     
@@ -274,6 +288,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(transformedData, {
       headers: {
+        ...corsHeaders,
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
       },
     });
@@ -282,19 +297,18 @@ export async function GET(request: NextRequest) {
     console.error('API Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch leaderboard data' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: corsHeaders 
+      }
     );
   }
 }
 
-// Optional: Add OPTIONS method for CORS
+// OPTIONS method for CORS preflight
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: corsHeaders,
   });
 }

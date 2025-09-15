@@ -31,7 +31,7 @@ export  function Footer(){
                 <BsTwitterX className="h-4 w-4"/>
 
             </Link>
-            <Link href="mailto:info@markiumpro.com" target="_blank">
+            <Link href="/contact">
                 <FiMail  className="h-4 w-4"/>
             </Link>
 
