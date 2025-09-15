@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, BarChart3, Activity, RefreshCw, DollarSign, ArrowUpRight, ArrowDownRight, UserX } from "lucide-react"
+import { TrendingUp, BarChart3, Activity, RefreshCw, DollarSign, ArrowUpRight, ArrowDownRight, UserX, AlertTriangle, AlertCircle, Download, PieChart, Target } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import UserAlertSystem from "./user-alert-system"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
@@ -23,8 +23,6 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts"
-import {  Download, PieChart, Target } from "lucide-react"
-
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -82,6 +80,8 @@ const formatNumber = (num: number) => {
   }).format(num)
 }
 
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+
 const formatCurrency = (num: number) => {
   if (Math.abs(num) >= 1000000) {
     return '$' + (num / 1000000).toFixed(2) + 'M'
@@ -95,41 +95,12 @@ const formatCurrency = (num: number) => {
     maximumFractionDigits: 2,
   }).format(num)
 }
-const performanceData = [
-  { month: "Jan", profit: 12000, volume: 45000, trades: 23 },
-  { month: "Feb", profit: 18500, volume: 52000, trades: 31 },
-  { month: "Mar", profit: 15200, volume: 48000, trades: 28 },
-  { month: "Apr", profit: 22800, volume: 61000, trades: 35 },
-  { month: "May", profit: 28400, volume: 73000, trades: 42 },
-  { month: "Jun", profit: 31200, volume: 78000, trades: 38 },
-  { month: "Jul", profit: 35600, volume: 85000, trades: 45 },
-  { month: "Aug", profit: 42100, volume: 92000, trades: 52 },
-  { month: "Sep", profit: 38900, volume: 88000, trades: 48 },
-]
-
-const marketDistribution = [
-  { market: "Crypto", value: 45, trades: 156 },
-  { market: "Politics", value: 28, trades: 89 },
-  { market: "Sports", value: 18, trades: 67 },
-  { market: "Economics", value: 9, trades: 34 },
-]
-
-const winRateData = [
-  { week: "W1", winRate: 68, totalTrades: 12 },
-  { week: "W2", winRate: 72, totalTrades: 15 },
-  { week: "W3", winRate: 65, totalTrades: 18 },
-  { week: "W4", winRate: 78, totalTrades: 14 },
-  { week: "W5", winRate: 71, totalTrades: 16 },
-  { week: "W6", winRate: 74, totalTrades: 19 },
-  { week: "W7", winRate: 69, totalTrades: 13 },
-  { week: "W8", winRate: 76, totalTrades: 17 },
-]
 
 const formatDate = (timestamp: number) => {
   const date = new Date(timestamp * 1000)
   const now = new Date()
   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-  
+
   if (diffInHours < 1) {
     const minutes = Math.floor(diffInHours * 60)
     return `${minutes}m ago`
@@ -138,7 +109,7 @@ const formatDate = (timestamp: number) => {
   } else if (diffInHours < 168) {
     return `${Math.floor(diffInHours / 24)}d ago`
   }
-  
+
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -211,19 +182,45 @@ interface ActivityItem {
   price: number
 }
 
-export default function UserDashboard({ address  }: { address: string }) {
+export default function UserDashboard({ address }: { address: string }) {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [positions, setPositions] = useState<Position[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
-  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState("positions")
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null)
+
+  // Fetch analytics
+  const fetchAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true)
+      setAnalyticsError(null)
+      // Fix the API path here - should match your actual API route
+      const response = await fetch(`/api/market/analytics?address=${address}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics')
+      }
+
+      const data = await response.json()
+      setAnalytics(data)
+    } catch (err) {
+      setAnalyticsError(err instanceof Error ? err.message : 'Failed to load analytics')
+      console.error('Error fetching analytics:', err)
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }
 
   // Fetch user data
   const fetchUserData = async () => {
     try {
+      // Fix API paths to match your actual endpoints
       const response = await fetch(`/api/market/user?address=${address}`)
       if (!response.ok) throw new Error('Failed to fetch user data')
       const data = await response.json()
@@ -282,7 +279,8 @@ export default function UserDashboard({ address  }: { address: string }) {
         fetchUserData(),
         fetchMetrics(),
         fetchPositions(),
-        fetchActivity()
+        fetchActivity(),
+        fetchAnalytics()
       ])
       setLoading(false)
     }
@@ -296,7 +294,8 @@ export default function UserDashboard({ address  }: { address: string }) {
     await Promise.all([
       fetchMetrics(),
       fetchPositions(),
-      fetchActivity()
+      fetchActivity(),
+      fetchAnalytics()
     ])
     setRefreshing(false)
   }
@@ -370,6 +369,7 @@ export default function UserDashboard({ address  }: { address: string }) {
               <UserX className="h-12 w-12 mx-auto" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">No User Found</h2>
+            <p className="text-gray-400">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -443,11 +443,10 @@ export default function UserDashboard({ address  }: { address: string }) {
                 <CardContent className="p-4 md:p-6">
                   <div className="flex items-center justify-between mb-2">
                     <metric.icon className="h-5 w-5 text-gray-400" />
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      metric.positive
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${metric.positive
                         ? "text-emerald-300 bg-emerald-950/80 border border-emerald-400/30"
                         : "text-red-300 bg-red-950/80 border border-red-400/30"
-                    }`}>
+                      }`}>
                       {metric.change}
                     </span>
                   </div>
@@ -510,7 +509,7 @@ export default function UserDashboard({ address  }: { address: string }) {
                     {positions.map((position, index) => {
                       const tokenColor = getTokenColor(position.market)
                       const tokenSymbol = getTokenSymbol(position.market)
-                      
+
                       return (
                         <motion.div key={position.id} variants={cardVariants} whileHover="hover" custom={index}>
                           <Card className="bg-zinc-900/60 border border-zinc-800 hover:bg-zinc-900/80 hover:border-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/5 transition-all duration-300 backdrop-blur-xl overflow-hidden">
@@ -594,13 +593,12 @@ export default function UserDashboard({ address  }: { address: string }) {
                                 </div>
                                 <div className="col-span-3 text-right">
                                   <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
-                                  <p className={`text-sm font-medium ${
-                                    position.percentPnl > 0
+                                  <p className={`text-sm font-medium ${position.percentPnl > 0
                                       ? 'text-emerald-400'
                                       : position.percentPnl < 0
-                                      ? 'text-red-400'
-                                      : 'text-gray-400'
-                                  }`}>
+                                        ? 'text-red-400'
+                                        : 'text-gray-400'
+                                    }`}>
                                     {position.percentPnl > 0 ? '+' : ''}{position.percentPnl.toFixed(1)}%
                                   </p>
                                 </div>
@@ -637,7 +635,7 @@ export default function UserDashboard({ address  }: { address: string }) {
                           <CardContent className="p-4 md:p-6">
                             <div className="flex items-center gap-3">
                               <div className="relative">
-                                {item.icon ? (    
+                                {item.icon ? (
                                   <img src={item.icon} alt="" className="w-10 h-10 rounded-lg" />
                                 ) : (
                                   <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
@@ -649,21 +647,19 @@ export default function UserDashboard({ address  }: { address: string }) {
                                 <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{item.market}</p>
                                 <Badge
                                   variant="secondary"
-                                  className={`text-xs border ${
-                                    isBuy
+                                  className={`text-xs border ${isBuy
                                       ? "bg-emerald-950/80 text-emerald-300 border-emerald-400/30"
                                       : "bg-red-950/80 text-red-300 border-red-400/30"
-                                  }`}
+                                    }`}
                                 >
                                   {item.outcome}
                                 </Badge>
                               </div>
                               <div className="text-right">
-                                <p className={`text-sm font-semibold ${
-                                  isBuy ?   
-                                    'text-emerald-400'  
+                                <p className={`text-sm font-semibold ${isBuy ?
+                                    'text-emerald-400'
                                     : 'text-red-400'
-                                }`}>
+                                  }`}>
                                   {isBuy ? '+' : '-'}{formatNumber(item.size)} shares
                                 </p>
                                 <p className="text-gray-400 text-xs">{formatCurrency(item.usdcSize)}</p>
@@ -688,173 +684,290 @@ export default function UserDashboard({ address  }: { address: string }) {
                 </motion.div>
               )}
             </TabsContent>
+
+
+
             <TabsContent value="analytics" className="space-y-6">
-              {/* Performance Overview */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-emerald-400" />
-                      Profit Trend
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        profit: {
-                          label: "Profit",
-                          color: "hsl(var(--emerald-400))",
-                        },
-                      }}
-                      className="h-[300px]"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={performanceData}>
-                          <defs>
-                            <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="month" stroke="#9ca3af" />
-                          <YAxis stroke="#9ca3af" />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Area
-                            type="monotone"
-                            dataKey="profit"
-                            stroke="#10b981"
-                            strokeWidth={2}
-                            fill="url(#profitGradient)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
 
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-emerald-400" />
-                      Trading Volume
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        volume: {
-                          label: "Volume",
-                          color: "hsl(var(--emerald-400))",
-                        },
-                      }}
-                      className="h-[300px]"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={performanceData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="month" stroke="#9ca3af" />
-                          <YAxis stroke="#9ca3af" />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="volume" fill="#10b981" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </div>
+              {
 
-              {/* Market Distribution & Win Rate */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <PieChart className="h-5 w-5 text-emerald-400" />
-                      Market Distribution
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {marketDistribution.map((market, index) => (
-                        <div key={market.market} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-4 h-4 rounded-full"
-                              style={{
-                                backgroundColor: `hsl(${120 + index * 60}, 70%, ${50 + index * 10}%)`,
-                              }}
-                            />
-                            <span className="text-white font-medium">{market.market}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-white font-bold">{market.value}%</div>
-                            <div className="text-gray-400 text-sm">{market.trades} trades</div>
-                          </div>
-                        </div>
-                      ))}
+                error ? (
+                  <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl">
+                    <CardContent className="p-8 text-center">
+                      <div className="text-red-400 mb-4">
+                        <AlertCircle className="h-12 w-12 mx-auto" />
+                      </div>
+                      <h2 className="text-xl font-bold text-white mb-2">Error Loading Analytics</h2>
+                      <p className="text-gray-400">{error}</p>
+                    </CardContent>
+                  </Card>
+                ) : analytics ? (
+
+                  <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-emerald-400" />
+                            Profit Trend
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ChartContainer
+                            config={{
+                              profit: {
+                                label: "Profit",
+                                color: COLORS[0],
+                              },
+                            }}
+                            className="h-[300px]"
+                          >
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={analytics.performanceData}>
+                                <defs>
+                                  <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                <XAxis dataKey="month" stroke="#9ca3af" />
+                                <YAxis stroke="#9ca3af" />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Area
+                                  type="monotone"
+                                  dataKey="profit"
+                                  stroke="#10b981"
+                                  strokeWidth={2}
+                                  fill="url(#profitGradient)"
+                                />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-emerald-400" />
+                            Trading Volume
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ChartContainer
+                            config={{
+                              volume: {
+                                label: "Volume",
+                                color: "hsl(var(--emerald-400))",
+                              },
+                            }}
+                            className="h-[300px]"
+                          >
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={analytics.performanceData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                <XAxis dataKey="month" stroke="#9ca3af" />
+                                <YAxis stroke="#9ca3af" />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="volume" fill="#10b981" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </CardContent>
-                </Card>
 
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Target className="h-5 w-5 text-emerald-400" />
-                      Win Rate Trend
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        winRate: {
-                          label: "Win Rate %",
-                          color: "hsl(var(--emerald-400))",
-                        },
-                      }}
-                      className="h-[250px]"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={winRateData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="week" stroke="#9ca3af" />
-                          <YAxis stroke="#9ca3af" domain={[60, 80]} />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Line
-                            type="monotone"
-                            dataKey="winRate"
-                            stroke="#10b981"
-                            strokeWidth={3}
-                            dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </div>
 
-              {/* Analytics Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-emerald-400 mb-2">73.2%</div>
-                    <div className="text-gray-400 font-medium">Average Win Rate</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-emerald-400 mb-2">$2,847</div>
-                    <div className="text-gray-400 font-medium">Avg Monthly Profit</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-emerald-400 mb-2">38</div>
-                    <div className="text-gray-400 font-medium">Avg Monthly Trades</div>
-                  </CardContent>
-                </Card>
-              </div>
+                    {/* Market Distribution & Win Rate */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <PieChart className="h-5 w-5 text-emerald-400" />
+                            Market Distribution
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {analytics.marketDistribution.map((market: any, index: number) => (
+                              <div key={market.market} className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-4 h-4 rounded-full"
+                                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                  />
+                                  <span className="text-white font-medium">{market.market}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-white font-bold">{market.value}%</div>
+                                  <div className="text-gray-400 text-sm">{market.trades} trades</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <Target className="h-5 w-5 text-emerald-400" />
+                            Win Rate Trend
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ChartContainer
+                            config={{
+                              winRate: {
+                                label: "Win Rate %",
+                                color: "hsl(var(--emerald-400))",
+                              },
+                            }}
+                            className="h-[250px]"
+                          >
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={analytics.winRateData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                <XAxis dataKey="week" stroke="#9ca3af" />
+                                <YAxis stroke="#9ca3af" domain={[0, 100]} />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Line
+                                  type="monotone"
+                                  dataKey="winRate"
+                                  stroke="#10b981"
+                                  strokeWidth={3}
+                                  dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                                  activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Trading Statistics */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Buy/Sell Distribution */}
+                      <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-emerald-400" />
+                            Buy/Sell Distribution
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400">Buy Orders</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-32 bg-gray-700 rounded-full h-2">
+                                  <div
+                                    className="bg-emerald-400 h-2 rounded-full"
+                                    style={{ width: `${analytics.buySellDistribution.buyPercentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-white font-bold">
+                                  {analytics.buySellDistribution.buyPercentage}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400">Sell Orders</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-32 bg-gray-700 rounded-full h-2">
+                                  <div
+                                    className="bg-red-400 h-2 rounded-full"
+                                    style={{ width: `${analytics.buySellDistribution.sellPercentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-white font-bold">
+                                  {analytics.buySellDistribution.sellPercentage}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="pt-2 mt-2 border-t border-zinc-700">
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">Buy Volume</span>
+                                <span className="text-emerald-400 font-bold">
+                                  {formatCurrency(analytics.buySellDistribution.buyVolume)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between mt-2">
+                                <span className="text-gray-400">Sell Volume</span>
+                                <span className="text-red-400 font-bold">
+                                  {formatCurrency(analytics.buySellDistribution.sellVolume)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Trade Size Distribution */}
+                      <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl backdrop-blur-xl">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <DollarSign className="h-5 w-5 text-emerald-400" />
+                            Trade Size Analysis
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <div className="text-gray-400 text-sm">Average Size</div>
+                                <div className="text-white font-bold text-lg">
+                                  {formatCurrency(analytics.tradeSizeDistribution.averageSize)}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-gray-400 text-sm">Median Size</div>
+                                <div className="text-white font-bold text-lg">
+                                  {formatCurrency(analytics.tradeSizeDistribution.medianSize)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="pt-2 border-t border-zinc-700">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-gray-400 text-sm">Small (&lt;$100)</span>
+                                <span className="text-white font-medium">
+                                  {analytics.tradeSizeDistribution.smallTrades} trades
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-gray-400 text-sm">Medium ($100-$1k)</span>
+                                <span className="text-white font-medium">
+                                  {analytics.tradeSizeDistribution.mediumTrades} trades
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-400 text-sm">Large (&gt;$1k)</span>
+                                <span className="text-white font-medium">
+                                  {analytics.tradeSizeDistribution.largeTrades} trades
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+
+                ) : (
+                  <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl">
+                    <CardContent className="p-8 text-center">
+                      <div className="text-yellow-400 mb-4">
+                        <AlertTriangle className="h-12 w-12 mx-auto" />
+                      </div>
+                      <h2 className="text-xl font-bold text-white mb-2">Analytics Unavailable</h2>
+                      <p className="text-gray-400">Analytics data is currently unavailable. Please try again later.</p>
+                    </CardContent>
+                  </Card>
+                )
+              }
+
             </TabsContent>
           </Tabs>
         </motion.div>
@@ -872,7 +985,7 @@ export default function UserDashboard({ address  }: { address: string }) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Win Rate</span>
                   <span className="text-white font-semibold">
-                    {positions.length > 0 
+                    {positions.length > 0
                       ? `${((positions.filter(p => p.pnl > 0).length / positions.length) * 100).toFixed(0)}%`
                       : 'N/A'
                     }
@@ -880,12 +993,11 @@ export default function UserDashboard({ address  }: { address: string }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Avg. Return</span>
-                  <span className={`font-semibold ${
-                    positions.length > 0 && positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length > 0
-                      ? 'text-emerald-400' 
+                  <span className={`font-semibold ${positions.length > 0 && positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length > 0
+                      ? 'text-emerald-400'
                       : 'text-red-400'
-                  }`}>
-                    {positions.length > 0 
+                    }`}>
+                    {positions.length > 0
                       ? `${(positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length).toFixed(1)}%`
                       : 'N/A'
                     }
@@ -894,7 +1006,7 @@ export default function UserDashboard({ address  }: { address: string }) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Best Position</span>
                   <span className="text-emerald-400 font-semibold">
-                    {positions.length > 0 
+                    {positions.length > 0
                       ? `+${Math.max(...positions.map(p => p.percentPnl)).toFixed(1)}%`
                       : 'N/A'
                     }
@@ -903,7 +1015,7 @@ export default function UserDashboard({ address  }: { address: string }) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Worst Position</span>
                   <span className="text-red-400 font-semibold">
-                    {positions.length > 0 
+                    {positions.length > 0
                       ? `${Math.min(...positions.map(p => p.percentPnl)).toFixed(1)}%`
                       : 'N/A'
                     }
@@ -940,7 +1052,7 @@ export default function UserDashboard({ address  }: { address: string }) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Avg. Trade Size</span>
                   <span className="text-white font-semibold">
-                    {activity.length > 0 
+                    {activity.length > 0
                       ? formatCurrency(activity.reduce((acc, a) => acc + a.usdcSize, 0) / activity.length)
                       : 'N/A'
                     }

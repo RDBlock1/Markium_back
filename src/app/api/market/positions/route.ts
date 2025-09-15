@@ -11,6 +11,7 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders })
 }
 
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -67,6 +68,7 @@ export async function GET(request: NextRequest) {
       endDate: position.endDate,
       negativeRisk: position.negativeRisk
     }))
+
 
     return NextResponse.json(transformedPositions, { headers: corsHeaders })
   } catch (error) {
