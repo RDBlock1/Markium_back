@@ -404,7 +404,7 @@ export default function ClobMultiHistoryChart({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg leading-none font-bold sm:text-2xl">
-                      {stats.current.toFixed(1)}%
+                      {Math.round(stats.current)}%
                     </span>
                     <div className={`flex items-center gap-1 text-xs ${
                       stats.isPositive ? 'text-green-600' : 'text-red-600'

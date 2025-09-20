@@ -105,3 +105,203 @@ model BlogPost {
   updatedAt DateTime @updatedAt
 }
 
+
+model Market {
+  id            String    @id @default(cuid())
+  conditionId   String    @unique
+  marketId      String?
+  question      String    @db.Text
+  slug          String?
+  liquidity     Float     @default(0)
+  volume        Float     @default(0)
+  volume24hr    Float     @default(0)
+  active        Boolean   @default(true)
+  closed        Boolean   @default(false)
+  archived      Boolean   @default(false)
+  image         String?
+  category      String?
+  tags          String[]
+  outcomes      String[]
+  outcomePrices Float[]
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Indexes for better query performance
+  @@index([conditionId])
+  @@index([active, closed])
+  @@index([volume24hr])
+  @@index([liquidity])
+  @@index([createdAt])
+  @@index([category])
+  @@index([slug])
+}
+
+// Separate model for proxy wallets
+model ProxyWallet {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  createdAt DateTime @default(now())
+  
+  @@index([address])
+}
+
+// Optional: If you want to track sync history
+model SyncHistory {
+  id              String   @id @default(cuid())
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  marketsFound    Int      @default(0)
+  marketsStored   Int      @default(0)
+  marketsFailed   Int      @default(0)
+  walletsFound    Int      @default(0)
+  walletsStored   Int      @default(0)
+  status          SyncStatus @default(RUNNING)
+  error           String?
+  
+  @@index([startedAt])
+  @@index([status])
+}
+
+
+// Add these models to your existing schema.prisma file
+
+model UserAnalytics {
+  id                String              @id @default(cuid())
+  address           String              @unique
+  
+  // Overview metrics
+  totalVolume       Float               @default(0)
+  totalProfit       Float               @default(0)
+  positionValue     Float               @default(0)
+  totalTrades       Int                 @default(0)
+  totalPositions    Int                 @default(0)
+  averageWinRate    Float               @default(0)
+  avgMonthlyProfit  Float               @default(0)
+  avgMonthlyTrades  Int                 @default(0)
+  
+  // Trading insights
+  mostTradedCategory String?
+  tradingStyle       String?            // 'Buyer' | 'Seller'
+  riskProfile        String?            // 'High Risk' | 'Conservative'
+  
+  // Relationships
+  marketDistribution MarketDistribution[]
+  buySellData        BuySellData?
+  tradeSizeData      TradeSizeData?
+  priceStats         PriceStats?
+  monthlyPerformance MonthlyPerformance[]
+  weeklyWinRate      WeeklyWinRate[]
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  lastSyncedAt      DateTime?
+  
+  @@index([address])
+  @@index([updatedAt])
+}
+
+model MarketDistribution {
+  id             String         @id @default(cuid())
+  userId         String
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  market         String         // Category name
+  value          Int            // Percentage
+  trades         Int
+  volume         Float
+  uniqueMarkets  Int
+  
+  createdAt      DateTime       @default(now())
+  
+  @@index([userId])
+  @@unique([userId, market])
+}
+
+model BuySellData {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  buyPercentage  Int
+  sellPercentage Int
+  buyVolume      Float
+  sellVolume     Float
+  buyCount       Int
+  sellCount      Int
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model TradeSizeData {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  averageSize    Float
+  medianSize     Float
+  minSize        Float
+  maxSize        Float
+  smallTrades    Int           // < 100
+  mediumTrades   Int           // 100-1000
+  largeTrades    Int           // >= 1000
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model PriceStats {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  averagePrice   Float
+  minPrice       Float
+  maxPrice       Float
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model MonthlyPerformance {
+  id             String         @id @default(cuid())
+  userId         String
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  month          String         // Format: "Jan", "Feb", etc.
+  yearMonth      String         // Format: "2025-01" for sorting
+  profit         Float
+  volume         Float
+  trades         Int
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([userId])
+  @@index([yearMonth])
+  @@unique([userId, yearMonth])
+}
+
+model WeeklyWinRate {
+  id             String         @id @default(cuid())
+  userId         String
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  week           String         // Format: "W1", "W2", etc.
+  weekDate       DateTime       // Actual week start date
+  winRate        Float
+  totalTrades    Int
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([userId])
+  @@index([weekDate])
+  @@unique([userId, weekDate])
+}
+enum SyncStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}

@@ -66,7 +66,7 @@ export function YesNoHolders({ data }: YesNoHoldersProps) {
   }
 
   const getCurrentHolders = () => {
-    return activeTab === "yes" ? yesHolders : noHolders
+    return activeTab === "yes" ? noHolders : yesHolders
   }
 
   const sortedHolders = sortHolders(getCurrentHolders())

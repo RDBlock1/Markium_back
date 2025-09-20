@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { label: "MARKET", href: "/" },
   { label: "WATCHLIST", href: "/watchlist" },
   { label: "LEADERBOARD", href: "/leaderboard" },
+  { label: "USER EXPLORER", href: "/user-profile" },
   { label: "BLOG", href: "/blog" },
   { label: "CONTACT", href: "/contact" }
 ]
@@ -199,29 +200,27 @@ export function Navbar() {
                 >
                   <WalletConnectButton />
 
-                          {
-              session?.user ? (
-                // i have to show user profile photo and name
-                <UserMenu
-                  name={session.user.name!}
-                  email={session.user.email!}
-                  imageUrl={session.user.image!}
-                  onLogout={handleLogout}
-                />
-              ) : (
-                <Button
-                  variant="default"
-                  type="button"
-                  onClick={() => handleSocialLogin('google')}
-                  className="w-fit py-2 px-12  flex items-center space-x-2"
-                >
-                  Login
-                </Button>
-              )
-            }
+                  {
+                    session?.user ? (
+                      // i have to show user profile photo and name
+                      <UserMenu
+                        name={session.user.name!}
+                        email={session.user.email!}
+                        imageUrl={session.user.image!}
+                        onLogout={handleLogout}
+                      />
+                    ) : (
+                      <Button
+                        variant="default"
+                        type="button"
+                        onClick={() => handleSocialLogin('google')}
+                        className="w-fit py-2 px-12  flex items-center space-x-2"
+                      >
+                        Login
+                      </Button>
+                    )
+                  }
                 </motion.div>
-
-         
               </div>
             </motion.div>
           )}
