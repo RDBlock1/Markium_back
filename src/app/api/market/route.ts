@@ -419,6 +419,7 @@ async function handleDefaultRequest(limit: number, offset: number, sortBy: strin
   }
   
   const paginatedMarkets = allMarkets.slice(offset, offset + limit);
+
   
   const transformedMarkets = paginatedMarkets.map((market: any) => ({
     ...market,
@@ -427,7 +428,10 @@ async function handleDefaultRequest(limit: number, offset: number, sortBy: strin
     volume24hr: parseFloat(market.volume24hr || '0'),
     startDate: market.startDate || market.createdAt || null,
     endDate: market.endDate || null,
+
   }));
+
+  console.log('transformedMarkets',transformedMarkets);
   
   const hasMore = (offset + limit) < allMarkets.length;
   const totalAvailable = allMarkets.length;

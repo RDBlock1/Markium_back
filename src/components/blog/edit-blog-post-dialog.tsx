@@ -76,6 +76,7 @@ export function EditBlogPostDialog({
     height: 500,
     width: 1200,
     spellcheck: true,
+    theme: 'dark',
   });
 
   const editor = useRef(null);

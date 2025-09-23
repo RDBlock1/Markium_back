@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Clock, TrendingUp, DollarSign, Trophy, Medal, Award, Copy, ExternalLink, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {toast} from "sonner"
+import { toast } from "sonner"
 import Link from "next/link"
 
 type TimePeriod = "day" | "week" | "month" | "all"
@@ -104,14 +104,14 @@ export function LeaderboardSection() {
 
     try {
       const response = await fetch(`/api/leaderboard?type=both&period=${period}`)
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.statusText}`)
       }
 
       const data: LeaderboardData = await response.json()
       setLeaderboardData(data)
-      
+
       if (!showLoadingState) {
       }
     } catch (err) {
@@ -140,7 +140,7 @@ export function LeaderboardSection() {
     const interval = setInterval(() => {
       fetchLeaderboardData(selectedPeriod, false)
     }, 60000)
-    
+
     return () => clearInterval(interval)
   }, [selectedPeriod])
 
@@ -166,12 +166,12 @@ export function LeaderboardSection() {
     { key: "all", label: "All" },
   ]
 
-  const LeaderboardCard = ({ 
-    title, 
-    icon, 
-    data, 
-    type 
-  }: { 
+  const LeaderboardCard = ({
+    title,
+    icon,
+    data,
+    type
+  }: {
     title: string
     icon: React.ReactNode
     data: LeaderboardEntry[]
@@ -241,8 +241,8 @@ export function LeaderboardSection() {
               No data available
             </motion.div>
           ) : (
-         
-          <motion.div
+
+            <motion.div
               key="data"
               className="space-y-3"
             >
@@ -252,69 +252,79 @@ export function LeaderboardSection() {
 
                   className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/10 transition-all duration-200 group cursor-pointer"
                 >
-                <Link href={`/user-profile/${entry.walletAddress}`} className="flex items-center gap-4 w-full">
-                  <div className="flex items-center justify-center w-8 h-8">
-                    {getRankIcon(entry.rank)}
-                  </div>
-
-                  <Avatar 
-                    className="h-10 w-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all cursor-pointer"
-                    onClick={() => handleOpenPolymarket(entry.walletAddress)}
-                  >
-                    <AvatarImage src={entry.avatar || "/placeholder.svg"} alt={entry.username} />
-                    <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate group-hover:text-primary transition-colors">
-                      {entry.username}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-muted-foreground">
-                        {formatAddress(entry.walletAddress)}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleCopyAddress(entry.walletAddress)
-                        }}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleOpenPolymarket(entry.walletAddress)
-                        }}
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
+                  <Link href={`/user-profile/${entry.walletAddress}`} className="flex items-center gap-4 w-full">
+                    <div className="flex items-center justify-center w-8 h-8">
+                      {getRankIcon(entry.rank)}
                     </div>
-                    {entry.change !== undefined && entry.change !== 0 && (
-                      <Badge 
-                        variant={entry.change >= 0 ? "default" : "destructive"} 
-                        className="text-xs mt-1"
-                      >
-                        {entry.change >= 0 ? "+" : ""}{entry.change}%
-                      </Badge>
-                    )}
-                  </div>
 
-                  <div className="text-right">
-                    <p className="font-bold text-lg">
-                      {type === 'volume' 
-                        ? formatCurrency(entry.volume || 0)
-                        : formatCurrency(entry.profit || 0)
-                      }
-                    </p>
-                  </div>
-                </Link>
+                    <Avatar
+                      className="h-10 w-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all cursor-pointer"
+                      onClick={() => handleOpenPolymarket(entry.walletAddress)}
+                    >
+                      <AvatarImage src={entry.avatar || "/placeholder.svg"} alt={entry.username} />
+                      <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate group-hover:text-primary transition-colors">
+                        {entry.username}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {formatAddress(entry.walletAddress)}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCopyAddress(entry.walletAddress)
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenPolymarket(entry.walletAddress)
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+
+                        <Button asChild className="bg-purple-500 text-white h-6 hover:bg-purple-600" onClick={(e) => e.stopPropagation()}>
+                          <a
+                            href={`https://polygonscan.com/address/${entry.walletAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            PolygonScan
+                          </a>
+                        </Button>
+                      </div>
+                      {entry.change !== undefined && entry.change !== 0 && (
+                        <Badge
+                          variant={entry.change >= 0 ? "default" : "destructive"}
+                          className="text-xs mt-1"
+                        >
+                          {entry.change >= 0 ? "+" : ""}{entry.change}%
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="text-right">
+                      <p className="font-bold text-lg">
+                        {type === 'volume'
+                          ? formatCurrency(entry.volume || 0)
+                          : formatCurrency(entry.profit || 0)
+                        }
+                      </p>
+                    </div>
+                  </Link>
                 </motion.div>
               ))}
             </motion.div>

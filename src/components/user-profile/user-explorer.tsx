@@ -9,15 +9,7 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  DollarSign,
-  Percent,
-  PieChart,
-  LineChart,
   BarChart3,
-  Users,
   Wallet,
   Loader2,
   AlertCircle,
@@ -64,60 +56,6 @@ const FilterRow = ({ label, value, onChange, min = 0, max = 100, step = 1, showD
   </div>
 )
 
-type SummaryCardProps = {
-  title: string
-  value: string | number
-  icon: React.ElementType
-  trend?: "up" | "down"
-  subtitle?: string
-  variant?: "default" | "success" | "warning" | "destructive"
-}
-
-const SummaryCard = ({ title, value, icon: Icon, trend, subtitle, variant = "default" }: SummaryCardProps) => {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case "success":
-        return "text-success"
-      case "warning":
-        return "text-warning"
-      case "destructive":
-        return "text-destructive"
-      default:
-        return "text-primary"
-    }
-  }
-
-  return (
-    <Card className="bg-surface border-border shadow-sm hover:shadow-md transition-all duration-200">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-secondary">{title}</p>
-            <motion.p
-              className={`text-2xl font-bold ${getVariantStyles()}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              {value}
-            </motion.p>
-            {subtitle && <p className="text-xs text-tertiary">{subtitle}</p>}
-          </div>
-          <div className="flex flex-col items-center space-y-1">
-            <div className="p-2 rounded-lg bg-surface-secondary">
-              <Icon className="h-5 w-5 text-secondary" />
-            </div>
-            {trend && (
-              <div className={`flex items-center ${trend === "up" ? "text-success" : "text-destructive"}`}>
-                {trend === "up" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 type UsersTableRowProps = {
   user: any

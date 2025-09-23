@@ -151,6 +151,8 @@ async function getInitialMarkets() {
     if (!response.ok) {
       throw new Error('Failed to fetch markets');
     }
+
+
     
     return await response.json();
   } catch (error) {

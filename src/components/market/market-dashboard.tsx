@@ -13,9 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
-  ExternalLink, 
-  Copy, 
+import {
+  ExternalLink,
+  Copy,
   Search,
   Filter,
   TrendingUp,
@@ -47,6 +47,9 @@ import { useAccount } from "wagmi"
 import { toast } from "sonner"
 import { watchlistAPI } from "@/lib/watchlist-api"
 import { useSession } from "next-auth/react"
+import { SubMarketProbability } from "../submarket-probability"
+import { PolymarketEvent } from "@/types"
+import { fetchMarketData } from "@/app/actions/market"
 
 // Sort options with icons
 const sortOptions = [
@@ -70,7 +73,7 @@ const categoryFilters = [
 ]
 
 type Props = {
-  marketData: MarketSlug[]
+  marketData: PolymarketEvent[] | null
   onSortChange: (sortBy: string) => void
   sortBy: string
   searchQuery: string
@@ -101,11 +104,11 @@ type WatchlistItem = {
   updatedAt: Date
 }
 
-export default function MarketDashboard({ 
-  marketData, 
-  onSortChange, 
-  sortBy, 
-  searchQuery, 
+export default function MarketDashboard({
+  marketData,
+  onSortChange,
+  sortBy,
+  searchQuery,
   onSearchChange,
   isSearching = false,
   selectedCategory = 'trending',
@@ -117,19 +120,43 @@ export default function MarketDashboard({
   const [isChangingSort, setIsChangingSort] = useState(false)
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([])
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(false)
-  const {data: session} = useSession()
+  const { data: session } = useSession()
   const router = useRouter()
   const { address, isConnected } = useAccount()
 
-  useEffect(() => {
-    console.log("Market Data received:", marketData);
-    if (marketData && marketData.length > 0) {
-      console.log("First item structure:", marketData[0]);
-      console.log("Current sort:", sortBy);
-      console.log("Current category:", selectedCategory);
-      console.log("Current filter:", selectedFilter);
+  // Helper function to get market display text
+const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
+  const candidate =
+    token.ticker ??
+    token.question ??
+    token.title ??
+    token.description ??
+    token.slug ??
+    'Untitled Market';
+
+  // If candidate is an object/array/number — convert safely to string
+  if (candidate == null) return 'Untitled Market';
+  if (typeof candidate === 'string') return candidate;
+  if (typeof candidate === 'number') return String(candidate);
+
+  // If it's something like an object/array: try to pick a sensible field,
+  // otherwise JSON-stringify a reasonable preview
+  if (typeof candidate === 'object') {
+    // if it has a `text`/`name` property, use it
+    // (adjust per your actual shape of data)
+    // @ts-ignore
+    if (typeof candidate.text === 'string') return candidate.text;
+    // fallback:
+    try {
+      return JSON.stringify(candidate).slice(0, 120);
+    } catch {
+      return 'Untitled Market';
     }
-  }, [marketData, sortBy, selectedCategory, selectedFilter]);
+  }
+
+  return String(candidate);
+}, []);
+
 
   // Memoized function to check if item is in watchlist
   const isInWatchlist = useCallback((marketId: string) => {
@@ -139,7 +166,7 @@ export default function MarketDashboard({
   // Handle sort change with loading state
   const handleSortSelection = async (newSortBy: string) => {
     if (newSortBy === sortBy) return;
-    
+
     setIsChangingSort(true);
     await onSortChange(newSortBy);
     setTimeout(() => setIsChangingSort(false), 300);
@@ -147,7 +174,6 @@ export default function MarketDashboard({
 
   // Handle category/filter click
   const handleFilterClick = (filter: typeof categoryFilters[0]) => {
-    console.log('Filter clicked:', filter);
     if (filter.isFilter) {
       // It's a filter (trending, new)
       if (selectedFilter === filter.id) {
@@ -194,7 +220,7 @@ export default function MarketDashboard({
 
     try {
       if (Array.isArray(market.outcomePrices)) {
-        prices = market.outcomePrices.map((p: string | number) => 
+        prices = market.outcomePrices.map((p: string | number) =>
           typeof p === 'string' ? parseFloat(p) : Number(p)
         );
       } else if (typeof market.outcomePrices === "string") {
@@ -269,7 +295,7 @@ export default function MarketDashboard({
           marketId: marketId,
           triggerType: "price_above"
         });
-        
+
         const updatedWatchlist = response.watchList;
         setWatchlist(prev => [...prev, updatedWatchlist]);
         toast.success("Market added to watchlist");
@@ -285,8 +311,8 @@ export default function MarketDashboard({
 
   // Watchlist button component
   const WatchlistButton = useCallback(({ marketId, className = "" }: { marketId: string; className?: string }) => (
-    <Button 
-      variant="outline" 
+    <Button
+      variant="outline"
       size="sm"
       onClick={(e) => handleAddToWatchlist(marketId, e)}
       className={`${className} ${isLoadingWatchlist ? 'opacity-50 cursor-not-allowed' : ''} mx-3`}
@@ -300,8 +326,6 @@ export default function MarketDashboard({
     </Button>
   ), [handleAddToWatchlist, isInWatchlist, isLoadingWatchlist]);
 
-
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header with Search and Filters */}
@@ -311,33 +335,33 @@ export default function MarketDashboard({
         className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50"
       >
         <div className="container mx-auto px-4 py-4">
-           {/* Search Bar and Sort */}
+          {/* Search Bar and Sort */}
           <div className="flex flex-col gap-4">
             <div className="flex gap-3 items-center">
-          <div className="relative flex-1 max-w-xl">
-    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-    <Input
-      type="text"
-      placeholder="Search markets..."
-      value={searchQuery}
-      onChange={(e) => onSearchChange(e.target.value)}
-      className="pl-10 pr-10 h-10"
-    />
-    {searchQuery && (
-      <button
-        onClick={() => onSearchChange("")}
-        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-      >
-        <X className="h-4 w-4" />
-      </button>
-    )}
-    {isSearching && (
-      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-      </div>
-    )}
-  </div>
-              
+              <div className="relative flex-1 max-w-xl">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search markets..."
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="pl-10 pr-10 h-10"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => onSearchChange("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {isSearching && (
+                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  </div>
+                )}
+              </div>
+
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={handleSortSelection}>
                 <SelectTrigger className="w-[180px] h-10">
@@ -365,7 +389,7 @@ export default function MarketDashboard({
                   })}
                 </SelectContent>
               </Select>
-              
+
               {/* Mobile Filter Toggle */}
               <Button
                 variant="outline"
@@ -378,7 +402,6 @@ export default function MarketDashboard({
             </div>
 
             {/* Category Filters - Desktop */}
-        {/* Category Filters - Desktop */}
             <div className="hidden lg:flex items-center justify-between">
               <div className="flex gap-2 flex-wrap">
                 {categoryFilters.map((filter) => {
@@ -390,11 +413,10 @@ export default function MarketDashboard({
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleFilterClick(filter)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                        isActive
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${isActive
                           ? "bg-primary text-primary-foreground shadow-lg"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }`}
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span>{filter.label}</span>
@@ -408,125 +430,121 @@ export default function MarketDashboard({
                 })}
               </div>
 
-             {/* Category Filters - Mobile (Collapsible) */}
-            <AnimatePresence>
-              {showMobileFilters && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="lg:hidden overflow-hidden"
-                >
-                  <div className="space-y-3">
-                    {/* Mobile Sort Selector */}
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs text-muted-foreground w-full">Sort by:</span>
-                      {sortOptions.map((option) => {
-                        const Icon = option.icon;
-                        return (
-                          <button
-                            key={option.value}
-                            onClick={() => handleSortSelection(option.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                              sortBy === option.value
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground bg-muted"
-                            }`}
-                          >
-                            <Icon className="h-3 w-3" />
-                            <span>{option.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    
-                    {/* Category Filters */}
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs text-muted-foreground w-full">Categories:</span>
-                      {categoryFilters.map((filter) => {
-                        const Icon = filter.icon;
-                        const isActive = isFilterActive(filter);
-                        return (
-                          <button
-                            key={filter.id}
-                            onClick={() => handleFilterClick(filter)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                              isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground bg-muted"
-                            }`}
-                          >
-                            <Icon className="h-3 w-3" />
-                            <span>{filter.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          
-          {/* i want for mobile device Also */}
+              {/* Category Filters - Mobile (Collapsible) */}
+              <AnimatePresence>
+                {showMobileFilters && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="lg:hidden overflow-hidden"
+                  >
+                    <div className="space-y-3">
+                      {/* Mobile Sort Selector */}
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs text-muted-foreground w-full">Sort by:</span>
+                        {sortOptions.map((option) => {
+                          const Icon = option.icon;
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => handleSortSelection(option.value)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${sortBy === option.value
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground bg-muted"
+                                }`}
+                            >
+                              <Icon className="h-3 w-3" />
+                              <span>{option.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-        <div className="flex justify-between items-center lg:hidden">
-             <div className="flex flex-wrap gap-2">
-                      {categoryFilters.map((filter) => {
-                        const Icon = filter.icon;
-                        const isActive = isFilterActive(filter);
-                        return (
-                          <button
-                            key={filter.id}
-                            onClick={() => handleFilterClick(filter)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                              isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground bg-muted"
-                            }`}
-                          >
-                            <Icon className="h-3 w-3" />
-                            <span>{filter.label}</span>
-                          </button>
-                        );
-                      })}
+                      {/* Category Filters */}
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs text-muted-foreground w-full">Categories:</span>
+                        {categoryFilters.map((filter) => {
+                          const Icon = filter.icon;
+                          const isActive = isFilterActive(filter);
+                          return (
+                            <button
+                              key={filter.id}
+                              onClick={() => handleFilterClick(filter)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground bg-muted"
+                                }`}
+                            >
+                              <Icon className="h-3 w-3" />
+                              <span>{filter.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-          </div>
-
-          {/* Results Count */}
-          {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span>
-                {searchQuery ? 
-                  `Found ${filteredMarkets.length} markets matching "${searchQuery}"` :
-                  `Showing ${filteredMarkets.length} ${getActiveFilterLabel()} markets`
-                }
-              </span>
-              {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    onSearchChange("");
-                    onCategoryChange?.("trending");
-                    onFilterChange?.("");
-                  }}
-                  className="h-6 px-2 text-xs"
-                >
-                  Clear filters
-                </Button>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          )}
-        </div>
+
+            {/* Mobile category filters - Always visible */}
+            <div className="flex justify-between items-center lg:hidden">
+              <div className="flex flex-wrap gap-2">
+                {categoryFilters.map((filter) => {
+                  const Icon = filter.icon;
+                  const isActive = isFilterActive(filter);
+                  return (
+                    <button
+                      key={filter.id}
+                      onClick={() => handleFilterClick(filter)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground bg-muted"
+                        }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      <span>{filter.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Results Count */}
+            {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  {searchQuery ?
+                    `Found ${filteredMarkets.length} markets matching "${searchQuery}"` :
+                    `Showing ${filteredMarkets.length} ${getActiveFilterLabel()} markets`
+                  }
+                </span>
+                {(searchQuery || selectedCategory !== "trending" || selectedFilter) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      onSearchChange("");
+                      onCategoryChange?.("trending");
+                      onFilterChange?.("");
+                    }}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </motion.header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           {/* Loading Overlay for Sort Changes */}
@@ -570,9 +588,8 @@ export default function MarketDashboard({
                         <th className="p-4 font-medium text-muted-foreground">
                           <button
                             onClick={() => handleSortSelection('liquidity')}
-                            className={`flex items-center gap-1 hover:text-foreground transition-colors ${
-                              sortBy === 'liquidity' ? 'text-primary' : ''
-                            }`}
+                            className={`flex items-center gap-1 hover:text-foreground transition-colors ${sortBy === 'liquidity' ? 'text-primary' : ''
+                              }`}
                           >
                             Liquidity
                             {sortBy === 'liquidity' && <ArrowUpDown className="h-3 w-3" />}
@@ -581,9 +598,8 @@ export default function MarketDashboard({
                         <th className="p-4 font-medium text-muted-foreground">
                           <button
                             onClick={() => handleSortSelection('volume')}
-                            className={`flex items-center gap-1 hover:text-foreground transition-colors ${
-                              sortBy === 'volume' ? 'text-primary' : ''
-                            }`}
+                            className={`flex items-center gap-1 hover:text-foreground transition-colors ${sortBy === 'volume' ? 'text-primary' : ''
+                              }`}
                           >
                             Volume
                             {sortBy === 'volume' && <ArrowUpDown className="h-3 w-3" />}
@@ -614,7 +630,9 @@ export default function MarketDashboard({
                                   className="w-10 h-10 rounded-full"
                                 />
                                 <div className="max-w-sm">
-                                  <div className="font-semibold truncate ">{token.question}</div>
+                                  <div className="font-semibold truncate">{
+                                    getMarketDisplayText(token)
+                                    }</div>
                                   <div className="text-sm text-muted-foreground">
                                     {token.startDate ? toLocalString(token.startDate) : "—"}
                                   </div>
@@ -647,37 +665,17 @@ export default function MarketDashboard({
                             </td>
 
                             {/* Probability */}
-                            <td className="p-4">
-                              <div className="space-y-1">
-                                {(() => {
-                                  const { yesPercentage, noPercentage } = getYesAndNoPrices(token);
-                                  return (
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs font-medium">YES</span>
-                                        <div className="flex-1 bg-muted rounded-full h-2 max-w-[100px]">
-                                          <div 
-                                            className="bg-green-500 h-2 rounded-full transition-all"
-                                            style={{ width: `${yesPercentage}%` }}
-                                          />
-                                        </div>
-                                        <span className="text-sm font-semibold">{yesPercentage}%</span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs font-medium">NO</span>
-                                        <div className="flex-1 bg-muted rounded-full h-2 max-w-[100px]">
-                                          <div 
-                                            className="bg-red-500 h-2 rounded-full transition-all"
-                                            style={{ width: `${noPercentage}%` }}
-                                          />
-                                        </div>
-                                        <span className="text-sm font-semibold">{noPercentage}%</span>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            </td>
+                        <td className="p-4">
+  <div className="max-h-20 overflow-y-scroll [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+   <SubMarketProbability 
+  slug={token.slug} 
+  fallbackMarkets={token.markets?.slice(0, 4)} // Limit fallback too
+  compact={true}
+/>
+
+  </div>
+</td>
+
 
                             {/* Action */}
                             <td className="p-4">
@@ -687,8 +685,7 @@ export default function MarketDashboard({
                                     Trade
                                   </Button>
                                 </Link>
-                                                              <WatchlistButton marketId={token.id} />
-
+                                <WatchlistButton marketId={token.id} />
                               </motion.div>
                             </td>
                           </motion.tr>
@@ -713,83 +710,70 @@ export default function MarketDashboard({
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.02 }}
                 >
-              <Link href={`/market/${token.slug}`}>
-                  <Card className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1">
-                        <img
-                          src={token.image || "/placeholder.svg"}
-                          alt={token.id}
-                          className="w-12 h-12 rounded-full flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                                  <div className="font-semibold truncate w-[120px] md:w-full">{token.question}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {token.startDate ? toLocalString(token.startDate) : "—"}
+                  <Link href={`/market/${token.slug}`}>
+                    <Card className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1">
+                          <img
+                            src={token.image || "/placeholder.svg"}
+                            alt={token.id}
+                            className="w-12 h-12 rounded-full flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold truncate">{getMarketDisplayText(token)}</div>
+
+                            <div className="text-xs text-muted-foreground">
+                              {token.startDate ? toLocalString(token.startDate) : "—"}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Liquidity</span>
-                        <div className="font-semibold">{formatVolume(Number(token.liquidity))}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Volume</span>
-                        <div className="font-semibold">{formatVolume(Number(token.volume))}</div>
-                        {token.volume24hr && (
-                          <div className="text-xs text-muted-foreground">
-                            24h: {formatVolume(Number(token.volume24hr))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Probability Bars */}
-                    <div className="mt-3 pt-3 border-t border-border">
-                      {(() => {
-                        const { yesPercentage, noPercentage } = getYesAndNoPrices(token);
-                        return (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium">YES {yesPercentage}%</span>
-                              <span className="font-medium">NO {noPercentage}%</span>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Liquidity</span>
+                          <div className="font-semibold">{formatVolume(Number(token.liquidity))}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Volume</span>
+                          <div className="font-semibold">{formatVolume(Number(token.volume))}</div>
+                          {token.volume24hr && (
+                            <div className="text-xs text-muted-foreground">
+                              24h: {formatVolume(Number(token.volume24hr))}
                             </div>
-                            <div className="flex h-2 rounded-full overflow-hidden bg-muted">
-                              <div 
-                                className="bg-green-500 transition-all"
-                                style={{ width: `${yesPercentage}%` }}
-                              />
-                              <div 
-                                className="bg-red-500 transition-all"
-                                style={{ width: `${noPercentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
+                          )}
+                        </div>
+                      </div>
 
-                    {/* Sort Badge on Mobile */}
-                    <div className="mt-2 flex justify-between items-center">
-                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Link href={`/market/${token.slug}`}>
-                          <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
-                            Trade
-                          </Button>
-                        </Link>
-                                                        <WatchlistButton marketId={token.id} />
+                      {/* Probability Bars */}
+                      <div className="mt-3 pt-3 border-t border-border max-h-16 overflow-y-auto">
 
-                      </motion.div>
-                      <Badge variant="outline" className="text-xs">
-                        <currentSortOption.icon className="h-3 w-3 mr-1" />
-                        {currentSortOption.label}
-                      </Badge>
-                    </div>
-                  </Card>
-              </Link>
+<SubMarketProbability 
+  slug={token.slug} 
+  fallbackMarkets={token.markets?.slice(0, 4)} // Limit fallback too
+  compact={true}
+/>
+
+                      </div>
+
+                      {/* Sort Badge on Mobile */}
+                      <div className="mt-2 flex justify-between items-center">
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Link href={`/market/${token.slug}`}>
+                            <Button size="sm" className="bg-emerald-500 hover:bg-green-700">
+                              Trade
+                            </Button>
+                          </Link>
+                          <WatchlistButton marketId={token.id} />
+
+                        </motion.div>
+                        <Badge variant="outline" className="text-xs">
+                          <currentSortOption.icon className="h-3 w-3 mr-1" />
+                          {currentSortOption.label}
+                        </Badge>
+                      </div>
+                    </Card>
+                  </Link>
                 </motion.div>
               ))}
             </AnimatePresence>

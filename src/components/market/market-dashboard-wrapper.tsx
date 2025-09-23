@@ -5,9 +5,10 @@ import MarketDashboard from '@/components/market/market-dashboard';
 import { baseUrl } from '@/utils';
 import { MarketSlug } from '@/types/market';
 import { useDebounce } from '@/hooks/useDebounce';
+import { PolymarketEvent } from '@/types';
 
 interface MarketData {
-  data: MarketSlug[];
+  data: PolymarketEvent[];
   hasMore: boolean;
   total: number;
   offset?: number;

@@ -1,7 +1,8 @@
 'use server';
 
+import { PolymarketEvent } from "@/types";
 import { HoldersResponse, TokenHolders, HolderData } from "@/types/holder";
-
+import { baseUrl } from "@/utils";
 import axios from 'axios';
 import * as xml2js from 'xml2js';
 
@@ -37,6 +38,39 @@ export async function getTopHolders(marketId: string): Promise<TokenHolders[] | 
     return [];
   }
 }
+
+
+interface MarketAPIResponse {
+  data: PolymarketEvent;  // Changed from array to single object
+  success: boolean;
+  error?: string;
+}
+
+// API function for fetching market data
+export async function fetchMarketData(slug: string): Promise<PolymarketEvent> {
+  const response = await fetch(`${baseUrl}/api/slug-market`, {
+    method: 'POST',
+    body: JSON.stringify({ slug }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch market: ${response.status}`);
+  }
+
+  const result: MarketAPIResponse = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to fetch market data');
+  }
+
+  if (!result.data) {
+    throw new Error('Market not found');
+  }
+
+  return result.data;  // Return data directly, not data[0]
+}
+
 
 
 interface GoogleNewsArticle {

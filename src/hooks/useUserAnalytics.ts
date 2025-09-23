@@ -1,6 +1,7 @@
 // hooks/useUserAnalytics.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { toast } from 'sonner';
 
 interface User {
   address: string;
@@ -90,22 +91,70 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
     total: 0,
     totalPages: 0,
   });
+  
+  // Use a ref to track if we're searching for a specific address
+  const isSearchingAddress = useRef(false);
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(filters.searchQuery, 500);
 
-  const fetchUsers = useCallback(async () => {
+  // Function to search for a specific user address
+  const searchUserByAddress = useCallback(async (address: string) => {
+    setLoading(true);
+    setError(null);
+    isSearchingAddress.current = true;
+
+    try {
+      // Call the user-search endpoint for specific address lookup
+      const response = await fetch(`/api/polymarket/user-search?address=${address}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('User not found');
+          setUsers([]);
+          toast.error('User not found on Polymarket');
+          return;
+        }
+        throw new Error('Failed to fetch user');
+      }
+
+      const data = await response.json();
+      
+      // Set single user in the table
+      setUsers([data.user]);
+      setPagination({
+        page: 1,
+        limit: 1,
+        total: 1,
+        totalPages: 1,
+      });
+
+      // Show notification based on data source
+      if (data.fromDatabase) {
+        toast.success('User found in database');
+      } else if (data.newUser) {
+        toast.success('New user fetched from Polymarket');
+      }
+
+    } catch (err) {
+      console.error('Error searching user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to search user');
+      setUsers([]);
+      toast.error('Failed to fetch user data');
+    } finally {
+      setLoading(false);
+      isSearchingAddress.current = false;
+    }
+  }, []);
+
+  // Function to fetch all users from database
+  const fetchAllUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
       // Build query parameters
       const params = new URLSearchParams();
-      
-      // Use debounced search query
-      if (debouncedSearchQuery) {
-        params.append('searchQuery', debouncedSearchQuery);
-      }
       
       // Add range filters only if they're not at default values
       if (filters.volumeRange[0] !== 0 || filters.volumeRange[1] !== 500) {
@@ -147,6 +196,7 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
       params.append('sortBy', filters.sortBy);
       params.append('sortOrder', filters.sortOrder);
 
+      // Use the correct endpoint for fetching all users
       const response = await fetch(`/api/market/user/explorer?${params.toString()}`);
 
       if (!response.ok) {
@@ -154,20 +204,61 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
       }
 
       const data = await response.json();
-      setUsers(data.users);
-      setPagination(data.pagination);
+      setUsers(data.users || []);
+      setPagination(data.pagination || {
+        page: filters.page,
+        limit: 30,
+        total: 0,
+        totalPages: 0
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
     }
-  }, [filters, debouncedSearchQuery]);
+  }, [filters]);
 
-  // Fetch users when filters change
+  // Main effect to handle fetching based on search query
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    // Check if the debounced search query is a valid Ethereum address
+    const isValidAddress = debouncedSearchQuery && 
+                          debouncedSearchQuery.startsWith('0x') && 
+                          debouncedSearchQuery.length === 42;
+
+    if (isValidAddress) {
+      // Search for specific user address
+      searchUserByAddress(debouncedSearchQuery);
+    } else if (!debouncedSearchQuery || debouncedSearchQuery.length === 0) {
+      // No search query or cleared search, fetch all users
+      fetchAllUsers();
+    }
+    // If search query exists but is not a valid address, don't fetch anything
+    // This prevents unnecessary API calls while user is typing
+  }, [debouncedSearchQuery, searchUserByAddress, fetchAllUsers]);
+
+  // Effect to handle filter changes (excluding search query)
+  useEffect(() => {
+    // Only fetch if we're not currently searching for an address
+    // and the search query is empty
+    if (!filters.searchQuery && !isSearchingAddress.current) {
+      fetchAllUsers();
+    }
+  }, [
+    filters.volumeRange,
+    filters.ageRange,
+    filters.winRateRange,
+    filters.buyRatioRange,
+    filters.sellRatioRange,
+    filters.largestLossRange,
+    filters.highestProfitRange,
+    filters.avgReturnRange,
+    filters.timeframe,
+    filters.page,
+    filters.sortBy,
+    filters.sortOrder,
+    fetchAllUsers
+  ]);
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({
@@ -192,8 +283,16 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
   }, []);
 
   const refreshData = useCallback(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const isValidAddress = filters.searchQuery && 
+                          filters.searchQuery.startsWith('0x') && 
+                          filters.searchQuery.length === 42;
+    
+    if (isValidAddress) {
+      searchUserByAddress(filters.searchQuery);
+    } else {
+      fetchAllUsers();
+    }
+  }, [filters.searchQuery, searchUserByAddress, fetchAllUsers]);
 
   return {
     users,
@@ -208,9 +307,8 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
   };
 }
 
-
 export function useUserDetails(address: string | null) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -225,20 +323,15 @@ export function useUserDetails(address: string | null) {
       setError(null);
 
       try {
-        const response = await fetch('/api/users/analytics', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ address }),
-        });
-
+        // Use the user-search endpoint for detailed data
+        const response = await fetch(`/api/polymarket/user-search?address=${address}`);
+        
         if (!response.ok) {
           throw new Error('Failed to fetch user details');
         }
 
         const data = await response.json();
-        setUser(data);
+        setUser(data.user);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
         console.error('Error fetching user details:', err);

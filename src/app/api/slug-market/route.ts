@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
   try {
-    console.log('Slug market API called');
-    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
     
     const body = await request.json();
     const { slug } = body;
@@ -40,7 +38,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Fetching market data for slug: ${slug}`);
 
     // Create abort controller for timeout
     const controller = new AbortController();
@@ -50,8 +47,7 @@ export async function POST(request: NextRequest) {
     const apiUrl = process.env.POLYMARKET_API_URL || 'https://gamma-api.polymarket.com/events';
     const fullUrl = `${apiUrl}?slug=${encodeURIComponent(slug)}`;
     
-    console.log('Fetching from:', fullUrl);
-    
+
     let response;
     try {
       response = await fetch(fullUrl, {
@@ -96,7 +92,6 @@ export async function POST(request: NextRequest) {
       try {
         const errorBody = await response.text();
         errorDetails = errorBody.substring(0, 200);
-        console.error('Error body:', errorDetails);
       } catch (e) {
         console.error('Could not read error body');
       }
@@ -118,7 +113,6 @@ export async function POST(request: NextRequest) {
     }
 
     const responseText = await response.text();
-    console.log(`Response size: ${responseText.length} characters`);
     
     let marketData;
     try {
