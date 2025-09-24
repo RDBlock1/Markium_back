@@ -7,3 +7,4 @@ Host: https://markiumpro.com
 
 # Sitemaps
 Sitemap: https://markiumpro.com/sitemap.xml
+Sitemap: https://markiumpro.com/server-sitemap.xml

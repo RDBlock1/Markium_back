@@ -1,7 +1,16 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: "https://markiumpro.com", // <-- change this to your domain
-  generateRobotsTxt: true,           // will generate robots.txt
-  sitemapSize: 7000,                 // split sitemap if you have 7000+ URLs
-  outDir: "./public",                // outputs sitemap/robots to public/
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://markiumpro.com',
+  generateRobotsTxt: true,
+  sitemapSize: 45000, // chunk size
+  changefreq: 'weekly',
+  priority: 0.7,
+  // If you generate a server-side dynamic sitemap (server-sitemap.xml), add it here:
+  robotsTxtOptions: {
+    additionalSitemaps: [
+      'https://markiumpro.com/server-sitemap.xml', // your dynamic sitemap route
+    ],
+  },
+  // Optionally exclude admin or other paths:
+  exclude: ['/admin/*', '/api/*'],
 };

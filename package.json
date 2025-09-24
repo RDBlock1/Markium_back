@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start -p 3006",
     "postbuild": "next-sitemap",
-    "lint": "next lint"
+    "lint": "next lint",
+    "index-sitemap": "tsx src/scripts/index-sitemap.ts",
+    "index-sitemap:dry": "tsx src/scripts/index-sitemap.ts --dry-run",
+    "index-sitemap:prod": "tsx scripts/index-sitemap.ts --batch-size 20 --delay 2000"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
@@ -37,12 +40,15 @@
     "buffer": "^6.0.3",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto-browserify": "^3.12.1",
     "date-fns": "^4.1.0",
     "ethers": "^5.8.0",
     "framer-motion": "^12.23.12",
+    "gaxios": "^7.1.2",
+    "googleapis": "^160.0.0",
     "https-browserify": "^1.0.0",
     "jodit-react": "^5.2.19",
     "lucide-react": "^0.539.0",
@@ -50,6 +56,7 @@
     "next-auth": "^5.0.0-beta.29",
     "next-sitemap": "^4.2.3",
     "next-themes": "^0.4.6",
+    "node-fetch": "^2.7.0",
     "pino-pretty": "^13.1.1",
     "prisma": "^6.15.0",
     "process": "^0.11.10",
@@ -75,11 +82,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/xml2js": "^0.4.14",
     "tailwindcss": "^4",
+    "tsx": "^4.20.5",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5"
   }

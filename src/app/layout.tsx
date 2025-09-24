@@ -8,6 +8,7 @@ import { Providers } from './provider'
 import { Navbar } from '@/components/navbar'
 import Script from 'next/script'
 import { Footer } from '@/components/footer'
+import { AutoIndexingProvider } from '@/components/auto-indexing-provider'
 
 //metadata
 export const metadata = {
@@ -241,7 +242,10 @@ export default async function Layout({ children }: { children: ReactNode }) {
       <body className="h-screen bg-[#0A0B0D] flex flex-col">
         <Providers initialState={initialState}>
           <Navbar />
+                  <AutoIndexingProvider>
           {children}
+        </AutoIndexingProvider>
+
           <Footer/> 
         </Providers>
       </body>

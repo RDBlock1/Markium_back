@@ -1,0 +1,285 @@
+[2025-09-24T05:27:45.066Z] Starting sitemap indexing process...
+[2025-09-24T05:27:45.066Z] Sitemap URL: undefined/sitemap.xml
+[2025-09-24T05:27:45.067Z] Batch size: 10
+[2025-09-24T05:27:45.067Z] Delay between batches: 1000ms
+[2025-09-24T05:27:45.067Z] Dry run: false
+[2025-09-24T05:27:45.067Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:28:11.322Z] Starting sitemap indexing process...
+[2025-09-24T05:28:11.322Z] Sitemap URL: undefined/sitemap.xml
+[2025-09-24T05:28:11.322Z] Batch size: 10
+[2025-09-24T05:28:11.322Z] Delay between batches: 1000ms
+[2025-09-24T05:28:11.322Z] Dry run: false
+[2025-09-24T05:28:11.322Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:29:21.394Z] Starting sitemap indexing process...
+[2025-09-24T05:29:21.395Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:29:21.395Z] Batch size: 10
+[2025-09-24T05:29:21.395Z] Delay between batches: 1000ms
+[2025-09-24T05:29:21.395Z] Dry run: false
+[2025-09-24T05:29:21.395Z] Credentials valid: false
+[2025-09-24T05:29:21.395Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:29:21.395Z] Please check your .env.local file has GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY
+[2025-09-24T05:29:42.680Z] Starting sitemap indexing process...
+[2025-09-24T05:29:42.681Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:29:42.681Z] Batch size: 10
+[2025-09-24T05:29:42.681Z] Delay between batches: 1000ms
+[2025-09-24T05:29:42.681Z] Dry run: false
+[2025-09-24T05:29:42.681Z] Credentials valid: true
+[2025-09-24T05:29:42.681Z] Fetching URLs from sitemap...
+[2025-09-24T05:29:43.592Z] Found 1 URLs in sitemap
+[2025-09-24T05:29:43.592Z] Filtered to 0 URLs for indexing
+[2025-09-24T05:29:43.592Z] Processing 0 batches...
+[2025-09-24T05:29:43.592Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T05:29:43.592Z] Total URLs processed: 0
+[2025-09-24T05:29:43.593Z] Successful: 0
+[2025-09-24T05:29:43.593Z] Failed: 0
+[2025-09-24T05:29:43.593Z] Success rate: NaN%
+[2025-09-24T05:30:40.431Z] Starting sitemap indexing process...
+[2025-09-24T05:30:40.432Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:30:40.432Z] Batch size: 10
+[2025-09-24T05:30:40.432Z] Delay between batches: 1000ms
+[2025-09-24T05:30:40.432Z] Dry run: false
+[2025-09-24T05:30:40.432Z] Credentials valid: false
+[2025-09-24T05:30:40.432Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:30:40.432Z] Please check your .env.local file has GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY
+[2025-09-24T05:31:06.926Z] Starting sitemap indexing process...
+[2025-09-24T05:31:06.927Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:31:06.927Z] Batch size: 10
+[2025-09-24T05:31:06.927Z] Delay between batches: 1000ms
+[2025-09-24T05:31:06.927Z] Dry run: false
+[2025-09-24T05:31:06.927Z] Credentials valid: false
+[2025-09-24T05:31:06.927Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:31:06.927Z] Please check your .env file has GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY
+[2025-09-24T05:31:58.172Z] Starting sitemap indexing process...
+[2025-09-24T05:31:58.172Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:31:58.172Z] Batch size: 10
+[2025-09-24T05:31:58.173Z] Delay between batches: 1000ms
+[2025-09-24T05:31:58.173Z] Dry run: false
+[2025-09-24T05:31:58.173Z] Credentials valid: false
+[2025-09-24T05:31:58.173Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:31:58.173Z] Please check your .env file has GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY
+[2025-09-24T05:33:08.538Z] Starting sitemap indexing process...
+[2025-09-24T05:33:08.538Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:33:08.539Z] Batch size: 10
+[2025-09-24T05:33:08.539Z] Delay between batches: 1000ms
+[2025-09-24T05:33:08.539Z] Dry run: true
+[2025-09-24T05:33:08.539Z] Fetching URLs from sitemap...
+[2025-09-24T05:33:09.385Z] Found 1 URLs in sitemap
+[2025-09-24T05:33:09.387Z] Filtered to 0 URLs for indexing
+[2025-09-24T05:33:09.388Z] DRY RUN - URLs that would be indexed:
+[2025-09-24T05:33:21.167Z] Starting sitemap indexing process...
+[2025-09-24T05:33:21.168Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:33:21.168Z] Batch size: 10
+[2025-09-24T05:33:21.168Z] Delay between batches: 1000ms
+[2025-09-24T05:33:21.168Z] Dry run: false
+[2025-09-24T05:33:21.168Z] Credentials valid: false
+[2025-09-24T05:33:21.168Z] Error: Google Indexing API credentials are not configured
+[2025-09-24T05:33:21.168Z] Please check your .env file has GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY
+[2025-09-24T05:36:50.036Z] Starting sitemap indexing process...
+[2025-09-24T05:36:50.037Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T05:36:50.038Z] Batch size: 10
+[2025-09-24T05:36:50.038Z] Delay between batches: 1000ms
+[2025-09-24T05:36:50.038Z] Dry run: false
+[2025-09-24T05:36:50.038Z] Credentials valid: true
+[2025-09-24T05:36:50.038Z] Fetching URLs from sitemap...
+[2025-09-24T05:36:51.072Z] Found 1 URLs in sitemap
+[2025-09-24T05:36:51.072Z] Filtered to 0 URLs for indexing
+[2025-09-24T05:36:51.073Z] Processing 0 batches...
+[2025-09-24T05:36:51.073Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T05:36:51.073Z] Total URLs processed: 0
+[2025-09-24T05:36:51.073Z] Successful: 0
+[2025-09-24T05:36:51.073Z] Failed: 0
+[2025-09-24T05:38:44.738Z] Starting sitemap indexing process...
+[2025-09-24T05:38:44.739Z] Sitemap URL: https://markiumpro.com/sitemap-0.xml
+[2025-09-24T05:38:44.739Z] Batch size: 10
+[2025-09-24T05:38:44.739Z] Delay between batches: 1000ms
+[2025-09-24T05:38:44.739Z] Dry run: false
+[2025-09-24T05:38:44.740Z] Credentials valid: true
+[2025-09-24T05:38:44.740Z] Fetching URLs from sitemap...
+[2025-09-24T05:38:45.652Z] Found 1 URLs in sitemap
+[2025-09-24T05:38:45.653Z] Filtered to 0 URLs for indexing
+[2025-09-24T05:38:45.653Z] Processing 0 batches...
+[2025-09-24T05:38:45.653Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T05:38:45.653Z] Total URLs processed: 0
+[2025-09-24T05:38:45.653Z] Successful: 0
+[2025-09-24T05:38:45.653Z] Failed: 0
+[2025-09-24T05:40:14.874Z] Starting sitemap indexing process...
+[2025-09-24T05:40:14.875Z] Sitemap URL: https://markiumpro.com/sitemap-0.xml
+[2025-09-24T05:40:14.875Z] Batch size: 10
+[2025-09-24T05:40:14.875Z] Delay between batches: 1000ms
+[2025-09-24T05:40:14.875Z] Dry run: false
+[2025-09-24T05:40:14.875Z] Credentials valid: true
+[2025-09-24T05:40:14.875Z] Fetching URLs from sitemap...
+[2025-09-24T05:40:15.762Z] Found 1 URLs in sitemap
+[2025-09-24T05:40:15.763Z] Filtered to 1 URLs for indexing
+[2025-09-24T05:40:15.763Z] Processing 1 batches...
+[2025-09-24T05:40:15.763Z] 
+Processing batch 1/1 (1 URLs)...
+[2025-09-24T05:40:17.493Z] Batch 1 results: 0 successful, 1 failed
+[2025-09-24T05:40:17.494Z]   Failed: https://markiumpro.com/sitemap.xml - Permission denied. Failed to verify the URL ownership.
+[2025-09-24T05:40:17.494Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T05:40:17.494Z] Total URLs processed: 1
+[2025-09-24T05:40:17.495Z] Successful: 0
+[2025-09-24T05:40:17.495Z] Failed: 1
+[2025-09-24T05:40:17.495Z] Success rate: 0.00%
+[2025-09-24T06:23:39.702Z] Starting sitemap indexing process...
+[2025-09-24T06:23:39.703Z] Sitemap URL: https://markiumpro.com/sitemap-0.xml
+[2025-09-24T06:23:39.703Z] Batch size: 10
+[2025-09-24T06:23:39.703Z] Delay between batches: 1000ms
+[2025-09-24T06:23:39.703Z] Dry run: false
+[2025-09-24T06:23:39.703Z] Credentials valid: true
+[2025-09-24T06:23:39.703Z] Fetching URLs from sitemap...
+[2025-09-24T06:23:40.654Z] Found 1 URLs in sitemap
+[2025-09-24T06:23:40.654Z] Filtered to 1 URLs for indexing
+[2025-09-24T06:23:40.655Z] Processing 1 batches...
+[2025-09-24T06:23:40.655Z] 
+Processing batch 1/1 (1 URLs)...
+[2025-09-24T06:23:42.659Z] Batch 1 results: 0 successful, 1 failed
+[2025-09-24T06:23:42.659Z]   Failed: https://markiumpro.com/sitemap.xml - Permission denied. Failed to verify the URL ownership.
+[2025-09-24T06:23:42.660Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T06:23:42.660Z] Total URLs processed: 1
+[2025-09-24T06:23:42.660Z] Successful: 0
+[2025-09-24T06:23:42.660Z] Failed: 1
+[2025-09-24T06:23:42.660Z] Success rate: 0.00%
+[2025-09-24T06:24:26.802Z] Starting sitemap indexing process...
+[2025-09-24T06:24:26.803Z] Sitemap URL: https://markiumpro.com/sitemap-0.xml
+[2025-09-24T06:24:26.803Z] Batch size: 10
+[2025-09-24T06:24:26.803Z] Delay between batches: 1000ms
+[2025-09-24T06:24:26.803Z] Dry run: false
+[2025-09-24T06:24:26.803Z] Credentials valid: true
+[2025-09-24T06:24:26.803Z] Fetching URLs from sitemap...
+[2025-09-24T06:24:28.794Z] Found 1 URLs in sitemap
+[2025-09-24T06:24:28.795Z] Filtered to 1 URLs for indexing
+[2025-09-24T06:24:28.795Z] Processing 1 batches...
+[2025-09-24T06:24:28.795Z] 
+Processing batch 1/1 (1 URLs)...
+[2025-09-24T06:24:30.684Z] Batch 1 results: 0 successful, 1 failed
+[2025-09-24T06:24:30.685Z]   Failed: https://markiumpro.com/sitemap.xml - Permission denied. Failed to verify the URL ownership.
+[2025-09-24T06:24:30.685Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T06:24:30.685Z] Total URLs processed: 1
+[2025-09-24T06:24:30.686Z] Successful: 0
+[2025-09-24T06:24:30.686Z] Failed: 1
+[2025-09-24T06:24:30.686Z] Success rate: 0.00%
+[2025-09-24T06:34:09.967Z] Starting sitemap indexing process...
+[2025-09-24T06:34:09.968Z] Sitemap URL: https://markiumpro.com/sitemap-0.xml
+[2025-09-24T06:34:09.968Z] Batch size: 10
+[2025-09-24T06:34:09.968Z] Delay between batches: 1000ms
+[2025-09-24T06:34:09.968Z] Dry run: false
+[2025-09-24T06:34:09.968Z] Credentials valid: true
+[2025-09-24T06:34:09.968Z] Fetching URLs from sitemap...
+[2025-09-24T06:34:10.606Z] Found 1 URLs in sitemap
+[2025-09-24T06:34:10.607Z] Filtered to 1 URLs for indexing
+[2025-09-24T06:34:10.607Z] Processing 1 batches...
+[2025-09-24T06:34:10.607Z] 
+Processing batch 1/1 (1 URLs)...
+[2025-09-24T06:34:12.822Z] Batch 1 results: 0 successful, 1 failed
+[2025-09-24T06:34:12.822Z]   Failed: https://markiumpro.com/sitemap.xml - Permission denied. Failed to verify the URL ownership.
+[2025-09-24T06:34:12.822Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T06:34:12.822Z] Total URLs processed: 1
+[2025-09-24T06:34:12.822Z] Successful: 0
+[2025-09-24T06:34:12.822Z] Failed: 1
+[2025-09-24T06:34:12.823Z] Success rate: 0.00%
+[2025-09-24T06:38:49.544Z] Starting sitemap indexing process...
+[2025-09-24T06:38:49.545Z] Sitemap URL: https://markiumpro.com/sitemap-0.xml
+[2025-09-24T06:38:49.545Z] Batch size: 10
+[2025-09-24T06:38:49.545Z] Delay between batches: 1000ms
+[2025-09-24T06:38:49.545Z] Dry run: false
+[2025-09-24T06:38:49.545Z] Credentials valid: true
+[2025-09-24T06:38:49.545Z] Fetching URLs from sitemap...
+[2025-09-24T06:38:50.111Z] Found 1 URLs in sitemap
+[2025-09-24T06:38:50.111Z] Filtered to 1 URLs for indexing
+[2025-09-24T06:38:50.111Z] Processing 1 batches...
+[2025-09-24T06:38:50.111Z] 
+Processing batch 1/1 (1 URLs)...
+[2025-09-24T06:38:52.447Z] Batch 1 results: 1 successful, 0 failed
+[2025-09-24T06:38:52.448Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T06:38:52.448Z] Total URLs processed: 1
+[2025-09-24T06:38:52.449Z] Successful: 1
+[2025-09-24T06:38:52.449Z] Failed: 0
+[2025-09-24T06:38:52.449Z] Success rate: 100.00%
+[2025-09-24T06:47:16.148Z] Starting sitemap indexing process...
+[2025-09-24T06:47:16.149Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T06:47:16.149Z] Batch size: 10
+[2025-09-24T06:47:16.149Z] Delay between batches: 1000ms
+[2025-09-24T06:47:16.149Z] Dry run: true
+[2025-09-24T06:47:16.149Z] Crawl fallback enabled: true
+[2025-09-24T06:47:16.149Z] Fetching URLs from sitemap (recursive)...
+[2025-09-24T06:47:17.280Z] Sitemap discovery returned 1 URLs
+[2025-09-24T06:47:17.281Z] Sitemap appears small — running fallback site crawler to discover dynamic routes...
+[2025-09-24T12:46:22.116Z] Starting sitemap indexing process...
+[2025-09-24T12:46:22.117Z] Sitemap URL: https://markiumpro.com/sitemap.xml
+[2025-09-24T12:46:22.117Z] Batch size: 10
+[2025-09-24T12:46:22.117Z] Delay between batches: 1000ms
+[2025-09-24T12:46:22.117Z] Dry run: true
+[2025-09-24T12:46:22.117Z] Crawl fallback enabled: true
+[2025-09-24T12:46:22.117Z] Fetching URLs from sitemap (recursive)...
+[2025-09-24T12:46:23.670Z] Sitemap discovery returned 1 URLs
+[2025-09-24T12:46:23.671Z] Sitemap appears small — running fallback site crawler to discover dynamic routes...
+[2025-09-24T12:49:53.161Z] Starting sitemap indexing process...
+[2025-09-24T12:49:53.162Z] Site URL: https://markiumpro.com
+[2025-09-24T12:49:53.162Z] Batch size: 10
+[2025-09-24T12:49:53.162Z] Delay between batches: 1000ms
+[2025-09-24T12:49:53.162Z] Dry run: false
+[2025-09-24T12:49:53.162Z] Crawl fallback enabled: true
+[2025-09-24T12:49:53.162Z] Credentials valid: true
+[2025-09-24T12:49:53.162Z] Auto-detecting sitemaps...
+[2025-09-24T12:50:01.515Z] Auto-detected 2 sitemaps
+[2025-09-24T12:50:01.516Z] Fetching URLs from sitemaps...
+[2025-09-24T12:50:02.977Z] Sitemap discovery returned 1 URLs
+[2025-09-24T12:50:02.978Z] Sitemap appears small — running fallback site crawler to discover dynamic routes...
+[2025-09-24T12:50:13.480Z] Crawler discovered 0 URLs
+[2025-09-24T12:50:13.481Z] Found 1 URLs total (after merge)
+[2025-09-24T12:50:13.482Z] Filtered to 1 URLs for indexing
+[2025-09-24T12:50:13.482Z] Processing 1 batches...
+[2025-09-24T12:50:13.482Z] 
+Processing batch 1/1 (1 URLs)...
+[2025-09-24T12:50:15.223Z] Batch 1 results: 1 successful, 0 failed
+[2025-09-24T12:50:15.223Z] 
+=== INDEXING COMPLETE ===
+[2025-09-24T12:50:15.224Z] Total URLs processed: 1
+[2025-09-24T12:50:15.224Z] Successful: 1
+[2025-09-24T12:50:15.224Z] Failed: 0
+[2025-09-24T12:50:15.224Z] Success rate: 100.00%
+[2025-09-24T12:51:22.205Z] Starting sitemap indexing process...
+[2025-09-24T12:51:22.206Z] Site URL: https://markiumpro.com
+[2025-09-24T12:51:22.206Z] Batch size: 10
+[2025-09-24T12:51:22.206Z] Delay between batches: 1000ms
+[2025-09-24T12:51:22.206Z] Dry run: true
+[2025-09-24T12:51:22.206Z] Crawl fallback enabled: true
+[2025-09-24T12:51:22.206Z] Auto-detecting sitemaps...
+[2025-09-24T12:51:30.176Z] Auto-detected 2 sitemaps
+[2025-09-24T12:51:30.176Z] Fetching URLs from sitemaps...
+[2025-09-24T12:51:31.808Z] Sitemap discovery returned 1 URLs
+[2025-09-24T12:51:31.809Z] Sitemap appears small — running fallback site crawler to discover dynamic routes...
+[2025-09-24T12:51:34.488Z] Crawler discovered 2 URLs
+[2025-09-24T12:51:34.488Z] Found 3 URLs total (after merge)
+[2025-09-24T12:51:34.488Z] Filtered to 3 URLs for indexing
+[2025-09-24T12:51:34.488Z] DRY RUN - URLs that would be indexed:
+[2025-09-24T12:51:34.489Z]   - https://markiumpro.com/sitemap.xml
+[2025-09-24T12:51:34.489Z]   - https://markiumpro.com/
+[2025-09-24T12:51:34.489Z]   - https://markiumpro.com/leaderboard
+[2025-09-24T12:52:56.440Z] Starting sitemap indexing process...
+[2025-09-24T12:52:56.441Z] Site URL: https://markiumpro.com
+[2025-09-24T12:52:56.441Z] Batch size: 10
+[2025-09-24T12:52:56.441Z] Delay between batches: 1000ms
+[2025-09-24T12:52:56.441Z] Dry run: true
+[2025-09-24T12:52:56.441Z] Crawl fallback enabled: true
+[2025-09-24T12:52:56.441Z] Auto-detecting sitemaps...
+[2025-09-24T12:53:04.540Z] Auto-detected 2 sitemaps
+[2025-09-24T12:53:04.541Z] Fetching URLs from sitemaps...
+[2025-09-24T12:53:06.095Z] Sitemap discovery returned 1 URLs
+[2025-09-24T12:53:06.096Z] Sitemap appears small — running fallback site crawler to discover dynamic routes...
+[2025-09-24T12:53:08.543Z] Crawler discovered 2 URLs
+[2025-09-24T12:53:08.543Z] Found 3 URLs total (after merge)
+[2025-09-24T12:53:08.543Z] Filtered to 3 URLs for indexing
+[2025-09-24T12:53:08.543Z] DRY RUN - URLs that would be indexed:
+[2025-09-24T12:53:08.543Z]   - https://markiumpro.com/sitemap.xml
+[2025-09-24T12:53:08.543Z]   - https://markiumpro.com/
+[2025-09-24T12:53:08.543Z]   - https://markiumpro.com/leaderboard
