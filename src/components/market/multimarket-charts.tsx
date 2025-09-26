@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef } from "react"
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/chart"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, Activity, BarChart3, Loader2 } from "lucide-react"
+import { CustomTooltip } from "./custom-tooltip"
 
 // TypeScript interfaces
 interface PricePoint {
@@ -460,33 +461,11 @@ export default function ClobMultiHistoryChart({
                 tickFormatter={(value) => `${value}%`}
                 className="text-xs fill-muted-foreground"
               />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    className="w-[250px]"
-                    nameKey="views"
-                    labelFormatter={(value) => {
-                      return new Date(value).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    }}
-                    formatter={(value, name) => {
-                      let marketIndex = -1
-                      let marketName = typeof name === "string" ? name : ""
-                      if (typeof name === "string" && name.startsWith("market")) {
-                        marketIndex = parseInt(name.replace('market', '')) - 1
-                        marketName = marketData[marketIndex]?.name || name
-                      }
-                      return [
-                        `${Number(value).toFixed(1)}%`,
-                        marketName
-                      ]
-                    }}
-                  />
-                }
+              <Tooltip
+                content={<CustomTooltip marketData={marketData} />}
+                cursor={{ strokeDasharray: '3 3' }}
               />
+
               
               {/* Render all lines with different opacities */}
               {marketData.map((market, index) => {

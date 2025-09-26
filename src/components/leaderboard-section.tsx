@@ -1,5 +1,4 @@
-"use client"
-
+'use client';
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card } from "@/components/ui/card"
@@ -11,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import Link from "next/link"
 
-type TimePeriod = "day" | "week" | "month" | "all"
+type TimePeriod = "day" | "week" | "month" | "all" 
 
 interface LeaderboardEntry {
   id: string

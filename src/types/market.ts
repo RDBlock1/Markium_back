@@ -175,3 +175,29 @@ export interface PriceReturns {
   profit: number;
   profit_percentage: string;
 }
+
+
+export interface PositionData {
+  market: string;
+  outcome: 'Yes' | 'No';
+  shares: number;
+  avgPrice: number;
+  currentPrice: number;
+  currentValue: number;
+  investedAmount: number;
+  pnl: number;
+  percentPnl: number;
+  potentialWin: number;
+  platform: string;
+}
+
+export interface CloudinaryResponse {
+  secure_url: string;
+  public_id: string;
+  width: number;
+  height: number;
+  format: string;
+  created_at: string;
+  bytes: number;
+  [key: string]: any;
+}

@@ -110,6 +110,7 @@ async function fetchLeaderboardData(
 
   try {
     const buildId = await getBuildId();
+    console.log('buildId',buildId);
     const apiUrl = `https://polymarket.com/_next/data/${buildId}/leaderboard.json`;
     
     const response = await fetch(apiUrl, {

@@ -125,37 +125,37 @@ export default function MarketDashboard({
   const { address, isConnected } = useAccount()
 
   // Helper function to get market display text
-const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
-  const candidate =
-    token.ticker ??
-    token.question ??
-    token.title ??
-    token.description ??
-    token.slug ??
-    'Untitled Market';
+  const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
+    const candidate =
+      token.ticker ??
+      token.question ??
+      token.title ??
+      token.description ??
+      token.slug ??
+      'Untitled Market';
 
-  // If candidate is an object/array/number — convert safely to string
-  if (candidate == null) return 'Untitled Market';
-  if (typeof candidate === 'string') return candidate;
-  if (typeof candidate === 'number') return String(candidate);
+    // If candidate is an object/array/number — convert safely to string
+    if (candidate == null) return 'Untitled Market';
+    if (typeof candidate === 'string') return candidate;
+    if (typeof candidate === 'number') return String(candidate);
 
-  // If it's something like an object/array: try to pick a sensible field,
-  // otherwise JSON-stringify a reasonable preview
-  if (typeof candidate === 'object') {
-    // if it has a `text`/`name` property, use it
-    // (adjust per your actual shape of data)
-    // @ts-ignore
-    if (typeof candidate.text === 'string') return candidate.text;
-    // fallback:
-    try {
-      return JSON.stringify(candidate).slice(0, 120);
-    } catch {
-      return 'Untitled Market';
+    // If it's something like an object/array: try to pick a sensible field,
+    // otherwise JSON-stringify a reasonable preview
+    if (typeof candidate === 'object') {
+      // if it has a `text`/`name` property, use it
+      // (adjust per your actual shape of data)
+      // @ts-ignore
+      if (typeof candidate.text === 'string') return candidate.text;
+      // fallback:
+      try {
+        return JSON.stringify(candidate).slice(0, 120);
+      } catch {
+        return 'Untitled Market';
+      }
     }
-  }
 
-  return String(candidate);
-}, []);
+    return String(candidate);
+  }, []);
 
 
   // Memoized function to check if item is in watchlist
@@ -414,8 +414,8 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleFilterClick(filter)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${isActive
-                          ? "bg-primary text-primary-foreground shadow-lg"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        ? "bg-primary text-primary-foreground shadow-lg"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
                         }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -450,8 +450,8 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                               key={option.value}
                               onClick={() => handleSortSelection(option.value)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${sortBy === option.value
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-muted-foreground bg-muted"
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground bg-muted"
                                 }`}
                             >
                               <Icon className="h-3 w-3" />
@@ -472,8 +472,8 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                               key={filter.id}
                               onClick={() => handleFilterClick(filter)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-muted-foreground bg-muted"
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground bg-muted"
                                 }`}
                             >
                               <Icon className="h-3 w-3" />
@@ -499,8 +499,8 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                       key={filter.id}
                       onClick={() => handleFilterClick(filter)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground bg-muted"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground bg-muted"
                         }`}
                     >
                       <Icon className="h-3 w-3" />
@@ -605,7 +605,6 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                             {sortBy === 'volume' && <ArrowUpDown className="h-3 w-3" />}
                           </button>
                         </th>
-                        <th className="p-4 font-medium text-muted-foreground">Probability</th>
                         <th className="p-4 font-medium text-muted-foreground">Action</th>
                       </tr>
                     </thead>
@@ -623,37 +622,48 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                           >
                             {/* Market Info */}
                             <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <img
-                                  src={token.image || "/placeholder.svg"}
-                                  alt={token.id}
-                                  className="w-10 h-10 rounded-full"
-                                />
-                                <div className="max-w-sm">
-                                  <div className="font-semibold truncate">{
-                                    getMarketDisplayText(token)
+                              <Link href={`/market/${token.slug}`}>
+
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={token.image || "/placeholder.svg"}
+                                    alt={token.id}
+                                    className="w-10 h-10 rounded-full"
+                                  />
+                                  <div className="max-w-sm">
+                                    <div className="font-semibold truncate">{
+                                      getMarketDisplayText(token)
                                     }</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {token.startDate ? toLocalString(token.startDate) : "—"}
+                                    <div className="text-sm text-muted-foreground">
+                                      {token.startDate ? toLocalString(token.startDate) : "—"}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                              </Link>
                             </td>
+
 
                             {/* Chart */}
                             <td>
+                              <Link href={`/market/${token.slug}`}>
+
                               <div>
                                 <PolymarketMiniChart marketId={token.id} />
                               </div>
+                              </Link>
                             </td>
 
                             {/* Liquidity */}
                             <td className="p-4">
+                              <Link href={`/market/${token.slug}`}>
+
                               <div className="font-semibold">{formatVolume(Number(token.liquidity))}</div>
+                              </Link>
                             </td>
 
                             {/* Volume */}
                             <td className="p-4">
+                              
                               <div className="space-y-1">
                                 <div className="font-semibold">{formatVolume(Number(token.volume))}</div>
                                 {token.volume24hr && (
@@ -664,17 +674,6 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                               </div>
                             </td>
 
-                            {/* Probability */}
-                        <td className="p-4">
-  <div className="max-h-20 overflow-y-scroll [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-   <SubMarketProbability 
-  slug={token.slug} 
-  fallbackMarkets={token.markets?.slice(0, 4)} // Limit fallback too
-  compact={true}
-/>
-
-  </div>
-</td>
 
 
                             {/* Action */}
@@ -745,16 +744,7 @@ const getMarketDisplayText = useCallback((token: PolymarketEvent): string => {
                         </div>
                       </div>
 
-                      {/* Probability Bars */}
-                      <div className="mt-3 pt-3 border-t border-border max-h-16 overflow-y-auto">
 
-<SubMarketProbability 
-  slug={token.slug} 
-  fallbackMarkets={token.markets?.slice(0, 4)} // Limit fallback too
-  compact={true}
-/>
-
-                      </div>
 
                       {/* Sort Badge on Mobile */}
                       <div className="mt-2 flex justify-between items-center">

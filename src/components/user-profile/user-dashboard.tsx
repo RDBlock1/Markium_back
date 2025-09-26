@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, BarChart3, Activity, RefreshCw, DollarSign, ArrowUpRight, ArrowDownRight, UserX, AlertTriangle, AlertCircle, Download, PieChart, Target } from "lucide-react"
+import { TrendingUp, BarChart3, Activity, RefreshCw, DollarSign, ArrowUpRight, ArrowDownRight, UserX, AlertTriangle, AlertCircle, Download, PieChart, Target, Filter, Upload } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import UserAlertSystem from "./user-alert-system"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
@@ -23,6 +23,10 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts"
+import ProfitLossChart from "./profit-loss-chart"
+import PolymarketTradeCard, { TradeData } from "../polymarket-trade-card"
+import { Dialog, DialogHeader,DialogContent, DialogTitle } from "../ui/dialog"
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -194,6 +198,91 @@ export default function UserDashboard({ address }: { address: string }) {
   const [error, setError] = useState<string | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
+  const [positionFilter, setPositionFilter] = useState('all') // 'all', 'open', 'closed'
+  const [isTradeCardOpen, setIsTradeCardOpen] = useState(false)
+  const [selectedTrade, setSelectedTrade] = useState<TradeData | null>(null)
+
+  const handleCreateTradeCard = (item: any) => {
+    // Convert activity item to TradeData format
+    console.log('clicked');
+    const tradeData: TradeData = {
+      id: item.id || `trade-${Date.now()}`,
+      timestamp: item.timestamp,
+      type: 'TRADE',
+      side: item.side.toUpperCase() as 'BUY' | 'SELL',
+      market: item.market,
+      slug: item.slug || '',
+      eventSlug: item.eventSlug || '',
+      icon: item.icon || '',
+      outcome: item.outcome,
+      outcomeIndex: item.outcomeIndex || 0,
+      size: item.size,
+      usdcSize: item.usdcSize,
+      price: item.price,
+      transactionHash: item.transactionHash || '0x' + Math.random().toString(16).substr(2, 64)
+    }
+    console.log('trade data',tradeData);
+    setSelectedTrade(tradeData)
+    setIsTradeCardOpen(true)
+  }
+
+  // Filter positions based on endDate and current date
+  const filteredPositions = useMemo(() => {
+    const currentDate = new Date()
+
+    return positions.filter(position => {
+      if (!position.endDate) {
+        // If no endDate, consider it as open
+        return positionFilter === 'all' || positionFilter === 'open'
+      }
+
+      const endDate = new Date(position.endDate)
+      const isOpen = endDate > currentDate
+
+      switch (positionFilter) {
+        case 'open':
+          return isOpen
+        case 'closed':
+          return !isOpen
+        default:
+          return true
+      }
+    })
+  }, [positions, positionFilter])
+
+  const openPositions = useMemo(() => {
+    const currentDate = new Date()
+
+    return positions.filter(position => {
+      const hasNoEndDate = !position.endDate
+      const hasEndDateInFuture = position.endDate && new Date(position.endDate) > currentDate
+
+      return hasNoEndDate || hasEndDateInFuture
+    })
+  }, [positions])
+
+  // Count positions for filter buttons
+  const positionCounts = useMemo(() => {
+    const currentDate = new Date()
+    let open = 0
+    let closed = 0
+
+    positions.forEach(position => {
+      if (!position.endDate) {
+        open++
+        return
+      }
+
+      const endDate = new Date(position.endDate)
+      if (endDate > currentDate) {
+        open++
+      } else {
+        closed++
+      }
+    })
+
+    return { open, closed, all: positions.length }
+  }, [positions])
 
   // Fetch analytics
   const fetchAnalytics = async () => {
@@ -328,10 +417,10 @@ export default function UserDashboard({ address }: { address: string }) {
     },
     {
       label: "Active Positions",
-      value: positions.length.toString(),
+      value: openPositions.length.toString(),
       icon: Activity,
-      change: `${positions.length} markets`,
-      rawValue: positions.length,
+      change: `${openPositions.length} markets`,
+      rawValue: openPositions.length,
       positive: true
     },
   ] : []
@@ -432,31 +521,38 @@ export default function UserDashboard({ address }: { address: string }) {
           </div>
         </motion.div>
 
-        {/* Metrics Grid */}
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
-          variants={containerVariants}
-        >
-          {metricsData.map((metric, index) => (
-            <motion.div key={metric.label} variants={cardVariants} whileHover="hover">
-              <Card className="bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl shadow-2xl shadow-black/50 hover:shadow-emerald-400/5 hover:border-emerald-400/20 transition-all duration-300">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <metric.icon className="h-5 w-5 text-gray-400" />
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${metric.positive
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          variants={containerVariants}>
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2  gap-4 "
+            variants={containerVariants}
+          >
+            {metricsData.map((metric, index) => (
+              <motion.div key={metric.label} variants={cardVariants} whileHover="hover">
+                <Card className="bg-zinc-900/80 h-full border border-zinc-800 backdrop-blur-xl shadow-2xl shadow-black/50 hover:shadow-emerald-400/5 hover:border-emerald-400/20 transition-all duration-300">
+                  <CardContent className="p-4 ">
+                    <div className="flex items-center justify-between mb-2">
+                      <metric.icon className="h-5 w-5 text-gray-400" />
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${metric.positive
                         ? "text-emerald-300 bg-emerald-950/80 border border-emerald-400/30"
                         : "text-red-300 bg-red-950/80 border border-red-400/30"
-                      }`}>
-                      {metric.change}
-                    </span>
-                  </div>
-                  <p className="text-gray-400 text-sm mb-1 font-medium">{metric.label}</p>
-                  <p className="text-xl md:text-2xl font-bold text-white tracking-tight">{metric.value}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                        }`}>
+                        {metric.change}
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-sm mb-1 font-medium">{metric.label}</p>
+                    <p className="text-xl md:text-2xl font-bold text-white tracking-tight">{metric.value}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+
+          </motion.div>
+          <ProfitLossChart userAddress={address} />
+
         </motion.div>
+
 
         {/* Positions & Activity Tabs */}
         <motion.div variants={itemVariants}>
@@ -486,11 +582,76 @@ export default function UserDashboard({ address }: { address: string }) {
 
             {/* Positions Tab */}
             <TabsContent value="positions" className="space-y-4">
-              {positions.length === 0 ? (
+              {/* Filter Buttons */}
+              <div className="flex flex-wrap gap-2 p-1 bg-zinc-900/40 rounded-lg border border-zinc-800 w-fit px-2">
+                <Button
+                  variant={positionFilter === 'all' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setPositionFilter('all')}
+                  className={`flex items-center gap-2 ${positionFilter === 'all'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-zinc-800'
+                    }`}
+                >
+                  <Filter className="h-4 w-4" />
+                  All Positions
+                  <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
+                    {positionCounts.all}
+                  </Badge>
+                </Button>
+
+                <Button
+                  variant={positionFilter === 'open' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setPositionFilter('open')}
+                  className={`flex items-center gap-2 ${positionFilter === 'open'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-zinc-800'
+                    }`}
+                >
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                  Open Positions
+                  <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
+                    {positionCounts.open}
+                  </Badge>
+                </Button>
+
+                <Button
+                  variant={positionFilter === 'closed' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setPositionFilter('closed')}
+                  className={`flex items-center gap-2 ${positionFilter === 'closed'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-zinc-800'
+                    }`}
+                >
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  Closed Positions
+                  <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
+                    {positionCounts.closed}
+                  </Badge>
+                </Button>
+              </div>
+
+              {filteredPositions.length === 0 ? (
                 <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl">
                   <CardContent className="p-8 text-center">
                     <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400 font-medium">No active positions</p>
+                    <p className="text-gray-400 font-medium">
+                      {positionFilter === 'all'
+                        ? 'No active positions'
+                        : `No ${positionFilter} positions`}
+                    </p>
+                    {positionFilter !== 'all' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPositionFilter('all')}
+                        className="mt-2 text-emerald-400 hover:text-emerald-300"
+                      >
+                        Show all positions
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
@@ -505,10 +666,18 @@ export default function UserDashboard({ address }: { address: string }) {
                   </div>
 
                   {/* Positions List */}
-                  <motion.div className="space-y-3" variants={containerVariants}>
-                    {positions.map((position, index) => {
+                  <motion.div
+                    className="space-y-3"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    {filteredPositions.map((position:any, index:any) => {
                       const tokenColor = getTokenColor(position.market)
                       const tokenSymbol = getTokenSymbol(position.market)
+                      const currentDate = new Date()
+                      const endDate = position.endDate ? new Date(position.endDate) : null
+                      const isOpen = !endDate || endDate > currentDate
 
                       return (
                         <motion.div key={position.id} variants={cardVariants} whileHover="hover" custom={index}>
@@ -525,9 +694,23 @@ export default function UserDashboard({ address }: { address: string }) {
                                         {tokenSymbol}
                                       </div>
                                     )}
+                                    {/* Status indicator */}
+                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
+                                      }`}></div>
                                   </div>
                                   <div className="flex-1">
-                                    <p className="text-white text-sm font-medium leading-tight mb-2 line-clamp-2">{position.market}</p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <p className="text-white text-sm font-medium leading-tight line-clamp-2">{position.market}</p>
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-xs ${isOpen
+                                            ? 'border-emerald-400/50 text-emerald-400 bg-emerald-950/50'
+                                            : 'border-gray-400/50 text-gray-400 bg-gray-950/50'
+                                          }`}
+                                      >
+                                        {isOpen ? 'Open' : 'Closed'}
+                                      </Badge>
+                                    </div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <Badge
                                         variant="secondary"
@@ -568,9 +751,23 @@ export default function UserDashboard({ address }: { address: string }) {
                                         {tokenSymbol}
                                       </div>
                                     )}
+                                    {/* Status indicator */}
+                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
+                                      }`}></div>
                                   </div>
                                   <div>
-                                    <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{position.market}</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="text-white text-sm font-medium leading-tight line-clamp-2">{position.market}</p>
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-xs ${isOpen
+                                            ? 'border-emerald-400/50 text-emerald-400 bg-emerald-950/50'
+                                            : 'border-gray-400/50 text-gray-400 bg-gray-950/50'
+                                          }`}
+                                      >
+                                        {isOpen ? 'Open' : 'Closed'}
+                                      </Badge>
+                                    </div>
                                     <Badge
                                       variant="secondary"
                                       className="bg-emerald-950/80 text-emerald-300 text-xs border border-emerald-400/30"
@@ -594,10 +791,10 @@ export default function UserDashboard({ address }: { address: string }) {
                                 <div className="col-span-3 text-right">
                                   <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
                                   <p className={`text-sm font-medium ${position.percentPnl > 0
-                                      ? 'text-emerald-400'
-                                      : position.percentPnl < 0
-                                        ? 'text-red-400'
-                                        : 'text-gray-400'
+                                    ? 'text-emerald-400'
+                                    : position.percentPnl < 0
+                                      ? 'text-red-400'
+                                      : 'text-gray-400'
                                     }`}>
                                     {position.percentPnl > 0 ? '+' : ''}{position.percentPnl.toFixed(1)}%
                                   </p>
@@ -609,80 +806,109 @@ export default function UserDashboard({ address }: { address: string }) {
                       )
                     })}
                   </motion.div>
-
-
                 </>
               )}
             </TabsContent>
             {/* Activity Tab */}
             <TabsContent value="activity" className="space-y-4">
-              {activity.length === 0 ? (
-                <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl">
-                  <CardContent className="p-8 text-center">
-                    <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400 font-medium">No recent activity</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <motion.div className="space-y-3" variants={containerVariants}>
-                  {activity.map((item, index) => {
-                    const tokenColor = getTokenColor(item.market)
-                    const tokenSymbol = getTokenSymbol(item.market)
-                    const isBuy = item.side.toLowerCase() === 'buy'
-                    return (
-                      <motion.div key={item.id} variants={cardVariants} whileHover="hover" custom={index}>
-                        <Card className="bg-zinc-900/60 border border-zinc-800 hover:bg-zinc-900/80 hover:border-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/5 transition-all duration-300 backdrop-blur-xl overflow-hidden">
-                          <CardContent className="p-4 md:p-6">
-                            <div className="flex items-center gap-3">
-                              <div className="relative">
-                                {item.icon ? (
-                                  <img src={item.icon} alt="" className="w-10 h-10 rounded-lg" />
-                                ) : (
-                                  <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                                    {tokenSymbol}
+           <div>
+                <div className="space-y-4">
+                  {activity.length === 0 ? (
+                    <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl">
+                      <CardContent className="p-8 text-center">
+                        <div className="h-12 w-12 text-gray-400 mx-auto mb-4">
+                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-400 font-medium">No recent activity</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-3">
+                      {activity.map((item: any, index: number) => {
+                        const tokenColor = getTokenColor(item.market)
+                        const tokenSymbol = getTokenSymbol(item.market)
+                        const isBuy = item.side.toLowerCase() === 'buy'
+                        return (
+                          <div key={`${item.id}-${index}`}>
+                            <Card className="bg-zinc-900/60 border border-zinc-800 hover:bg-zinc-900/80 hover:border-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/5 transition-all duration-300 backdrop-blur-xl overflow-hidden">
+                              <CardContent className="p-4 md:p-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative">
+                                    {item.icon ? (
+                                      <img src={item.icon} alt="" className="w-10 h-10 rounded-lg" />
+                                    ) : (
+                                      <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                                        {tokenSymbol}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{item.market}</p>
-                                <Badge
-                                  variant="secondary"
-                                  className={`text-xs border ${isBuy
-                                      ? "bg-emerald-950/80 text-emerald-300 border-emerald-400/30"
-                                      : "bg-red-950/80 text-red-300 border-red-400/30"
-                                    }`}
-                                >
-                                  {item.outcome}
-                                </Badge>
-                              </div>
-                              <div className="text-right">
-                                <p className={`text-sm font-semibold ${isBuy ?
-                                    'text-emerald-400'
-                                    : 'text-red-400'
-                                  }`}>
-                                  {isBuy ? '+' : '-'}{formatNumber(item.size)} shares
-                                </p>
-                                <p className="text-gray-400 text-xs">{formatCurrency(item.usdcSize)}</p>
-                              </div>
-                            </div>
-                            <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-gray-400">
-                              <div>
-                                <p className="font-semibold">{item.side.charAt(0).toUpperCase() + item.side.slice(1)}</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="font-semibold">{(item.price * 100).toFixed(1)}¢</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium">{formatDate(item.timestamp)}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )
-                  })}
-                </motion.div>
-              )}
+                                  <div className="flex-1">
+                                    <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{item.market}</p>
+                                    <Badge
+                                      variant="secondary"
+                                      className={`text-xs border ${isBuy
+                                        ? "bg-emerald-950/80 text-emerald-300 border-emerald-400/30"
+                                        : "bg-red-950/80 text-red-300 border-red-400/30"
+                                        }`}
+                                    >
+                                      {item.outcome}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                      <p className={`text-sm font-semibold ${isBuy ?
+                                        'text-emerald-400'
+                                        : 'text-red-400'
+                                        }`}>
+                                        {isBuy ? '+' : '-'}{formatNumber(item.size)} shares
+                                      </p>
+                                      <p className="text-gray-400 text-xs">{formatCurrency(item.usdcSize)}</p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCreateTradeCard(item)}
+                                      className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-purple-500/30 hover:from-purple-600/30 hover:to-blue-600/30 text-purple-300 hover:text-purple-200 transition-all duration-200"
+                                    >
+                                      <Upload className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-gray-400">
+                                  <div>
+                                    <p className="font-semibold">{item.side.charAt(0).toUpperCase() + item.side.slice(1)}</p>
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="font-semibold">{(item.price * 100).toFixed(1)}¢</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium">{formatDate(item.timestamp)}</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Trade Card Dialog */}
+                <Dialog open={isTradeCardOpen} onOpenChange={setIsTradeCardOpen}>
+                  <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 p-0" aria-describedby="trade-card-description">
+                    <DialogHeader className="p-6 pb-0">
+                      <DialogTitle className="text-white">Trade Card</DialogTitle>
+                      <div id="trade-card-description" className="sr-only">
+                        Generate and share a visual card for your Polymarket trade
+                      </div>
+                    </DialogHeader>
+                    {selectedTrade && <PolymarketTradeCard tradeData={selectedTrade} />}
+                  </DialogContent>
+                </Dialog>
+           </div>
             </TabsContent>
 
 
@@ -994,8 +1220,8 @@ export default function UserDashboard({ address }: { address: string }) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Avg. Return</span>
                   <span className={`font-semibold ${positions.length > 0 && positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length > 0
-                      ? 'text-emerald-400'
-                      : 'text-red-400'
+                    ? 'text-emerald-400'
+                    : 'text-red-400'
                     }`}>
                     {positions.length > 0
                       ? `${(positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length).toFixed(1)}%`

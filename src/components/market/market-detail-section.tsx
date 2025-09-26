@@ -52,26 +52,45 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
   const hasMarketData = marketData && marketData.markets && marketData.markets.length > 0;
   const hasActiveMarket = activeMarket !== null;
   
-  // Dynamically extract highest volume markets' clobTokenIds and names
+  // Dynamically extract highest-yes% markets' clobTokenIds and names
+  // Dynamically extract markets based on highest YES percentage
+  // Dynamically extract markets based on highest YES percentage
   const { topMarketClobIds, topMarketNames } = useMemo(() => {
     if (!marketData?.markets || marketData.markets.length === 0) {
       return { topMarketClobIds: [], topMarketNames: [] };
     }
 
-    // Sort markets by volume (highest first)
+    // Helper function to parse YES price from outcomePrices (same as your component)
+    const parseYesPrice = (market: MarketSlug) => {
+      try {
+        const prices = JSON.parse(market.outcomePrices || "[]");
+        const yesPrice = Number.parseFloat(String(prices[0] || "0"));
+        return Number.isFinite(yesPrice) ? yesPrice : 0;
+      } catch {
+        // Fallback parsing method
+        const s = String(market.outcomePrices || "[]").replace(/[\[\]\s"']+/g, "");
+        const prices = s.split(",").filter(Boolean);
+        const yesPrice = Number.parseFloat(String(prices[0] || "0"));
+        return Number.isFinite(yesPrice) ? yesPrice : 0;
+      }
+    };
+
+    // Sort markets by YES percentage (highest first)
     const sortedMarkets = [...marketData.markets]
       .filter(market => {
-        // Ensure market has volume and clobTokenIds
-        const volume = parseFloat(String(market.volume || "0"));
+        // Ensure market has clobTokenIds and valid outcomePrices
         const hasClobTokens = market.clobTokenIds && market.clobTokenIds !== "[]";
-        return volume > 0 && hasClobTokens;
+        const yesPrice = parseYesPrice(market);
+        const hasValidPrice = yesPrice > 0; // Filter out markets with 0% or invalid prices
+        return hasClobTokens && hasValidPrice;
       })
       .sort((a, b) => {
-        const volumeA = parseFloat(String(a.volume || "0"));
-        const volumeB = parseFloat(String(b.volume || "0"));
-        return volumeB - volumeA; // Sort descending
+        // Sort by YES price (highest first)
+        const yesPriceA = parseYesPrice(a);
+        const yesPriceB = parseYesPrice(b);
+        return yesPriceB - yesPriceA; // Sort descending by YES percentage
       })
-      .slice(0, 4); // Take top 4 markets
+      .slice(0, 4); // Take top 4 markets with highest YES percentage
 
     // Extract clobTokenIds (first token from each market's array)
     const clobIds = sortedMarkets.map(market => {

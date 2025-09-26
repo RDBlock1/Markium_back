@@ -40,23 +40,32 @@ export async function GET(request: NextRequest) {
     
     const activityData = await response.json()
 
-    // Transform the data to match the UI structure
-    const transformedActivity = activityData.map((activity: any) => ({
-      id: activity.transactionHash,
-      timestamp: activity.timestamp,
-      type: activity.type,
-      side: activity.side,
-      market: activity.title,
-      slug: activity.slug,
-      eventSlug: activity.eventSlug,
-      icon: activity.icon,
-      outcome: activity.outcome,
-      outcomeIndex: activity.outcomeIndex,
-      size: activity.size,
-      usdcSize: activity.usdcSize,
-      price: activity.price,
-      transactionHash: activity.transactionHash
-    }))
+    // Filter out activities with empty market/title and then transform
+    const transformedActivity = (activityData || [])
+      .filter((activity: any) => {
+        // Prefer title, fallback to market — consider both undefined/null/empty-string
+        const marketName = activity?.title ?? activity?.market
+        return typeof marketName === 'string' && marketName.trim() !== ''
+      })
+      .map((activity: any) => {
+        const marketName = activity?.title ?? activity?.market ?? ''
+        return {
+          id: activity.transactionHash,
+          timestamp: activity.timestamp,
+          type: activity.type,
+          side: activity.side,
+          market: marketName,
+          slug: activity.slug,
+          eventSlug: activity.eventSlug,
+          icon: activity.icon,
+          outcome: activity.outcome,
+          outcomeIndex: activity.outcomeIndex,
+          size: activity.size,
+          usdcSize: activity.usdcSize,
+          price: activity.price,
+          transactionHash: activity.transactionHash
+        }
+      })
 
     return NextResponse.json(transformedActivity, { headers: corsHeaders })
   } catch (error) {
