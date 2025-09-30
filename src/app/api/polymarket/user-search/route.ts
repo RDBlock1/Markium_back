@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
     console.log(`User ${normalizedAddress} not in database, fetching from Polymarket`)
     
     // Fetch user profile from Polymarket using your existing route
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'
+    console.log('baseUrl',baseUrl);
     const profileResponse = await fetch(
       `${baseUrl}/api/market/user?address=${normalizedAddress}`,
       {

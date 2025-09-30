@@ -112,6 +112,7 @@ async function fetchLeaderboardData(
     const buildId = await getBuildId();
     console.log('buildId',buildId);
     const apiUrl = `https://polymarket.com/_next/data/${buildId}/leaderboard.json`;
+    console.log('apiUrl',apiUrl);
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -171,7 +172,9 @@ async function fetchBothLeaderboards(period: Period): Promise<{
   try {
     const buildId = await getBuildId();
     const apiUrl = `https://polymarket.com/_next/data/${buildId}/leaderboard.json`;
-    
+    console.log(
+      'apiUrl'
+    );
     const response = await fetch(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

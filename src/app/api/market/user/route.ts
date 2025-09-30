@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const address = searchParams.get('address')
+    console.log('address',address);
     
     if (!address) {
       return NextResponse.json(

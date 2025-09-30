@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, BarChart3, Activity, RefreshCw, DollarSign, ArrowUpRight, ArrowDownRight, UserX, AlertTriangle, AlertCircle, Download, PieChart, Target, Filter, Upload } from "lucide-react"
+import { TrendingUp, BarChart3, Activity, RefreshCw, DollarSign, ArrowUpRight, ArrowDownRight, UserX, AlertTriangle, AlertCircle, Download, PieChart, Target, Filter, Upload, Copy } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import UserAlertSystem from "./user-alert-system"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
@@ -26,6 +26,8 @@ import {
 import ProfitLossChart from "./profit-loss-chart"
 import PolymarketTradeCard, { TradeData } from "../polymarket-trade-card"
 import { Dialog, DialogHeader,DialogContent, DialogTitle } from "../ui/dialog"
+import { toast } from "sonner"
+import Link from "next/link"
 
 
 const containerVariants = {
@@ -346,6 +348,12 @@ export default function UserDashboard({ address }: { address: string }) {
     }
   }
 
+  const copyAddressHandler = ()=>{
+    if(userData?.proxyWallet){
+      navigator.clipboard.writeText(userData?.proxyWallet);
+      toast.success('Address copied to clipboard');
+    }
+  }
   // Fetch activity
   const fetchActivity = async () => {
     try {
@@ -493,13 +501,18 @@ export default function UserDashboard({ address }: { address: string }) {
               />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">
+              <h1 className="text-2xl  md:text-3xl font-bold text-white">
                 {userData?.name || userData?.pseudonym || "Loading..."}
               </h1>
               <p className="text-gray-400 text-sm md:text-base">
-                <span className="text-emerald-400 font-mono">
+                <span className="hidden md:block text-emerald-400 font-mono">
+                  {userData?.proxyWallet || address}
+                </span>
+                <span className=" md:hidden text-emerald-400 font-mono">
                   {formatAddress(userData?.proxyWallet || address)}
                 </span>
+                <Copy className="inline-block h-4 w-4 ml-2 text-gray-400 cursor-pointer hover:text-gray-200" onClick={copyAddressHandler} />
+
                 {userData?.createdAt && (
                   <span> • Joined {new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                 )}
@@ -684,121 +697,128 @@ export default function UserDashboard({ address }: { address: string }) {
                           <Card className="bg-zinc-900/60 border border-zinc-800 hover:bg-zinc-900/80 hover:border-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/5 transition-all duration-300 backdrop-blur-xl overflow-hidden">
                             <CardContent className="p-4 md:p-6">
                               {/* Mobile Layout */}
-                              <div className="md:hidden space-y-3">
-                                <div className="flex items-start gap-3">
-                                  <div className="relative">
-                                    {position.icon ? (
-                                      <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
-                                    ) : (
-                                      <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                                        {tokenSymbol}
-                                      </div>
-                                    )}
-                                    {/* Status indicator */}
-                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
-                                      }`}></div>
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <p className="text-white text-sm font-medium leading-tight line-clamp-2">{position.market}</p>
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-xs ${isOpen
+                                <div className="md:hidden space-y-3">
+                                <Link href={`/market/${position.slug}`} target="_blank" rel="noopener noreferrer">
+
+                                  <div className="flex items-start gap-3">
+                                    <div className="relative">
+                                      {position.icon ? (
+                                        <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
+                                      ) : (
+                                        <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                                          {tokenSymbol}
+                                        </div>
+                                      )}
+                                      {/* Status indicator */}
+                                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
+                                        }`}></div>
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <p className="text-white text-sm font-medium leading-tight line-clamp-2">{position.market}</p>
+                                        <Badge
+                                          variant="outline"
+                                          className={`text-xs ${isOpen
                                             ? 'border-emerald-400/50 text-emerald-400 bg-emerald-950/50'
                                             : 'border-gray-400/50 text-gray-400 bg-gray-950/50'
-                                          }`}
-                                      >
-                                        {isOpen ? 'Open' : 'Closed'}
-                                      </Badge>
+                                            }`}
+                                        >
+                                          {isOpen ? 'Open' : 'Closed'}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge
+                                          variant="secondary"
+                                          className="bg-emerald-950/80 text-emerald-300 text-xs border border-emerald-400/30"
+                                        >
+                                          {position.outcome}
+                                        </Badge>
+                                        <span className="text-xs text-gray-400 font-medium">
+                                          {formatNumber(position.shares)} shares
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-gray-400 text-xs font-semibold mb-1">TYPE</p>
+                                      <p className="text-white font-semibold">{position.outcome}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-gray-400 text-xs font-semibold mb-1">AMOUNT</p>
+                                      <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-gray-400 text-xs font-semibold mb-1">PRICE</p>
+                                      <p className="text-white font-semibold">{(position.currentValue * 100).toFixed(1)}¢</p>
+                                    </div>
+                                  </div>
+                                </Link>
+
+                                </div>
+
+                              {/* Desktop Layout */}
+
+                              <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
+                               <Link href={`/market/${position.eventSlug}`} target="_blank" rel="noopener noreferrer" className="contents">
+                                  <div className="col-span-5 flex items-center gap-3">
+                                    <div className="relative">
+                                      {position.icon ? (
+                                        <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
+                                      ) : (
+                                        <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                                          {tokenSymbol}
+                                        </div>
+                                      )}
+                                      {/* Status indicator */}
+                                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
+                                        }`}></div>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-white text-sm font-medium leading-tight line-clamp-2">{position.market}</p>
+                                        <Badge
+                                          variant="outline"
+                                          className={`text-xs ${isOpen
+                                            ? 'border-emerald-400/50 text-emerald-400 bg-emerald-950/50'
+                                            : 'border-gray-400/50 text-gray-400 bg-gray-950/50'
+                                            }`}
+                                        >
+                                          {isOpen ? 'Open' : 'Closed'}
+                                        </Badge>
+                                      </div>
                                       <Badge
                                         variant="secondary"
                                         className="bg-emerald-950/80 text-emerald-300 text-xs border border-emerald-400/30"
                                       >
                                         {position.outcome}
                                       </Badge>
-                                      <span className="text-xs text-gray-400 font-medium">
-                                        {formatNumber(position.shares)} shares
-                                      </span>
                                     </div>
                                   </div>
-                                </div>
-                                <div className="grid grid-cols-3 gap-4 text-sm">
-                                  <div>
-                                    <p className="text-gray-400 text-xs font-semibold mb-1">TYPE</p>
-                                    <p className="text-white font-semibold">{position.outcome}</p>
+                                  <div className="col-span-2 text-center">
+                                    <p className="text-white font-semibold">{formatNumber(position.shares)}</p>
+                                    <p className="text-gray-400 text-xs">shares</p>
                                   </div>
-                                  <div>
-                                    <p className="text-gray-400 text-xs font-semibold mb-1">AMOUNT</p>
+                                  <div className="col-span-1 text-center">
+                                    <p className="text-white font-semibold">{(position.avgPrice * 100).toFixed(1)}¢</p>
+                                    <p className="text-gray-400 text-xs">avg price</p>
+                                  </div>
+                                  <div className="col-span-1 text-center">
+                                    <p className="text-white font-semibold">{(position.currentPrice * 100).toFixed(1)}¢</p>
+                                    <p className="text-gray-400 text-xs">current price</p>
+                                  </div>
+                                  <div className="col-span-3 text-right">
                                     <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
+                                    <p className={`text-sm font-medium ${position.percentPnl > 0
+                                      ? 'text-emerald-400'
+                                      : position.percentPnl < 0
+                                        ? 'text-red-400'
+                                        : 'text-gray-400'
+                                      }`}>
+                                      {position.percentPnl > 0 ? '+' : ''}{position.percentPnl.toFixed(1)}%
+                                    </p>
                                   </div>
-                                  <div className="text-right">
-                                    <p className="text-gray-400 text-xs font-semibold mb-1">PRICE</p>
-                                    <p className="text-white font-semibold">{(position.currentValue * 100).toFixed(1)}¢</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Desktop Layout */}
-                              <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
-                                <div className="col-span-5 flex items-center gap-3">
-                                  <div className="relative">
-                                    {position.icon ? (
-                                      <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
-                                    ) : (
-                                      <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                                        {tokenSymbol}
-                                      </div>
-                                    )}
-                                    {/* Status indicator */}
-                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
-                                      }`}></div>
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <p className="text-white text-sm font-medium leading-tight line-clamp-2">{position.market}</p>
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-xs ${isOpen
-                                            ? 'border-emerald-400/50 text-emerald-400 bg-emerald-950/50'
-                                            : 'border-gray-400/50 text-gray-400 bg-gray-950/50'
-                                          }`}
-                                      >
-                                        {isOpen ? 'Open' : 'Closed'}
-                                      </Badge>
-                                    </div>
-                                    <Badge
-                                      variant="secondary"
-                                      className="bg-emerald-950/80 text-emerald-300 text-xs border border-emerald-400/30"
-                                    >
-                                      {position.outcome}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <div className="col-span-2 text-center">
-                                  <p className="text-white font-semibold">{formatNumber(position.shares)}</p>
-                                  <p className="text-gray-400 text-xs">shares</p>
-                                </div>
-                                <div className="col-span-1 text-center">
-                                  <p className="text-white font-semibold">{(position.avgPrice * 100).toFixed(1)}¢</p>
-                                  <p className="text-gray-400 text-xs">avg price</p>
-                                </div>
-                                <div className="col-span-1 text-center">
-                                  <p className="text-white font-semibold">{(position.currentPrice * 100).toFixed(1)}¢</p>
-                                  <p className="text-gray-400 text-xs">current price</p>
-                                </div>
-                                <div className="col-span-3 text-right">
-                                  <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
-                                  <p className={`text-sm font-medium ${position.percentPnl > 0
-                                    ? 'text-emerald-400'
-                                    : position.percentPnl < 0
-                                      ? 'text-red-400'
-                                      : 'text-gray-400'
-                                    }`}>
-                                    {position.percentPnl > 0 ? '+' : ''}{position.percentPnl.toFixed(1)}%
-                                  </p>
-                                </div>
+                               </Link>
                               </div>
                             </CardContent>
                           </Card>

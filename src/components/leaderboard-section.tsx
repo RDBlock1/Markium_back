@@ -305,17 +305,10 @@ export function LeaderboardSection() {
                           </a>
                         </Button>
                       </div>
-                      {entry.change !== undefined && entry.change !== 0 && (
-                        <Badge
-                          variant={entry.change >= 0 ? "default" : "destructive"}
-                          className="text-xs mt-1"
-                        >
-                          {entry.change >= 0 ? "+" : ""}{entry.change}%
-                        </Badge>
-                      )}
+             
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right -translate-y-3 sm:-translate-y-0">
                       <p className="font-bold text-lg">
                         {type === 'volume'
                           ? formatCurrency(entry.volume || 0)

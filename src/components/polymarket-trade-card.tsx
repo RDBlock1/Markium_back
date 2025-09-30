@@ -163,7 +163,15 @@ export default function PolymarketTradeCard({ tradeData }: { tradeData: TradeDat
             ctx.fillText(stat.value, x + 16, statY + 70)
         })
 
-        // Draw branding
+        // Draw footer separator line
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(32, 700)
+        ctx.lineTo(568, 700)
+        ctx.stroke()
+
+        // Draw branding (left side)
         ctx.fillStyle = '#c084fc'
         ctx.font = 'bold 24px Inter, sans-serif'
         ctx.fillText('markiumpro.com', 32, 740)
@@ -171,6 +179,18 @@ export default function PolymarketTradeCard({ tradeData }: { tradeData: TradeDat
         ctx.fillStyle = '#6b7280'
         ctx.font = '12px Inter, sans-serif'
         ctx.fillText('Professional Trading Analytics', 32, 760)
+
+        // Draw X handle (right side)
+        ctx.textAlign = 'right'
+        ctx.fillStyle = '#9ca3af'
+        ctx.font = '11px Inter, sans-serif'
+        ctx.fillText('Share your trades', 568, 740)
+
+        ctx.fillStyle = '#c084fc'
+        ctx.font = 'bold 13px Inter, sans-serif'
+        ctx.fillText('@markiumpro', 568, 760)
+
+        ctx.textAlign = 'left' // Reset alignment
 
         return canvas.toDataURL('image/png')
     }
