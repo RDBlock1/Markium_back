@@ -79,9 +79,11 @@ export function LeaderboardSection() {
     volume: [],
     profit: []
   })
+
   const [timeRemaining, setTimeRemaining] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isRefreshingVolume, setIsRefreshingVolume] = useState(false) // Separate state
+  const [isRefreshingProfit, setIsRefreshingProfit] = useState(false) // Separate state
   const [error, setError] = useState<string | null>(null)
 
   // Timer for reset countdown
@@ -92,42 +94,85 @@ export function LeaderboardSection() {
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch leaderboard data
-  const fetchLeaderboardData = async (period: TimePeriod, showLoadingState = true) => {
+  const fetchLeaderboardData = async (period: TimePeriod, showLoadingState = true, id?: number) => {
     if (showLoadingState) {
       setIsLoading(true)
     } else {
-      setIsRefreshing(true)
+      // Set the specific refresh state based on id
+      if (id === 1) setIsRefreshingVolume(true)
+      else if (id === 2) setIsRefreshingProfit(true)
+      else {
+        setIsRefreshingVolume(true)
+        setIsRefreshingProfit(true)
+      }
     }
     setError(null)
 
+    if (id === 1) {
+      try {
+        const response = await fetch(`/api/leaderboard?type=volume&period=${period}`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`)
+        }
+        const data: LeaderboardData = await response.json()
+        if(data.volume.length > 0){
+          toast.success("Volume data refreshed")
+        }
+        setLeaderboardData(prevData => ({ ...prevData, volume: data.volume }))
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch leaderboard data"
+        setError(errorMessage)
+        toast.error("Error", { description: errorMessage })
+        setLeaderboardData(prevData => ({ ...prevData, volume: [] }))
+      } finally {
+        setIsLoading(false)
+        setIsRefreshingVolume(false) // Clear the specific state
+      }
+      return;
+    }
+    else if (id === 2) {
+      try {
+        const response = await fetch(`/api/leaderboard?type=profit&period=${period}`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`)
+        }
+        const data: LeaderboardData = await response.json()
+        if(data.profit.length > 0){
+          toast.success("Profit data refreshed")
+        }
+        setLeaderboardData(prevData => ({ ...prevData, profit: data.profit }))
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch leaderboard data"
+        setError(errorMessage)
+        toast.error("Error", { description: errorMessage })
+        setLeaderboardData(prevData => ({ ...prevData, profit: [] }))
+      } finally {
+        setIsLoading(false)
+        setIsRefreshingProfit(false) // Clear the specific state
+      }
+      return;
+    }
+
+    // Both refresh
     try {
       const response = await fetch(`/api/leaderboard?type=both&period=${period}`)
-
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.statusText}`)
       }
-
       const data: LeaderboardData = await response.json()
       setLeaderboardData(data)
-
-      if (!showLoadingState) {
-      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to fetch leaderboard data"
       setError(errorMessage)
-      toast.error("Error",
-        {
-          description: errorMessage,
-        })
-
-      // Set empty data on error
+      toast.error("Error", { description: errorMessage })
       setLeaderboardData({ volume: [], profit: [] })
     } finally {
       setIsLoading(false)
-      setIsRefreshing(false)
+      setIsRefreshingVolume(false)
+      setIsRefreshingProfit(false)
     }
   }
+
 
   // Fetch data when period changes
   useEffect(() => {
@@ -154,7 +199,10 @@ export function LeaderboardSection() {
     window.open(`https://polymarket.com/profile/${walletAddress}`, '_blank')
   }
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = (id:number) => {
+    fetchLeaderboardData(selectedPeriod, false, id)
+  }
+  const handleBothRefresh = () => {
     fetchLeaderboardData(selectedPeriod, false)
   }
 
@@ -166,166 +214,177 @@ export function LeaderboardSection() {
   ]
 
   const LeaderboardCard = ({
+    id,
     title,
     icon,
     data,
     type
   }: {
+    id:number,
     title: string
     icon: React.ReactNode
     data: LeaderboardEntry[]
     type: 'volume' | 'profit'
-  }) => (
-    <Card className="glass-effect border-0 shadow-2xl">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              {icon}
+  }) => 
+  {
+    const isRefreshing = id === 1 ? isRefreshingVolume : isRefreshingProfit
+
+    return (
+      <Card className="glass-effect border-0 shadow-2xl">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                {icon}
+              </div>
+              <h2 className="text-2xl font-bold">{title}</h2>
             </div>
-            <h2 className="text-2xl font-bold">{title}</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleManualRefresh(id)}
+              disabled={isRefreshing}
+              className={cn(isRefreshing && "animate-spin")}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleManualRefresh}
-            disabled={isRefreshing}
-            className={cn(isRefreshing && "animate-spin")}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
 
-        <AnimatePresence >
-          {isLoading ? (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-muted/20 animate-pulse">
-                  <div className="w-8 h-8 rounded-full bg-muted/40" />
-                  <div className="flex-1">
-                    <div className="h-4 bg-muted/40 rounded w-24 mb-2" />
-                    <div className="h-3 bg-muted/30 rounded w-16" />
+          <AnimatePresence >
+            {isLoading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-muted/20 animate-pulse">
+                    <div className="w-8 h-8 rounded-full bg-muted/40" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-muted/40 rounded w-24 mb-2" />
+                      <div className="h-3 bg-muted/30 rounded w-16" />
+                    </div>
+                    <div className="h-4 bg-muted/40 rounded w-20" />
                   </div>
-                  <div className="h-4 bg-muted/40 rounded w-20" />
-                </div>
-              ))}
-            </motion.div>
-          ) : error ? (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-8 text-muted-foreground"
-            >
-              <p>Failed to load data</p>
-              <Button onClick={handleManualRefresh} className="mt-4" variant="outline">
-                Try Again
-              </Button>
-            </motion.div>
-          ) : data.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-8 text-muted-foreground"
-            >
-              No data available
-            </motion.div>
-          ) : (
+                ))}
+              </motion.div>
+            ) : error ? (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-8 text-muted-foreground"
+              >
+                <p>Failed to load data</p>
+                <Button onClick={() => handleBothRefresh()} className="mt-4" variant="outline">
+                  Try Again
+                </Button>
+              </motion.div>
+            ) : data.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-8 text-muted-foreground"
+              >
+                No data available
+              </motion.div>
+            ) : (
 
-            <motion.div
-              key="data"
-              className="space-y-3"
-            >
-              {data.map((entry, index) => (
-                <motion.div
-                  key={entry.id}
+              <motion.div
+                key="data"
+                className="space-y-3"
+              >
+                {data.map((entry, index) => (
+                  <motion.div
+                    key={entry.id}
 
-                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/10 transition-all duration-200 group cursor-pointer"
-                >
-                  <Link href={`/user-profile/${entry.walletAddress}`} className="flex items-center gap-4 w-full">
-                    <div className="flex items-center justify-center w-8 h-8">
-                      {getRankIcon(entry.rank)}
-                    </div>
-
-                    <Avatar
-                      className="h-10 w-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all cursor-pointer"
-                      onClick={() => handleOpenPolymarket(entry.walletAddress)}
-                    >
-                      <AvatarImage src={entry.avatar || "/placeholder.svg"} alt={entry.username} />
-                      <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate group-hover:text-primary transition-colors">
-                        {entry.username}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground">
-                          {formatAddress(entry.walletAddress)}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleCopyAddress(entry.walletAddress)
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleOpenPolymarket(entry.walletAddress)
-                          }}
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
-
-                        <Button asChild className="bg-purple-500 text-white h-6 hover:bg-purple-600" onClick={(e) => e.stopPropagation()}>
-                          <a
-                            href={`https://polygonscan.com/address/${entry.walletAddress}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            PolygonScan
-                          </a>
-                        </Button>
+                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/10 transition-all duration-200 group cursor-pointer"
+                  >
+                    <Link href={`/user-profile/${entry.walletAddress}`} className="flex items-center gap-4 w-full">
+                      <div className="flex items-center justify-center w-8 h-8">
+                        {getRankIcon(entry.rank)}
                       </div>
-             
-                    </div>
 
-                    <div className="text-right -translate-y-3 sm:-translate-y-0">
-                      <p className="font-bold text-lg">
-                        {type === 'volume'
-                          ? formatCurrency(entry.volume || 0)
-                          : formatCurrency(entry.profit || 0)
-                        }
-                      </p>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                      <Avatar
+                        className="h-10 w-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all cursor-pointer"
+                        onClick={() => handleOpenPolymarket(entry.walletAddress)}
+                      >
+                        <AvatarImage src={entry.avatar || "/placeholder.svg"} alt={entry.username} />
+                        <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
 
-      </div>
-    </Card>
-  )
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate group-hover:text-primary transition-colors">
+                          {entry.username}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            {formatAddress(entry.walletAddress)}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleCopyAddress(entry.walletAddress)
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleOpenPolymarket(entry.walletAddress)
+                            }}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+
+                          <Button asChild className="bg-purple-500 text-white h-6 hover:bg-purple-600" onClick={(e) => e.stopPropagation()}>
+                            <a
+                              href={`https://polygonscan.com/address/${entry.walletAddress}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              PolygonScan
+                            </a>
+                          </Button>
+                        </div>
+
+                      </div>
+
+                      <div className="text-right -translate-y-3 sm:-translate-y-0">
+                        <p className="font-bold text-lg">
+                          {type === 'volume'
+                            ? formatCurrency(entry.volume || 0)
+                            : formatCurrency(entry.profit || 0)
+                          }
+                        </p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </div>
+      </Card>
+    )
+
+  }
+    
+    
+
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl mt-10">
@@ -370,6 +429,7 @@ export function LeaderboardSection() {
         {/* Volume Leaderboard */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
           <LeaderboardCard
+          id={1}
             title="Volume"
             icon={<TrendingUp className="h-6 w-6 text-primary" />}
             data={leaderboardData.volume}
@@ -380,6 +440,7 @@ export function LeaderboardSection() {
         {/* Profit Leaderboard */}
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
           <LeaderboardCard
+          id={2}
             title="Profit"
             icon={<DollarSign className="h-6 w-6 text-primary" />}
             data={leaderboardData.profit}

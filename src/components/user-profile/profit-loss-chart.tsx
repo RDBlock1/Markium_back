@@ -204,9 +204,9 @@ const ProfitLossChart: React.FC<Props> = (props: Props) => {
         </div>
         
         <div className="flex items-baseline gap-3">
-          <h1 className="text-4xl font-bold text-white">
+          <h2 className="text-4xl font-bold text-white">
             {formatValue(metrics.currentValue)}
-          </h1>
+          </h2>
           {metrics.percentageChange !== 0 && (
             <span className={`text-sm font-medium ${metrics.isProfit ? 'text-green-400' : 'text-red-400'}`}>
               {metrics.percentageChange > 0 ? '+' : ''}{metrics.percentageChange.toFixed(2)}%

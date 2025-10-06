@@ -161,6 +161,7 @@ interface Metrics {
 }
 
 interface Position {
+  status: string
   id: string
   market: string
   slug: string
@@ -172,6 +173,8 @@ interface Position {
   currentValue: number
   pnl: number
   percentPnl: number
+  realizedPnl: number
+  percentRealizedPnl: number
   endDate: string
 }
 
@@ -228,57 +231,41 @@ export default function UserDashboard({ address }: { address: string }) {
     setIsTradeCardOpen(true)
   }
 
-  // Filter positions based on endDate and current date
   const filteredPositions = useMemo(() => {
-    const currentDate = new Date()
-
     return positions.filter(position => {
-      if (!position.endDate) {
-        // If no endDate, consider it as open
-        return positionFilter === 'all' || positionFilter === 'open'
-      }
-
-      const endDate = new Date(position.endDate)
-      const isOpen = endDate > currentDate
+      // if no status, treat as 'open' for filtering fallback (or handle differently if you prefer)
+      const status = (position.status || '').toLowerCase();
+      console.log('Filtering position:', position, 'with status:', status, 'for filter:', positionFilter);
 
       switch (positionFilter) {
         case 'open':
-          return isOpen
+          return status === 'open' || (!status && !position.endDate) || (!status && Date.parse(position.endDate) > Date.now());
         case 'closed':
-          return !isOpen
+          return status === 'closed' || (!status && position.endDate && Date.parse(position.endDate) <= Date.now());
         default:
-          return true
+          return true;
       }
-    })
-  }, [positions, positionFilter])
+    });
+  }, [positions, positionFilter]);
 
+  // Open positions based on status
   const openPositions = useMemo(() => {
-    const currentDate = new Date()
-
     return positions.filter(position => {
-      const hasNoEndDate = !position.endDate
-      const hasEndDateInFuture = position.endDate && new Date(position.endDate) > currentDate
-
-      return hasNoEndDate || hasEndDateInFuture
+      const status = (position.status || '').toLowerCase()
+      return status === 'open'
     })
   }, [positions])
 
-  // Count positions for filter buttons
+  // Count positions for filter buttons based on status
   const positionCounts = useMemo(() => {
-    const currentDate = new Date()
     let open = 0
     let closed = 0
 
     positions.forEach(position => {
-      if (!position.endDate) {
+      const status = (position.status || '').toLowerCase()
+      if (status === 'open') {
         open++
-        return
-      }
-
-      const endDate = new Date(position.endDate)
-      if (endDate > currentDate) {
-        open++
-      } else {
+      } else if (status === 'closed') {
         closed++
       }
     })
@@ -690,7 +677,8 @@ export default function UserDashboard({ address }: { address: string }) {
                       const tokenSymbol = getTokenSymbol(position.market)
                       const currentDate = new Date()
                       const endDate = position.endDate ? new Date(position.endDate) : null
-                      const isOpen = !endDate || endDate > currentDate
+                      // is should be based on closed status and open status
+                      const isOpen = position.status ? position.status.toLowerCase() === 'open' : !endDate || (endDate && endDate > currentDate)
 
                       return (
                         <motion.div key={position.id} variants={cardVariants} whileHover="hover" custom={index}>
@@ -734,7 +722,10 @@ export default function UserDashboard({ address }: { address: string }) {
                                           {position.outcome}
                                         </Badge>
                                         <span className="text-xs text-gray-400 font-medium">
-                                          {formatNumber(position.shares)} shares
+                                          {
+                                            isOpen ? `${formatNumber(position.shares)} shares • Avg ${(position.avgPrice * 100).toFixed(1)}¢ • Current ${(position.currentPrice * 100).toFixed(1)}¢`
+                                              : ``
+                                          }
                                         </span>
                                       </div>
                                     </div>
@@ -746,11 +737,18 @@ export default function UserDashboard({ address }: { address: string }) {
                                     </div>
                                     <div>
                                       <p className="text-gray-400 text-xs font-semibold mb-1">AMOUNT</p>
-                                      <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
+                                      <p className="text-white font-semibold">
+                                        {isOpen ? formatCurrency(position.currentValue) : formatCurrency(position.totalBought)}
+
+                                        </p>
                                     </div>
                                     <div className="text-right">
                                       <p className="text-gray-400 text-xs font-semibold mb-1">PRICE</p>
-                                      <p className="text-white font-semibold">{(position.currentValue * 100).toFixed(1)}¢</p>
+                                      <p className="text-white font-semibold">
+                                        {
+                                          isOpen ? (position.currentPrice * 100).toFixed(1) + '¢' : (position.avgPrice * 100).toFixed(1) + '¢'
+                                        }
+                                      </p>
                                     </div>
                                   </div>
                                 </Link>
@@ -796,7 +794,7 @@ export default function UserDashboard({ address }: { address: string }) {
                                     </div>
                                   </div>
                                   <div className="col-span-2 text-center">
-                                    <p className="text-white font-semibold">{formatNumber(position.shares)}</p>
+                                    <p className="text-white font-semibold">{isOpen ? formatNumber(position.shares) : formatNumber(position.totalBought)}</p>
                                     <p className="text-gray-400 text-xs">shares</p>
                                   </div>
                                   <div className="col-span-1 text-center">
@@ -808,14 +806,33 @@ export default function UserDashboard({ address }: { address: string }) {
                                     <p className="text-gray-400 text-xs">current price</p>
                                   </div>
                                   <div className="col-span-3 text-right">
-                                    <p className="text-white font-semibold">{formatCurrency(position.currentValue)}</p>
-                                    <p className={`text-sm font-medium ${position.percentPnl > 0
-                                      ? 'text-emerald-400'
-                                      : position.percentPnl < 0
-                                        ? 'text-red-400'
-                                        : 'text-gray-400'
-                                      }`}>
-                                      {position.percentPnl > 0 ? '+' : ''}{position.percentPnl.toFixed(1)}%
+                                    <p className="text-white font-semibold">
+{isOpen ? formatCurrency(position.currentValue) : ''}
+                                    </p>
+                                    <p
+                                      className={`text-sm font-medium ${
+                                        isOpen
+                                          ? position.percentPnl > 0
+                                            ? "text-emerald-400"
+                                            : position.percentPnl < 0
+                                            ? "text-red-400"
+                                            : "text-gray-400"
+                                          : typeof position.realizedPnl === "number"
+                                          ? position.realizedPnl > 0
+                                            ? "text-emerald-400"
+                                            : position.realizedPnl < 0
+                                            ? "text-red-400"
+                                            : "text-gray-400"
+                                          : "text-gray-400"
+                                      }`}
+                                    >
+                                      {isOpen
+                                        ? typeof position.percentPnl === "number"
+                                          ? `${position.percentPnl > 0 ? "+" : ""}${position.percentPnl.toFixed(1)}%`
+                                          : "N/A"
+                                        : typeof position.realizedPnl === "number"
+                                        ? `${position.realizedPnl > 0 ? "+" : ""}${position.realizedPnl.toFixed(1)}%`
+                                        : "N/A"}
                                     </p>
                                   </div>
                                </Link>
@@ -1229,44 +1246,32 @@ export default function UserDashboard({ address }: { address: string }) {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Win Rate</span>
+                  <span className="text-gray-400 text-sm">Avg Win Rate</span>
                   <span className="text-white font-semibold">
-                    {positions.length > 0
-                      ? `${((positions.filter(p => p.pnl > 0).length / positions.length) * 100).toFixed(0)}%`
-                      : 'N/A'
-                    }
+                 {
+                      analytics.overview ? `${analytics.overview.averageWinRate}%` : 'N/A'
+                 }
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Avg. Return</span>
-                  <span className={`font-semibold ${positions.length > 0 && positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length > 0
-                    ? 'text-emerald-400'
-                    : 'text-red-400'
-                    }`}>
-                    {positions.length > 0
-                      ? `${(positions.reduce((acc, p) => acc + p.percentPnl, 0) / positions.length).toFixed(1)}%`
-                      : 'N/A'
-                    }
+                  <span className="text-gray-400 text-sm">Avg Monthly Profit</span>
+              {analytics.overview ? (
+                  <span className="text-white font-semibold">
+                      {formatCurrency(analytics.overview.avgMonthlyProfit)}
                   </span>
+              ) : (
+                <span className="text-white font-semibold">N/A</span>
+              )}
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Best Position</span>
+                  <span className="text-gray-400 text-sm">Total Volume</span>
                   <span className="text-emerald-400 font-semibold">
-                    {positions.length > 0
-                      ? `+${Math.max(...positions.map(p => p.percentPnl)).toFixed(1)}%`
-                      : 'N/A'
-                    }
+                  {
+                      formatCurrency(analytics.overview ? analytics.overview.totalVolume : 0)
+                  }
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Worst Position</span>
-                  <span className="text-red-400 font-semibold">
-                    {positions.length > 0
-                      ? `${Math.min(...positions.map(p => p.percentPnl)).toFixed(1)}%`
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
+        
               </div>
             </CardContent>
           </Card>
@@ -1281,27 +1286,25 @@ export default function UserDashboard({ address }: { address: string }) {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Total Trades</span>
-                  <span className="text-white font-semibold">{activity.length}</span>
+                  <span className="text-white font-semibold">{analytics.overview.totalTrades}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Buy Orders</span>
                   <span className="text-emerald-400 font-semibold">
-                    {activity.filter(a => a.side === 'BUY').length}
+                  {analytics.buySellDistribution.buyCount}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Sell Orders</span>
                   <span className="text-red-400 font-semibold">
-                    {activity.filter(a => a.side === 'SELL').length}
+                    {analytics.buySellDistribution.sellCount}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Avg. Trade Size</span>
                   <span className="text-white font-semibold">
-                    {activity.length > 0
-                      ? formatCurrency(activity.reduce((acc, a) => acc + a.usdcSize, 0) / activity.length)
-                      : 'N/A'
-                    }
+                    {formatCurrency(analytics.tradeSizeDistribution.averageSize)}
+
                   </span>
                 </div>
               </div>

@@ -11,7 +11,6 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders })
 }
 
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -29,23 +28,40 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch positions data
-    const response = await fetch(
-      `https://data-api.polymarket.com/positions?user=${address}&sortBy=${sortBy}&sortDirection=${sortDirection}&sizeThreshold=${sizeThreshold}&limit=${limit}&offset=${offset}`,
-      { 
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-store'
-      }
-    )
+    // Fetch both open and closed positions in parallel
+    const [openPositionsResponse, closedPositionsResponse] = await Promise.all([
+      fetch(
+        `https://data-api.polymarket.com/positions?user=${address}&sortBy=${sortBy}&sortDirection=${sortDirection}&sizeThreshold=${sizeThreshold}&limit=${limit}&offset=${offset}`,
+        { 
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        }
+      ),
+      fetch(
+        `https://data-api.polymarket.com/closed-positions?user=${address}&sortBy=realizedpnl&sortDirection=DESC&limit=25&offset=0`,
+        { 
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        }
+      )
+    ])
     
-    if (!response.ok) {
-      throw new Error(`Positions fetch failed: ${response.status}`)
+    if (!openPositionsResponse.ok) {
+      throw new Error(`Open positions fetch failed: ${openPositionsResponse.status}`)
     }
     
-    const positionsData = await response.json()
+    if (!closedPositionsResponse.ok) {
+      console.warn(`Closed positions fetch failed: ${closedPositionsResponse.status}`)
+      // Continue even if closed positions fail
+    }
+    
+    const openPositionsData = await openPositionsResponse.json()
+    const closedPositionsData = closedPositionsResponse.ok 
+      ? await closedPositionsResponse.json() 
+      : []
 
-    // Transform the data to match the UI structure
-    const transformedPositions = positionsData.map((position: any) => ({
+    // Transform open positions
+    const transformedOpenPositions = openPositionsData.map((position: any) => ({
       id: position.conditionId,
       market: position.title,
       slug: position.slug,
@@ -66,11 +82,40 @@ export async function GET(request: NextRequest) {
       redeemable: position.redeemable,
       mergeable: position.mergeable,
       endDate: position.endDate,
-      negativeRisk: position.negativeRisk
+      negativeRisk: position.negativeRisk,
+      status: 'open' // Add status to distinguish
     }))
 
+    // Transform closed positions
+    const transformedClosedPositions = closedPositionsData.map((position: any) => ({
+      id: position.conditionId,
+      market: position.title,
+      slug: position.slug,
+      eventSlug: position.eventSlug,
+      icon: position.icon,
+      outcome: position.outcome,
+      outcomeIndex: position.outcomeIndex,
+      oppositeOutcome: position.oppositeOutcome,
+      shares: position.size || 0,
+      avgPrice: position.avgPrice,
+      currentPrice: position.curPrice || 0,
+      initialValue: position.initialValue,
+      currentValue: position.currentValue || 0,
+      pnl: position.cashPnl || position.realizedPnl,
+      totalBought: position.totalBought,
+      realizedPnl: position.realizedPnl,
+      percentRealizedPnl: position.percentRealizedPnl,
+      redeemable: position.redeemable || false,
+      mergeable: position.mergeable || false,
+      endDate: position.endDate,
+      negativeRisk: position.negativeRisk || false,
+      status: 'closed' // Add status to distinguish
+    }))
 
-    return NextResponse.json(transformedPositions, { headers: corsHeaders })
+    // Merge both arrays - open positions first, then closed
+    const allPositions = [...transformedOpenPositions, ...transformedClosedPositions]
+
+    return NextResponse.json(allPositions, { headers: corsHeaders })
   } catch (error) {
     console.error('Error fetching positions:', error)
     return NextResponse.json(

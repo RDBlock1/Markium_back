@@ -339,6 +339,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log('Generated analytics for address:', address, analytics);
+
     return NextResponse.json(analytics, { headers: corsHeaders })
     
   } catch (error) {

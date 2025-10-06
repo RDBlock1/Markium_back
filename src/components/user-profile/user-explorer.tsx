@@ -1,7 +1,7 @@
 // app/users/explorer/page.tsx or components/UserExplorer.tsx
 "use client"
 
-import { useState, useCallback, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from "react"
+import { useState, useCallback, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Search,
@@ -165,6 +165,7 @@ export default function UserExplorer() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [showFilters, setShowFilters] = useState(false)
   const [showDollarValues, setShowDollarValues] = useState(true)
+  const [pageInput, setPageInput] = useState(pagination.page.toString());
 
   const toggleRowExpansion = (address: string) => {
     const newExpanded = new Set(expandedRows)
@@ -195,7 +196,9 @@ export default function UserExplorer() {
   const handlePageChange = (newPage: number) => {
     updateFilter('page', newPage)
   }
-
+  useEffect(() => {
+    setPageInput(pagination.page.toString());
+  }, [pagination.page]);
   return (
     <TooltipProvider>
       <motion.div
@@ -428,9 +431,39 @@ export default function UserExplorer() {
                       >
                         Previous
                       </Button>
-                      <span className="text-sm text-primary">
-                        Page {pagination.page} of {pagination.totalPages}
-                      </span>
+
+                      {/* Page Input Field with local state */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-primary">Page</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max={pagination.totalPages}
+                          value={pageInput}
+                          onChange={(e) => setPageInput(e.target.value)}
+                          onBlur={(e) => {
+                            const page = parseInt(e.target.value);
+                            if (page >= 1 && page <= pagination.totalPages) {
+                              handlePageChange(page);
+                            } else {
+                              setPageInput(pagination.page.toString());
+                            }
+                          }}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              const page = parseInt(pageInput);
+                              if (page >= 1 && page <= pagination.totalPages) {
+                                handlePageChange(page);
+                              } else {
+                                setPageInput(pagination.page.toString());
+                              }
+                            }
+                          }}
+                          className="w-16 px-2 py-1 text-sm text-center border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <span className="text-sm text-primary">of {pagination.totalPages}</span>
+                      </div>
+
                       <Button
                         variant="outline"
                         size="sm"
