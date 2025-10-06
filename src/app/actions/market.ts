@@ -125,7 +125,7 @@ async function searchGoogleNews(
     });
 
     const rssUrl = `${baseUrl}?${params.toString()}`;
-    console.log('Fetching from:', rssUrl);
+
 
     const response = await axios.get(rssUrl, {
       headers: {
@@ -160,7 +160,6 @@ async function searchGoogleNews(
         const isValidDate = !isNaN(parsedDate.getTime());
         const isRecent = isValidDate && parsedDate >= cutoffDate;
 
-        console.log('Article:', { title, source, pubDateString, isValidDate, isRecent });
 
         return {
           title: title.trim(),

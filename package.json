@@ -15,6 +15,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
     "@hookform/resolvers": "^5.2.1",
+    "@maxmind/geoip2-node": "^6.1.0",
     "@polymarket/clob-client": "^4.20.0",
     "@prisma/client": "^6.15.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -50,6 +51,7 @@
     "ethers": "^5.8.0",
     "framer-motion": "^12.23.12",
     "gaxios": "^7.1.2",
+    "geoip-lite": "^1.4.10",
     "googleapis": "^160.0.0",
     "html2canvas": "^1.4.1",
     "https-browserify": "^1.0.0",
@@ -87,6 +89,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/dom-to-image": "^2.6.7",
+    "@types/geoip-lite": "^1.4.4",
     "@types/html2canvas": "^0.5.35",
     "@types/node": "^20.19.17",
     "@types/react": "^19",
