@@ -332,7 +332,7 @@ export default function MarketDashboard({
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50"
+        className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 "
       >
         <div className="container mx-auto px-4 py-4">
           {/* Search Bar and Sort */}

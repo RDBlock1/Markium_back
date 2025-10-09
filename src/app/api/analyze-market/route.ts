@@ -1,6 +1,18 @@
 // app/api/analyze-market/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 
+// CORS headers configuration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -29,10 +41,12 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString()
     }
 
-    // Always use context-enhanced endpoint for better analysis
-    const endpoint = '/api/analyze-with-context'
+    // Determine which endpoint to use based on analysis type
+    const endpoint = analysisType === 'quick' ? '/api/quick-analyze' : '/api/deep-analyze'
     
     const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001'
+    
+    console.log('[Next.js API] Sending request to backend:', BACKEND_URL + endpoint, backendPayload);
     
     const response = await fetch(`${BACKEND_URL}${endpoint}`, {
       method: 'POST',
@@ -41,6 +55,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(backendPayload),
     })
+    console.log('[Next.js API] Received response from backend:', response);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -53,13 +68,13 @@ export async function POST(request: NextRequest) {
     if (data.success && data.data) {
       return NextResponse.json({
         analysis: formatAnalysisForUI(data.data)
-      })
+      }, { headers: corsHeaders })
     }
 
     // Fallback
     return NextResponse.json({
       analysis: formatFallbackAnalysis(data)
-    })
+    }, { headers: corsHeaders })
 
   } catch (error) {
     console.error("[Next.js API] Error calling backend:", error)
@@ -76,16 +91,22 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString()
         } : undefined
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }
 
 // Enhanced formatting function
 function formatAnalysisForUI(data: any): string {
-  const { question, category, analysis, metadata } = data
+  const { question, category, analysis, metadata, type } = data
   
   let formattedAnalysis = `# Market Analysis: ${question}\n\n`
+  
+  // Add analysis type badge
+  if (type) {
+    const typeLabel = type === 'deep_analysis' ? '🔬 Deep Analysis' : '⚡ Quick Analysis'
+    formattedAnalysis += `**Analysis Type:** ${typeLabel}\n\n`
+  }
   
   // Add category badge
   if (category) {
@@ -93,7 +114,20 @@ function formatAnalysisForUI(data: any): string {
   }
   
   // Main analysis content
-  if (analysis?.summary) {
+  if (typeof analysis === 'string') {
+    formattedAnalysis += analysis + '\n\n'
+  } else if (Array.isArray(analysis)) {
+    // Handle array of content blocks (from Claude)
+    analysis.forEach((block: any) => {
+      if (typeof block === 'string') {
+        formattedAnalysis += block + '\n\n'
+      } else if (block.text) {
+        formattedAnalysis += block.text + '\n\n'
+      } else if (block.type === 'text' && block.text) {
+        formattedAnalysis += block.text + '\n\n'
+      }
+    })
+  } else if (analysis?.summary) {
     const summaryText = Array.isArray(analysis.summary) 
       ? analysis.summary[0]?.text || analysis.summary[0] 
       : analysis.summary
@@ -127,8 +161,6 @@ function formatAnalysisForUI(data: any): string {
         formattedAnalysis += section + '\n\n'
       }
     })
-  } else if (typeof analysis === 'string') {
-    formattedAnalysis += analysis
   }
   
   // Add related markets section if available
@@ -150,7 +182,7 @@ function formatAnalysisForUI(data: any): string {
     })
   }
   
-  // Add event summary if it's valid (not the broken one with stock market sources)
+  // Add event summary if it's valid
   if (analysis?.eventSummary && !isInvalidEventSummary(analysis.eventSummary)) {
     formattedAnalysis += `\n## 📋 Event Context\n\n`
     if (analysis.eventSummary.title) {
@@ -171,7 +203,9 @@ function formatAnalysisForUI(data: any): string {
     formattedAnalysis += `- Volume: $${parseFloat(metadata.volume || 0).toLocaleString()}\n`
     formattedAnalysis += `- Status: ${metadata.marketStatus === 'closed' ? '🔴 Closed' : '🟢 Active'}\n`
     formattedAnalysis += `- End Date: ${new Date(metadata.endDate).toLocaleDateString()}\n`
-    formattedAnalysis += `- Analysis: ${new Date(analysis?.timestamp || Date.now()).toLocaleTimeString()}\n`
+    if (data.timestamp) {
+      formattedAnalysis += `- Analyzed: ${new Date(data.timestamp).toLocaleString()}\n`
+    }
   }
   
   return formattedAnalysis
@@ -208,7 +242,19 @@ function formatFallbackAnalysis(data: any): string {
     
     // Try to extract meaningful content
     if (data.data.analysis) {
-      analysis += data.data.analysis
+      if (typeof data.data.analysis === 'string') {
+        analysis += data.data.analysis
+      } else if (Array.isArray(data.data.analysis)) {
+        data.data.analysis.forEach((block: any) => {
+          if (typeof block === 'string') {
+            analysis += block + '\n\n'
+          } else if (block.text) {
+            analysis += block.text + '\n\n'
+          }
+        })
+      } else {
+        analysis += JSON.stringify(data.data.analysis, null, 2)
+      }
     } else if (data.data.summary) {
       analysis += data.data.summary
     } else {
@@ -241,12 +287,12 @@ export async function GET() {
       backend: BACKEND_URL,
       backendStatus: data,
       timestamp: new Date().toISOString()
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     return NextResponse.json({
       status: 'error',
       message: 'Cannot connect to backend server',
       backend: process.env.BACKEND_URL || 'http://localhost:3001'
-    }, { status: 503 })
+    }, { status: 503, headers: corsHeaders })
   }
 }

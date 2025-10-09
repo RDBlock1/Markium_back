@@ -1,12 +1,25 @@
 // app/api/analyze-market/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 
+// CORS headers configuration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
     // Allow caller to specify analysisType, otherwise default to 'deep'
     const { analysisType = 'deep', ...marketData } = body
+    console.log('[Next.js API] Received market data for analysis:', { analysisType, marketData });
 
     // Build the payload (description etc.) — keep your existing safeDescription logic
     const backendPayload = {
@@ -67,7 +80,7 @@ export async function POST(request: NextRequest) {
       // If the backend nested `analysis` inside `data`, effective is already the inner object.
       return NextResponse.json({
         analysis: formatAnalysisForUI(effective)
-      })
+      }, { headers: corsHeaders })
     }
 
     // If we reach here, backend returned success but shape is unexpected.
@@ -83,7 +96,7 @@ export async function POST(request: NextRequest) {
           hasAnalysis: Boolean(hasAnalysis),
         }
       },
-      { status: 422 }
+      { status: 422, headers: corsHeaders }
     )
 
   } catch (error) {
@@ -101,11 +114,10 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString()
         } : undefined
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }
-
 
 /**
  * Format analysis for UI.
@@ -113,7 +125,7 @@ export async function POST(request: NextRequest) {
  * - analysis.breakdown (string markdown)
  * - analysis.summary (string or array)
  * - analysis (plain string)
- * Also surfaces metadata.currentPrices and descriptionLength if present.
+ * Note: Metadata and technical details removed per user request
  */
 function formatAnalysisForUI(data: any): string {
   // Support both shapes:
@@ -124,7 +136,6 @@ function formatAnalysisForUI(data: any): string {
   const question = effective.question || effective.marketId || 'Untitled Market'
   // analysis might be a string or object
   const analysisObj = typeof effective.analysis === 'object' ? effective.analysis : (typeof effective.analysis === 'string' ? { breakdown: effective.analysis } : {})
-  const metadata = effective.metadata || {}
 
   let formatted = `# Market Analysis: ${question}\n\n`
 
@@ -144,11 +155,6 @@ function formatAnalysisForUI(data: any): string {
     // Best-effort: if there are any recognizable keys, render them succinctly instead of dumping raw JSON
     const pieces: string[] = []
 
-    // include short bullets for common fields inside analysisObj
-    if (analysisObj?.analysisType) pieces.push(`**Type:** ${analysisObj.analysisType}`)
-    if (analysisObj?.modelUsed) pieces.push(`**Model:** ${analysisObj.modelUsed}`)
-    if (analysisObj?.timestamp) pieces.push(`**Timestamp:** ${new Date(analysisObj.timestamp).toLocaleString()}`)
-
     // If there's any textual fields, show first 1000 chars of concatenated text
     const textCandidates = []
     for (const k of ['notes', 'details', 'description', 'explanation']) {
@@ -167,37 +173,10 @@ function formatAnalysisForUI(data: any): string {
     }
   }
 
-  // Add timestamp / model info if present (avoid duplication)
-  if (analysisObj.modelUsed || analysisObj.analysisType || analysisObj.timestamp) {
-    formatted += `---\n`
-    if (analysisObj.modelUsed) formatted += `**Model:** ${analysisObj.modelUsed}\n\n`
-    if (analysisObj.analysisType) formatted += `**Analysis Type:** ${analysisObj.analysisType}\n\n`
-    if (analysisObj.timestamp) formatted += `**Analysis timestamp:** ${new Date(analysisObj.timestamp).toLocaleString()}\n\n`
-  }
-
-  // Add metadata details if available (currentPrices etc.)
-  if (metadata && (Array.isArray(metadata.currentPrices) || typeof metadata.descriptionLength !== 'undefined' || typeof metadata.complexityScore !== 'undefined')) {
-    formatted += `---\n\n## Metadata\n\n`
-    if (Array.isArray(metadata.currentPrices)) {
-      // show as percentages if numbers between 0 and 1
-      const prices = metadata.currentPrices.map((p: number) => {
-        if (typeof p === 'number' && p >= 0 && p <= 1) return `${(p * 100).toFixed(0)}%`
-        return String(p)
-      }).join(' | ')
-      formatted += `- Current Prices: ${prices}\n`
-    }
-    if (typeof metadata.descriptionLength !== 'undefined') {
-      formatted += `- Description Length: ${metadata.descriptionLength}\n`
-    }
-    if (typeof metadata.complexityScore !== 'undefined') {
-      formatted += `- Complexity Score: ${metadata.complexityScore}\n`
-    }
-    formatted += '\n'
-  }
+  // Metadata section and technical details removed as per user request
 
   return formatted
 }
-
 
 function formatFallbackAnalysis(data: any): string {
   let analysis = "# Market Analysis (Fallback)\n\n"
@@ -224,12 +203,12 @@ export async function GET() {
       backend: BACKEND_URL,
       backendStatus: data,
       timestamp: new Date().toISOString()
-    })
+    }, { headers: corsHeaders })
   } catch (error) {
     return NextResponse.json({
       status: 'error',
       message: 'Cannot connect to backend server',
       backend: process.env.BACKEND_URL || 'http://localhost:4000'
-    }, { status: 503 })
+    }, { status: 503, headers: corsHeaders })
   }
 }
