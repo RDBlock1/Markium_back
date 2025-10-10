@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -35,21 +34,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { BlogPost } from '@prisma/client';
 import Upload from '../blog/upload';
-import { ImageIcon, UploadCloud } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import {
+  ImageIcon,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+  Undo,
+  Redo,
+  Code,
+  Heading2
+} from 'lucide-react';
 import { MediaData } from './create-blog-post';
 import { Progress } from '../ui/progress';
-import Image from 'next/image';
 import { toast } from 'sonner';
 import { editBlogFormSchema, EditBlogFormValues } from '@/schema/blogSchema';
-import { cn } from '@/lib/utils';
-import axios from 'axios';
-const JoditEditor = dynamic(() => import('jodit-react'), {
-  ssr: false,
-});
+
+// Tiptap imports
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
+import Link from '@tiptap/extension-link';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
+
+const lowlight = createLowlight(common);
 
 interface EditBlogPostDialogProps {
   post: BlogPost;
@@ -57,6 +70,98 @@ interface EditBlogPostDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (post: EditBlogFormValues) => void;
 }
+
+// Tiptap Toolbar Component
+const TiptapToolbar = ({ editor }: { editor: any }) => {
+  if (!editor) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/30">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={editor.isActive('bold') ? 'bg-muted' : ''}
+      >
+        <Bold className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={editor.isActive('italic') ? 'bg-muted' : ''}
+      >
+        <Italic className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
+      >
+        <Heading2 className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+      >
+        <List className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+      >
+        <ListOrdered className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        className={editor.isActive('blockquote') ? 'bg-muted' : ''}
+      >
+        <Quote className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        className={editor.isActive('codeBlock') ? 'bg-muted' : ''}
+      >
+        <Code className="w-4 h-4" />
+      </Button>
+      <div className="w-px h-6 bg-border mx-1" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+      >
+        <Undo className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+      >
+        <Redo className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+};
 
 export function EditBlogPostDialog({
   post,
@@ -69,17 +174,6 @@ export function EditBlogPostDialog({
   const [coverImageError, setCoverImageError] = useState<string | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
-  const [config, setConfig] = useState({
-    toolbarAdaptive: false,
-    readonly: false,
-    toolbar: true,
-    height: 500,
-    width: 1200,
-    spellcheck: true,
-    theme: 'dark',
-  });
-
-  const editor = useRef(null);
   const isUploading = progress > 0 && progress < 100;
 
   const form = useForm<EditBlogFormValues>({
@@ -93,6 +187,7 @@ export function EditBlogPostDialog({
       tags: post.tags!,
     },
   });
+
   const {
     setValue,
     watch,
@@ -102,18 +197,100 @@ export function EditBlogPostDialog({
   // Watch fields for the preview
   const watchTitle = watch('title');
   const watchDesc = watch('excerpt');
-  const watchKeywords = watch('tags'); // watch for preview if needed
+  const watchKeywords = watch('tags');
   const watchCategory = watch('category');
   const watchContent = watch('content');
 
+  // Initialize Tiptap Editor
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'rounded-lg max-w-full h-auto',
+        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: 'Start editing your blog post...',
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+      }),
+    ],
+    content: post.content || '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose dark:prose-invert focus:outline-none max-w-none p-4 min-h-[300px]',
+      },
+      // Handle paste with images
+      handlePaste: (view, event, slice) => {
+        const items = Array.from(event.clipboardData?.items || []);
+
+        for (const item of items) {
+          if (item.type.indexOf('image') === 0) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const img = e.target?.result as string;
+                editor?.chain().focus().setImage({ src: img }).run();
+              };
+              reader.readAsDataURL(file);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+      // Handle drop with images
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer?.files && event.dataTransfer.files[0]) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = e.target?.result as string;
+              const { schema } = view.state;
+              const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+              const node = schema.nodes.image.create({ src: img });
+              const transaction = view.state.tr.insert(coordinates?.pos || 0, node);
+              view.dispatch(transaction);
+            };
+            reader.readAsDataURL(file);
+            return true;
+          }
+        }
+        return false;
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      setValue('content', html, { shouldValidate: true });
+    },
+  });
+
+  // Update editor content when dialog opens with new post
+  useEffect(() => {
+    if (open && editor && post.content) {
+      editor.commands.setContent(post.content);
+    }
+  }, [open, post.content, editor]);
 
   const handleSubmit = async (data: EditBlogFormValues) => {
     try {
       console.log('Submitting form:', data);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      //update
       const response = await fetch('/api/blog', {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -123,7 +300,8 @@ export function EditBlogPostDialog({
       });
 
       const result = await response.json();
-      console.log('result',result)
+      console.log('result', result);
+
       if (result.status === 200) {
         toast.success('Post updated successfully');
         onSave({
@@ -138,7 +316,6 @@ export function EditBlogPostDialog({
     } catch (error) {
       console.error('Error updating post:', error);
       toast.error('Error updating post');
-    } finally {
     }
   };
 
@@ -146,26 +323,24 @@ export function EditBlogPostDialog({
     data: MediaData | null,
     type: 'image' | 'video'
   ) => {
-    if (data?.secure_url) {
-      const tag =
-        type === 'image'
-          ? `<p><img src="${data.secure_url}" alt="image" /></p>`
-          : `<p><video controls src="${data.secure_url}"></video></p>`;
-      setValue('content', (watchContent || '') + tag);
+    if (data?.secure_url && editor) {
+      if (type === 'image') {
+        editor.chain().focus().setImage({ src: data.secure_url }).run();
+      } else {
+        const videoHTML = `<video controls src="${data.secure_url}" class="rounded-lg max-w-full"></video>`;
+        editor.chain().focus().insertContent(videoHTML).run();
+      }
     }
   };
 
   const Preview = () => (
-    <div className="relative h-full mt-14">
+    <div className="relative h-full mt-4">
       <div className="p-8 prose prose-lg dark:prose-invert max-w-none">
         <h1>{watchTitle || 'Untitled Post'}</h1>
-
-
         {watchDesc && (
           <p className="lead text-xl text-muted-foreground">{watchDesc}</p>
         )}
         <div dangerouslySetInnerHTML={{ __html: watchContent || '' }} />
-        {/* If you want to display keywords in preview */}
         {watchCategory && (
           <p className="mt-4 italic text-sm text-muted-foreground">
             <strong>Category:</strong> {watchCategory}
@@ -183,7 +358,7 @@ export function EditBlogPostDialog({
   return (
     <div className="w-full">
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-fit  h-[90vh] overflow-scroll">
+        <DialogContent className="sm:max-w-fit h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Blog Post</DialogTitle>
             <DialogDescription>
@@ -240,7 +415,6 @@ export function EditBlogPostDialog({
                 />
               </div>
 
-
               <FormField
                 control={form.control}
                 name="excerpt"
@@ -272,20 +446,19 @@ export function EditBlogPostDialog({
               <FormField
                 control={form.control}
                 name="content"
-                render={({}) => (
+                render={({ }) => (
                   <FormItem>
-                    <Tabs defaultValue="write" className="mt-1 max-w-5xl">
+                    <Tabs defaultValue="write" className="mt-1 w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="write">Write</TabsTrigger>
                         <TabsTrigger value="preview">Preview</TabsTrigger>
                       </TabsList>
                       <TabsContent value="write">
-                        {/* Editor Section */}
-                        <Card className="overflow-hidden border-none shadow-lg bg-card/50 backdrop-blur-sm">
+                        <Card className="overflow-hidden border shadow-lg bg-card/50 backdrop-blur-sm">
                           <CardContent className="p-0">
-                            <div className="flex flex-col  h-full">
+                            <div className="flex flex-col h-full">
                               {/* Media Upload Toolbar */}
-                              <div className="flex  justify-start p-2 md:p-4 border-b md:border-b-0 md:border-r bg-muted/30">
+                              <div className="flex justify-start p-2 border-b bg-muted/30">
                                 <Upload
                                   type="image"
                                   setProgress={setProgress}
@@ -297,7 +470,7 @@ export function EditBlogPostDialog({
                                     variant="ghost"
                                     size="sm"
                                     type="button"
-                                    className="justify-start gap-2"
+                                    className="gap-2"
                                     disabled={isUploading}
                                   >
                                     <ImageIcon className="w-4 h-4" />
@@ -308,21 +481,12 @@ export function EditBlogPostDialog({
                                 </Upload>
                               </div>
 
-                              {/* Jodit Editor using Controller */}
-                              <div className="flex w-80 md:w-full">
-                                <Controller
-                                  name="content"
-                                  control={form.control}
-                                  render={({ field }) => (
-                                    <JoditEditor
-                                      config={config}
-                                      ref={editor}
-                                      className="h-[400px] md:h-[500px] w-full "
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                    />
-                                  )}
-                                />
+                              {/* Tiptap Toolbar */}
+                              <TiptapToolbar editor={editor} />
+
+                              {/* Tiptap Editor */}
+                              <div className="w-full bg-background">
+                                <EditorContent editor={editor} />
                               </div>
                             </div>
                           </CardContent>
@@ -335,7 +499,7 @@ export function EditBlogPostDialog({
 
                         {/* Upload Progress */}
                         {isUploading && (
-                          <div className="space-y-2">
+                          <div className="space-y-2 mt-4">
                             <Progress value={progress} className="h-1" />
                             <p className="text-sm text-muted-foreground text-center">
                               Uploading... {progress}%

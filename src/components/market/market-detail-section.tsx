@@ -18,6 +18,7 @@ import { SubMarketTable } from "./sub-markets";
 import ClobMultiHistoryChart from "./multimarket-charts";
 import useMarketSelectionStore from "@/store/marketSelectionStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useParams } from "next/navigation";
 
 interface MarketPageProps {
   params: {
@@ -160,6 +161,10 @@ export default function MarketDetailSection({ params, marketData }: MarketPagePr
     console.log('Active Market:', activeMarket);
     console.log('Has Market Data:', hasMarketData);
   }, [topMarketClobIds, topMarketNames, activeMarket, hasMarketData]);
+
+  const slug = params.slug as string
+
+  // Handle hash navigation on mount and route changes
 
   // Loading skeleton for tabs content
   const TabContentSkeleton = () => (

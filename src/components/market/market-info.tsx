@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { Calendar, User, FileText, Scale, Share2, Copy, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Market, MarketSlug } from "@/types/market"
+import Link from "next/link"
 
 interface MarketInfoProps {
   market: MarketSlug 
@@ -130,125 +131,40 @@ export function MarketInfo({ market }: MarketInfoProps) {
         <div className="prose prose-invert max-w-none">
           <p className="text-[#94A3B8] leading-relaxed text-lg mb-6">{market.description}</p>
 
-          <div className="bg-[#1E2329] rounded-lg p-4 mb-6">
-            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <Scale className="w-4 h-4 text-[#6366F1]" />
-              Resolution Criteria
-            </h4>
-            <ul className="text-[#94A3B8] space-y-2 text-sm">
-              <li>
-                • This market will resolve to "Yes" if Joe Biden tests positive for COVID-19 before November 3rd, 2020,
-                11:59 PM ET.
-              </li>
-              <li>
-                • The test must be confirmed by official sources (White House, Biden campaign, or credible news
-                outlets).
-              </li>
-              <li>• Antibody tests showing past infection do not count - only active infection tests.</li>
-              <li>• If the election date changes, the resolution date will adjust accordingly.</li>
-              <li>• Market will resolve to "No" if Biden does not test positive by the deadline.</li>
-            </ul>
-          </div>
-
-          <div className="bg-[#1E2329] rounded-lg p-4">
-            <h4 className="text-white font-semibold mb-3">Market Rules</h4>
-            <ul className="text-[#94A3B8] space-y-2 text-sm">
-              <li>• All trades are final once executed</li>
-              <li>• Market may be paused in case of extraordinary circumstances</li>
-              <li>• Resolution will be based on credible, verifiable sources</li>
-              <li>• Disputes will be resolved by market moderators</li>
-              <li>• Trading fees: 2% on profits</li>
-            </ul>
+     {/* i want to  add here to section one is to understand the market rules go to ai-rule-analyzer and second to understand history and deep analysis of market got to ai-market-analyzer
+      */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href='/ai-rule-analyzer'
+              className="bg-[#1E2329] p-4 rounded-lg hover:bg-[#2A2E36] transition"
+            >
+              <div className="flex items-center mb-2">
+                <Scale className="w-5 h-5 text-[#6366F1] mr-2" />
+                <h4 className="text-lg font-semibold text-white">Understand Market Rules</h4>
+              </div>
+              <p className="text-[#94A3B8] text-sm">
+                Analyze the rules and structure of this market using our AI Rule Analyzer tool.
+              </p>
+            </Link>
+            <Link
+              href="/ai-market-analyzer"
+              className="bg-[#1E2329] p-4 rounded-lg hover:bg-[#2A2E36] transition"
+            >
+              <div className="flex items-center mb-2">
+                <Calendar className="w-5 h-5 text-[#6366F1] mr-2" />
+                <h4 className="text-lg font-semibold text-white">Market History & Analysis</h4>
+              </div>
+              <p className="text-[#94A3B8] text-sm">
+                Dive deep into the historical data and trends of this market with our AI Market Analyzer.
+              </p>
+            </Link>
           </div>
         </div>
       </Card>
 
-      {/* Market Details */}
-      <Card className="bg-black border-[#1E2329] p-6">
-        <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-          <User className="w-5 h-5 text-[#6366F1]" />
-          Market Details
-        </h3>
+      {/* Related Markets */}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Creator Info */}
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium text-[#94A3B8] mb-2">Created By</h4>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src="/creator-avatar.png" />
-                  <AvatarFallback className="bg-[#6366F1] text-white">PM</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="text-white font-medium">PredictionMarkets</div>
-                  <div className="text-[#94A3B8] text-sm flex items-center gap-1">
-                    Verified Creator
-                    <Badge variant="outline" className="text-xs border-[#00D395] text-[#00D395]">
-                      ✓
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div>
-              <h4 className="text-sm font-medium text-[#94A3B8] mb-2">Category</h4>
-              <Badge variant="outline" className="text-[#6366F1] border-[#6366F1] bg-[#6366F1]/10">
-                {market.category}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium text-[#94A3B8] mb-2 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Important Dates
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#94A3B8] text-sm">Created:</span>
-                  <span className="text-white text-sm">October 15, 2020</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#94A3B8] text-sm">Ends:</span>
-                  <span className="text-white text-sm font-medium">{formatDate(market.endDate)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#94A3B8] text-sm">Resolution:</span>
-                  <span className="text-white text-sm">Within 24 hours of end date</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Separator className="bg-[#1E2329] my-6" />
-
-        {/* Market Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white">${market.volume24hr}</div>
-            <div className="text-[#94A3B8] text-sm">Total Volume</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white">1,247</div>
-            <div className="text-[#94A3B8] text-sm">Total Traders</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white">${market.liquidity}</div>
-            <div className="text-[#94A3B8] text-sm">Liquidity</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white">
-              {Math.floor((new Date(market.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
-            </div>
-            <div className="text-[#94A3B8] text-sm">Days Left</div>
-          </div>
-        </div>
-      </Card>
 
 
     </div>

@@ -169,6 +169,43 @@ export function TradingPanel({ market: propMarket, isMobile = false }: TradingPa
     setAmount(formattedBalance.toString())
   }
 
+  useEffect(() => {
+    const checkAndScrollToPanel = () => {
+      if (window.location.hash === '#trading-panel') {
+        const element = document.getElementById('trading-panel');
+        if (element) {
+          // Calculate position with offset for sticky headers
+          const headerOffset = 100; // Adjust based on your header height
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+
+          // Add temporary highlight
+          element.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+          setTimeout(() => {
+            element.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+          }, 2000);
+        }
+      }
+    };
+
+    // Check on mount and when selectedMarket changes
+    const timeoutId = setTimeout(checkAndScrollToPanel, 300);
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', checkAndScrollToPanel);
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('hashchange', checkAndScrollToPanel);
+    };
+  }, [selectedMarket?.id]);
+
+
   const handleTrade = () => {
     // Mock trade execution
     console.log("Executing trade:", {
@@ -187,6 +224,7 @@ export function TradingPanel({ market: propMarket, isMobile = false }: TradingPa
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: isExpanded ? 0 : 60 }}
+        id="trading-panel"
         className="bg-[#12161C] border-t border-[#1E2329] rounded-t-xl"
       >
         {/* Mobile Header */}
@@ -252,7 +290,7 @@ export function TradingPanel({ market: propMarket, isMobile = false }: TradingPa
   }
 
   return (
-    <div className="w-full lg:max-w-md">
+    <div className="w-full lg:max-w-md" id="trading-panel">
       <Card className="bg-black border-[#1E2329] p-6 sticky top-24 mt-2 md:mt-0 mx-2">
         {/* Market info header */}
         {selectedMarket && (

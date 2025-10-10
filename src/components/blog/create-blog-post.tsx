@@ -1,12 +1,24 @@
 'use client'
 
 import type React from 'react';
-
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { CheckCircle2, ImageIcon, UploadCloud, VideoIcon } from 'lucide-react';
+import {
+  CheckCircle2,
+  ImageIcon,
+  VideoIcon,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+  Undo,
+  Redo,
+  Code,
+  Heading2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -34,39 +46,123 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-import dynamic from 'next/dynamic';
 import { Progress } from '../ui/progress';
 import Upload from '../blog/upload';
 import { toast } from 'sonner';
-
 import { blogFormSchema, BlogFormValues } from '@/schema/blogSchema';
 
-const JoditEditor = dynamic(() => import('jodit-react'), {
-  ssr: false,
-});
+// Tiptap imports
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
+import Link from '@tiptap/extension-link';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
+
+const lowlight = createLowlight(common);
 
 export interface MediaData {
   secure_url: string;
 }
+
+// Tiptap Toolbar Component
+const TiptapToolbar = ({ editor }: { editor: any }) => {
+  if (!editor) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/30">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={editor.isActive('bold') ? 'bg-muted' : ''}
+      >
+        <Bold className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={editor.isActive('italic') ? 'bg-muted' : ''}
+      >
+        <Italic className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
+      >
+        <Heading2 className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+      >
+        <List className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+      >
+        <ListOrdered className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        className={editor.isActive('blockquote') ? 'bg-muted' : ''}
+      >
+        <Quote className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        className={editor.isActive('codeBlock') ? 'bg-muted' : ''}
+      >
+        <Code className="w-4 h-4" />
+      </Button>
+      <div className="w-px h-6 bg-border mx-1" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+      >
+        <Undo className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+      >
+        <Redo className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+};
 
 export function CreateBlogPost() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImageError, setCoverImageError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
-
-  const [config, setConfig] = useState({
-    toolbarAdaptive: false,
-    readonly: false,
-    toolbar: true,
-    height: 500,
-    width: 1200,
-    spellcheck: true,
-    theme: 'dark',
-  });
-
-  const editor = useRef(null);
 
   const methods = useForm<BlogFormValues>({
     resolver: zodResolver(blogFormSchema),
@@ -83,16 +179,94 @@ export function CreateBlogPost() {
   const {
     setValue,
     watch,
-
     formState: { errors, isValid, isSubmitting },
   } = methods;
 
   // Watch fields for the preview
   const watchTitle = watch('title');
   const watchDesc = watch('excerpt');
-  const watchKeywords = watch('tags'); // watch for preview if needed
+  const watchKeywords = watch('tags');
   const watchCategory = watch('category');
   const watchContent = watch('content');
+
+  // Initialize Tiptap Editor
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'rounded-lg max-w-full h-auto',
+        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: 'Start writing your blog post...',
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+      }),
+    ],
+    content: watchContent || '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg dark:prose-invert focus:outline-none max-w-none p-4 min-h-[400px]',
+      },
+      // Handle paste with images
+      handlePaste: (view, event, slice) => {
+        const items = Array.from(event.clipboardData?.items || []);
+
+        for (const item of items) {
+          if (item.type.indexOf('image') === 0) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const img = e.target?.result as string;
+                editor?.chain().focus().setImage({ src: img }).run();
+              };
+              reader.readAsDataURL(file);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+      // Handle drop with images
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer?.files && event.dataTransfer.files[0]) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = e.target?.result as string;
+              const { schema } = view.state;
+              const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+              const node = schema.nodes.image.create({ src: img });
+              const transaction = view.state.tr.insert(coordinates?.pos || 0, node);
+              view.dispatch(transaction);
+            };
+            reader.readAsDataURL(file);
+            return true;
+          }
+        }
+        return false;
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      setValue('content', html, { shouldValidate: true });
+    },
+  });
 
   const onSubmit = async (data: BlogFormValues) => {
     console.log('Submitting form with data:', data);
@@ -108,7 +282,7 @@ export function CreateBlogPost() {
           category: data.category,
           excerpt: data.excerpt,
           content: data.content,
-          tags: data.tags, // nullable
+          tags: data.tags,
         }),
       });
       const result = await response.json();
@@ -117,8 +291,8 @@ export function CreateBlogPost() {
       if (result.status === 201) {
         toast.success(result.message);
         setIsSuccess(true);
-
         methods.reset();
+        editor?.commands.setContent('');
         setCoverImageFile(null);
         setCoverImageError(null);
       } else {
@@ -137,12 +311,14 @@ export function CreateBlogPost() {
     data: MediaData | null,
     type: 'image' | 'video'
   ) => {
-    if (data?.secure_url) {
-      const tag =
-        type === 'image'
-          ? `<p><img src="${data.secure_url}" alt="image" /></p>`
-          : `<p><video controls src="${data.secure_url}"></video></p>`;
-      setValue('content', (watchContent || '') + tag);
+    if (data?.secure_url && editor) {
+      if (type === 'image') {
+        editor.chain().focus().setImage({ src: data.secure_url }).run();
+      } else {
+        // For video, insert HTML directly
+        const videoHTML = `<video controls src="${data.secure_url}" class="rounded-lg max-w-full"></video>`;
+        editor.chain().focus().insertContent(videoHTML).run();
+      }
     }
   };
 
@@ -152,12 +328,10 @@ export function CreateBlogPost() {
     <div className="relative h-full mt-14">
       <div className="p-8 prose prose-lg dark:prose-invert max-w-none">
         <h1>{watchTitle || 'Untitled Post'}</h1>
-
         {watchDesc && (
           <p className="lead text-xl text-muted-foreground">{watchDesc}</p>
         )}
         <div dangerouslySetInnerHTML={{ __html: watchContent || '' }} />
-        {/* If you want to display keywords in preview */}
         {watchCategory && (
           <p className="mt-4 italic text-sm text-muted-foreground">
             <strong>Category:</strong> {watchCategory}
@@ -264,7 +438,7 @@ export function CreateBlogPost() {
                     <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="write shot description of the blog post"
+                        placeholder="write short description of the blog post"
                         {...field}
                       />
                     </FormControl>
@@ -299,77 +473,69 @@ export function CreateBlogPost() {
               <FormField
                 control={methods.control}
                 name="content"
-                render={({}) => (
+                render={({ }) => (
                   <FormItem>
-                    <Tabs defaultValue="write" className="mt-1 max-w-5xl">
+                    <Tabs defaultValue="write" className="mt-1 w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="write">Write</TabsTrigger>
                         <TabsTrigger value="preview">Preview</TabsTrigger>
                       </TabsList>
                       <TabsContent value="write">
-                        {/* Editor Section */}
-                        <Card className="overflow-hidden border-none shadow-lg bg-card/50 backdrop-blur-sm">
+                        <Card className="overflow-hidden border shadow-lg bg-card/50 backdrop-blur-sm">
                           <CardContent className="p-0">
-                            <div className="flex flex-col  h-full">
-                              {/* Media Upload Toolbar */}
-                              <div className="flex  justify-start p-2 md:p-4 border-b md:border-b-0 md:border-r bg-muted/30">
-                                <Upload
-                                  type="image"
-                                  setProgress={setProgress}
-                                  setData={(data) =>
-                                    handleMediaUpload(data, 'image')
-                                  }
-                                >
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    type="button"
-                                    className="justify-start gap-2"
-                                    disabled={isUploading}
+                            <div className="flex flex-col h-full">
+                              {/* Media Upload & Toolbar */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 p-2 border-b bg-muted/30">
+                                <div className="flex gap-1">
+                                  <Upload
+                                    type="image"
+                                    setProgress={setProgress}
+                                    setData={(data) =>
+                                      handleMediaUpload(data, 'image')
+                                    }
                                   >
-                                    <ImageIcon className="w-4 h-4" />
-                                    <span className="hidden md:inline">
-                                      Image
-                                    </span>
-                                  </Button>
-                                </Upload>
-                                <Upload
-                                  type="video"
-                                  setProgress={setProgress}
-                                  setData={(data) =>
-                                    handleMediaUpload(data, 'video')
-                                  }
-                                >
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    type="button"
-                                    className="justify-start gap-2"
-                                    disabled={isUploading}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      type="button"
+                                      className="gap-2"
+                                      disabled={isUploading}
+                                    >
+                                      <ImageIcon className="w-4 h-4" />
+                                      <span className="hidden md:inline">
+                                        Image
+                                      </span>
+                                    </Button>
+                                  </Upload>
+                                  <Upload
+                                    type="video"
+                                    setProgress={setProgress}
+                                    setData={(data) =>
+                                      handleMediaUpload(data, 'video')
+                                    }
                                   >
-                                    <VideoIcon className="w-4 h-4" />
-                                    <span className="hidden md:inline">
-                                      Video
-                                    </span>
-                                  </Button>
-                                </Upload>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      type="button"
+                                      className="gap-2"
+                                      disabled={isUploading}
+                                    >
+                                      <VideoIcon className="w-4 h-4" />
+                                      <span className="hidden md:inline">
+                                        Video
+                                      </span>
+                                    </Button>
+                                  </Upload>
+                                </div>
                               </div>
 
-                              {/* Jodit Editor using Controller */}
-                              <div className="flex w-80 md:w-full">
-                                <Controller
-                                  name="content"
-                                  control={methods.control}
-                                  render={({ field }) => (
-                                    <JoditEditor
-                                      config={config}
-                                      ref={editor}
-                                      className="h-[400px] md:h-[500px] w-full"
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                    />
-                                  )}
-                                />
+                              {/* Tiptap Toolbar */}
+                              <TiptapToolbar editor={editor} />
+
+                              {/* Tiptap Editor */}
+                              <div className="w-full bg-background">
+                                <EditorContent editor={editor} />
                               </div>
                             </div>
                           </CardContent>
@@ -382,7 +548,7 @@ export function CreateBlogPost() {
 
                         {/* Upload Progress */}
                         {isUploading && (
-                          <div className="space-y-2">
+                          <div className="space-y-2 mt-4">
                             <Progress value={progress} className="h-1" />
                             <p className="text-sm text-muted-foreground text-center">
                               Uploading... {progress}%
@@ -399,13 +565,22 @@ export function CreateBlogPost() {
                 )}
               />
             </motion.div>
-            <Button variant="outline" onClick={() => methods.reset()}>
-              Reset
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  methods.reset();
+                  editor?.commands.setContent('');
+                }}
+              >
+                Reset
+              </Button>
 
-            <Button type="submit" disabled={!isValid || isSubmitting}>
-              {isSubmitting ? 'Publishing…' : 'Publish Post'}
-            </Button>
+              <Button type="submit" disabled={!isValid || isSubmitting}>
+                {isSubmitting ? 'Publishing…' : 'Publish Post'}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

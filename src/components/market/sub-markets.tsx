@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +10,7 @@ import { Market, MarketSlug } from "@/types/market"
 import useMarketSelectionStore from "@/store/marketSelectionStore"
 import { cn } from "@/lib/utils"
 import { TradingChart } from "./trading-chart"
+import ClobSingleHistoryChart from "./single-history-chart"
 
 type Props = {
   markets: MarketSlug[]
@@ -16,21 +18,19 @@ type Props = {
 
 export function SubMarketTable({ markets }: Props) {
   const [localSelectedId, setLocalSelectedId] = useState<string | null>(null)
-  
+  const router = useRouter()
+
   // Global state management
-  const { 
-    selectedMarket, 
-    selectMarket, 
+  const {
+    selectedMarket,
+    selectMarket,
     clearSelectedMarket,
-    isLoadingMarket 
+    isLoadingMarket
   } = useMarketSelectionStore()
 
   // i want to extract clob ids from market clobTokenIds field
-
   // e.g : "clobTokenIds": '['123', '456']'
-    const clobIds = JSON.parse(markets?.[0]?.clobTokenIds || "[]") as string[];
-
-
+  const clobIds = JSON.parse(markets?.[0]?.clobTokenIds || "[]") as string[];
 
   const formatVolume = (volume: string | number | undefined) => {
     const num = Number.parseInt(String(volume || "0"))
@@ -118,7 +118,7 @@ export function SubMarketTable({ markets }: Props) {
   // Handle market selection
   const handleMarketClick = (market: MarketSlug) => {
     const isCurrentlySelected = selectedMarket?.id === market.id
-    
+
     if (isCurrentlySelected) {
       // Deselect if clicking the same market
       clearSelectedMarket()
@@ -128,6 +128,13 @@ export function SubMarketTable({ markets }: Props) {
       selectMarket(market)
       setLocalSelectedId(market.id)
     }
+  }
+
+  // Handle navigation to trading panel
+  const handleGoToTradingPanel = (market: MarketSlug, e: React.MouseEvent) => {
+    e.stopPropagation()
+    // Navigate to /market/[slug]#trading-panel
+    router.push(`/market/${market.slug}#trading-panel`)
   }
 
   return (
@@ -141,17 +148,21 @@ export function SubMarketTable({ markets }: Props) {
             return s.split(",").filter(Boolean)
           }
         })()
+
         const yesPrice = Number.parseFloat(prices[0] ?? "0")
         const noPrice = Number.parseFloat(prices[1] ?? "0")
         const priceChange = getPriceChange(market)
         const isSelected = selectedMarket?.id === market.id
         const isExpanded = localSelectedId === market.id
+        const isoString: string = market.acceptingOrdersTimestamp || market.startDate;
+        const timestamp: number = new Date(isoString).getTime(); // milliseconds
+        console.log('Parsed timestamp:', timestamp, "market name :", market.question);
+        const clobId = (JSON.parse(market.clobTokenIds || "[]") as string[])[0] || ""
 
         return (
           <Card
             key={market.id}
             className={cn(
-
               "transition-all duration-300 cursor-pointer py-4 rounded-md mx-4 sm:mx-0",
               isSelected && "ring-0.5 bg-blue-500/5",
               isLoadingMarket && selectedMarket?.id === market.id && "opacity-50"
@@ -166,7 +177,7 @@ export function SubMarketTable({ markets }: Props) {
                   <span className="text-sm font-medium">Selected for Trading</span>
                 </div>
               )}
-              
+
               <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="">
                   <div className="flex items-start gap-3">
@@ -207,9 +218,8 @@ export function SubMarketTable({ markets }: Props) {
                     <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{formatPercentage(prices[0] ?? "0")}</div>
                     <div className="text-xs sm:text-sm text-gray-400 mb-2">Chance</div>
                     <div
-                      className={`flex items-center justify-center gap-1 text-xs sm:text-sm ${
-                        priceChange >= 0 ? "text-green-400" : "text-red-400"
-                      }`}
+                      className={`flex items-center justify-center gap-1 text-xs sm:text-sm ${priceChange >= 0 ? "text-green-400" : "text-red-400"
+                        }`}
                     >
                       {priceChange >= 0 ? (
                         <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -223,7 +233,7 @@ export function SubMarketTable({ markets }: Props) {
                     <Button
                       className={cn(
                         "flex-1 font-medium py-5 px-3 rounded-md transition-all duration-200 hover:shadow-lg",
-                        isSelected 
+                        isSelected
                           ? "bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-400"
                           : "bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-400/20"
                       )}
@@ -242,7 +252,7 @@ export function SubMarketTable({ markets }: Props) {
                     <Button
                       className={cn(
                         "flex-1 font-medium py-5 px-3 rounded-md transition-all duration-200 hover:shadow-lg",
-                        isSelected 
+                        isSelected
                           ? "bg-rose-600 hover:bg-rose-700 text-white border-2 border-rose-400"
                           : "bg-rose-500 hover:bg-rose-600 text-white border border-rose-400/20"
                       )}
@@ -278,26 +288,15 @@ export function SubMarketTable({ markets }: Props) {
                         <div>Status: {market.active ? "Active" : "Inactive"}</div>
                       </div>
                     </div>
-                    {isSelected && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-2">Trading Options</h4>
-                        <div className="space-y-2">
-                          <Button
-                            size="sm"
-                            className="w-full bg-blue-500 hover:bg-blue-600"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              console.log('Navigate to trading panel')
-                            }}
-                          >
-                            Go to Trading Panel →
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                   <div>
-                    <TradingChart marketId={market.id} conditionId={market.conditionId} yesId={clobIds[0]} noId={clobIds[1]}  />
+                    <ClobSingleHistoryChart
+                      clobId={clobId}
+                      marketName={market.question}
+                      startTs={timestamp}
+                      chance={formatPercentage(prices[0] ?? "0")}
+                    />
                   </div>
                 </div>
               )}
