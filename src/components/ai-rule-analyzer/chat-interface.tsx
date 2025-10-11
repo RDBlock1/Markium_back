@@ -57,12 +57,11 @@ export function ChatInterface() {
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     const trendingMarkets = [
-        "When will the Government shutdown end?",
         "New York City Mayoral Election",
         "Will Hamas release all Israeli hostages by October 31?",
         "Fed decision in October?",
-        "Will Trump win the 2024 election?",
-        "Bitcoin above $100k by year end?",
+        "100% tariff on China in effect by November 1?",
+        "When will the Government shutdown end?",
     ]
 
     useEffect(() => {

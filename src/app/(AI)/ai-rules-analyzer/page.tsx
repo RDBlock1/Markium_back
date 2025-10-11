@@ -37,17 +37,17 @@ export const metadata: Metadata = {
             }
         ],
         siteName: "Markium - Polymarket Analytics",
-        url: "/ai-rule-analyzer"
+        url: "/ai-rules-analyzer"
     },
     twitter: {
         card: "summary_large_image",
         title: "AI Rule Analyzer - Polymarket Rules Tool",
         description: "Understand market resolution rules before trading. Get AI-powered analysis of YES/NO conditions, edge cases, and critical warnings.",
-        images: ["/og-ai-rule-analyzer.jpg"],
+        images: ["/og-ai-rules-analyzer.jpg"],
         creator: "@markium_io"
     },
     alternates: {
-        canonical: "https://markiumpro.com/ai-rule-analyzer"
+        canonical: "https://markiumpro.com/ai-rules-analyzer"
     },
     robots: {
         index: true,

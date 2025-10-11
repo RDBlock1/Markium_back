@@ -26,7 +26,7 @@ const navItems: NavItem[] = [
 
 const aiAnalyzerDropdownItems = [
   { label: "AI Market Analyzer", href: "/ai-market-analyzer" },
-  { label: "AI Rules Analyzer", href: "/ai-rule-analyzer" },
+  { label: "AI Rules Analyzer", href: "/ai-rules-analyzer" },
 ]
 
 export function Navbar() {
