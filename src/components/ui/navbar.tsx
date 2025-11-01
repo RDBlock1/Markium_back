@@ -387,15 +387,17 @@ export default function Navbar() {
                                                 onClick={() => handleMobileNavClick(feature.id)}
                                                 className="w-full text-left flex items-start gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
                                             >
-                                                <div className="mt-0.5 text-primary shrink-0">{feature.icon}</div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="text-sm font-medium text-foreground">
-                                                        {feature.title}
-                                                    </h3>
-                                                    <p className="text-xs text-muted-foreground line-clamp-1">
-                                                        {feature.subtitle}
-                                                    </p>
-                                                </div>
+                                             <Link href={feature.href}>
+                                                    <div className="mt-0.5 text-primary shrink-0">{feature.icon}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-sm font-medium text-foreground">
+                                                            {feature.title}
+                                                        </h3>
+                                                        <p className="text-xs text-muted-foreground line-clamp-1">
+                                                            {feature.subtitle}
+                                                        </p>
+                                                    </div>
+                                             </Link>
                                             </button>
                                         ))}
                                     </div>
@@ -431,19 +433,7 @@ export default function Navbar() {
 
                             </button>
                             <div className="border-t border-border/50 pt-4 mt-4 flex flex-col space-y-3">
-
-                                <Link
-                                    href="/signup"
-                                    className="px-4 py-3 text-lg font-bold text-center bg-gradient-to-b from-primary to-primary/80 text-primary-foreground rounded-lg shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-                                    onClick={() =>
-                                    {
-                                        signIn('google')
-                                        setIsMobileMenuOpen(false)
-                                    }
-                                     }
-                                >
-                                    Sign Up
-                                </Link>
+                                <LoginButton />
                             </div>
                         </nav>
                     </div>
