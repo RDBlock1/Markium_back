@@ -25,35 +25,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     }
   },
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET,
   cookies: {
-    sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+    pkceCodeVerifier: {
+      name: 'next-auth.pkce.code_verifier',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    },
-    callbackUrl: {
-      name: `__Secure-next-auth.callback-url`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    },
-    csrfToken: {
-      name: `__Host-next-auth.csrf-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
       }
     }
-  },
-  debug: process.env.NODE_ENV === 'development',
+  }
 });
