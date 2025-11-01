@@ -64,9 +64,9 @@ export default function ChatInterface() {
 
     const trendingMarkets = [
         "New York City Mayoral Election",
-        "Will Hamas release all Israeli hostages by October 31?",
-        "Fed decision in October?",
-        "100% tariff on China in effect by November 1?",
+        "Will Hamas release all Israeli hostages by November 31?",
+        "Fed decision in November?",
+        "100% tariff on China in effect by November 5?",
         "When will the Government shutdown end?",
     ]
 

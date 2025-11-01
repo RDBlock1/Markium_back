@@ -7,6 +7,7 @@ import { X, Play, TrendingUp, Zap, Bookmark, BarChart3, Users, MessageSquare, Se
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { geist } from "@/lib/fonts"
+import Link from "next/link"
 
 interface Feature {
     id: string
@@ -15,7 +16,9 @@ interface Feature {
     description: string
     video?: string
     ctaLabel: string
+    href: string
     icon?: React.ReactNode
+    isAvailable?: boolean
 }
 
 interface FeaturesGridProps {
@@ -32,7 +35,9 @@ const DEFAULT_FEATURES: Feature[] = [
             "AI-driven market analysis that highlights sentiment shifts, liquidity moves, and unusual activity. Includes short video explainers and a one-click link to the market view on Polymarket. Get real-time insights into market movements and identify opportunities before they become obvious.",
         video: "/videos/market-analyzer-demo.mp4",
         ctaLabel: "Open Market Analyzer",
+        href: "/ai-market-analyzer",
         icon: <BotIcon className="w-5 h-5" />,
+        isAvailable: true,
     },
     {
         id: "rule-analyzer",
@@ -42,7 +47,9 @@ const DEFAULT_FEATURES: Feature[] = [
             "Write rules in plain English and let AI convert them into monitorable rules that watch markets in real-time. Includes examples and presets. Set up complex market monitoring without writing a single line of code.",
         video: "/videos/rule-analyzer-demo.mp4",
         ctaLabel: "Build a Rule",
+        href: "/ai-rules-analyzer",
         icon: <Zap className="w-5 h-5" />,
+        isAvailable: true,
     },
     {
         id: "watchlist",
@@ -52,7 +59,9 @@ const DEFAULT_FEATURES: Feature[] = [
             "Save markets to your watchlist, get push-style notifications inside the app, and see a compact timeline of key events. Never miss important market movements again.",
         video: "/videos/watchlist-demo.mp4",
         ctaLabel: "Go to Watchlist",
+        href: "/watchlist",
         icon: <Bookmark className="w-5 h-5" />,
+        isAvailable: true,
     },
     {
         id: "user-analytics",
@@ -62,7 +71,9 @@ const DEFAULT_FEATURES: Feature[] = [
             "Aggregate and explore trader-level metrics like conviction, trade frequency, and profit signals to help you spot informed actors. Learn from the best traders on the platform.",
         video: "/videos/user-analytics-demo.mp4",
         ctaLabel: "View Analytics",
+        href: "/leaderboard",
         icon: <BarChart3 className="w-5 h-5" />,
+        isAvailable: true,
     },
     {
         id: "user-explorer",
@@ -73,6 +84,8 @@ const DEFAULT_FEATURES: Feature[] = [
         video: "/videos/user-explorer-demo.mp4",
         ctaLabel: "Explore Users",
         icon: <Users className="w-5 h-5" />,
+        isAvailable: true,
+        href: "/user-explorer",
     },
     {
         id: "mentions-analyzer",
@@ -82,7 +95,9 @@ const DEFAULT_FEATURES: Feature[] = [
             "Detect rising topics and mentions across social sources and see how they correlate with market moves. Stay ahead of social trends that impact markets.",
         video: "/videos/mentions-demo.mp4",
         ctaLabel: "Open Mentions",
+        href: "/mentions-analyzer",
         icon: <MessageSquare className="w-5 h-5" />,
+        isAvailable: false,
     },
     {
         id: "keywords-search",
@@ -93,6 +108,8 @@ const DEFAULT_FEATURES: Feature[] = [
         video: "/videos/keywords-demo.mp4",
         ctaLabel: "Search Markets",
         icon: <Search className="w-5 h-5" />,
+        isAvailable: false,
+        href: "/keywords-search",
     },
     {
         id:"copy-trading",
@@ -103,6 +120,8 @@ const DEFAULT_FEATURES: Feature[] = [
         video: "/videos/copy-trading-demo.mp4",
         ctaLabel: "Start Copy Trading",
         icon: <Users className="w-5 h-5" />,
+        isAvailable: false,
+        href: "/copy-trading",
     }
 ]
 
@@ -147,191 +166,47 @@ const FeatureCard = ({
                
 
                 {/* Content */}
-                <div className="relative z-10 flex flex-col h-full">
-                    {/* Icon area */}
-                    <motion.div
-                        className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-4 text-primary border border-primary/20"
-                        whileHover={{ scale: 1.15, rotate: 8 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    >
-                        {feature.icon}
-                    </motion.div>
+               <Link href={feature.isAvailable ? feature.href : "#"} onClick={(e) => {
+                    if (!feature.isAvailable) {
+                        e.preventDefault()
+                    }
+               }}>
+                    <div className="relative z-10 flex flex-col h-full">
+                        {/* Icon area */}
+                        <motion.div
+                            className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-4 text-primary border border-primary/20"
+                            whileHover={{ scale: 1.15, rotate: 8 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        >
+                            {feature.icon}
+                        </motion.div>
 
-                    {/* Title and subtitle */}
-                    <h3 className="font-semibold text-foreground mb-2 text-base line-clamp-2">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-grow">{feature.subtitle}</p>
+                        {/* Title and subtitle */}
+                        <h3 className="font-semibold text-foreground mb-2 text-base line-clamp-2">{feature.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-grow">{feature.subtitle}</p>
 
-                    {/* Indicator */}
-                    <motion.div
-                        className="flex items-center gap-2 text-xs text-primary font-semibold uppercase tracking-wide"
-                        animate={{ x: isSelected ? 4 : 0 }}
-                    >
-                        <span>Learn more</span>
-                        <motion.span animate={{ x: isSelected ? 4 : 0 }}>→</motion.span>
-                    </motion.div>
-                </div>
+                        {/* Indicator */}
+                        <motion.div
+                            className="flex items-center gap-2 text-xs text-primary font-semibold uppercase tracking-wide"
+                            animate={{ x: isSelected ? 4 : 0 }}
+                        >
+                            <span>Learn more</span>
+                            <motion.span animate={{ x: isSelected ? 4 : 0 }}>→</motion.span>
+                            {feature.isAvailable ? (
+                                <Link href={feature.href} className="text-primary">
+                                    <span>Go</span>
+                                </Link>
+                            ) : (
+                                <span className="text-muted-foreground">Coming soon</span>
+                            )}
+                        </motion.div>
+                    </div>
+               </Link>
             </div>
         </motion.div>
     )
 }
 
-// Detail panel component
-const DetailPanel = ({
-    feature,
-    isOpen,
-    onClose,
-    onNavigate,
-}: {
-    feature: Feature | null
-    isOpen: boolean
-    onClose: () => void
-    onNavigate?: (featureId: string) => void
-}) => {
-    const panelRef = useRef<HTMLDivElement>(null)
-    const closeButtonRef = useRef<HTMLButtonElement>(null)
-
-    // Focus trap
-    useEffect(() => {
-        if (!isOpen) return
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                onClose()
-            }
-        }
-
-        document.addEventListener("keydown", handleKeyDown)
-        closeButtonRef.current?.focus()
-
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown)
-        }
-    }, [isOpen, onClose])
-
-    if (!feature) return null
-
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    {/* Backdrop */}
-                    <motion.div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        aria-hidden="true"
-                    />
-
-                    {/* Panel */}
-                    <motion.div
-                        ref={panelRef}
-                        id={`detail-${feature.id}`}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby={`detail-title-${feature.id}`}
-                        className="fixed inset-y-0 right-0 w-full sm:w-96 bg-card border-l border-border shadow-2xl z-[100] overflow-y-auto"
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    >
-                        <div className="p-6 space-y-6">
-                            {/* Header */}
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
-                                    <h2 id={`detail-title-${feature.id}`} className="text-2xl font-bold text-foreground mb-2">
-                                        {feature.title}
-                                    </h2>
-                                    <p className="text-sm text-muted-foreground">{feature.subtitle}</p>
-                                </div>
-                                <motion.button
-                                    ref={closeButtonRef}
-                                    onClick={onClose}
-                                    className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="Close detail panel"
-                                >
-                                    <X className="w-5 h-5" />
-                                </motion.button>
-                            </div>
-
-                            {/* Video placeholder */}
-                            {feature.video && (
-                                <motion.div
-                                    className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden group cursor-pointer border border-border"
-                                    whileHover={{ scale: 1.02 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                >
-                                    <video src={feature.video} className="w-full h-full object-cover" controls preload="none" />
-                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                                        <motion.div
-                                            animate={{ scale: [1, 1.1, 1] }}
-                                            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                                        >
-                                            <Play className="w-12 h-12 text-white fill-white" />
-                                        </motion.div>
-                                    </div>
-                                </motion.div>
-                            )}
-
-                            {/* Description */}
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="font-semibold text-foreground mb-2">Overview</h3>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-                                </div>
-
-                                {/* Key highlights */}
-                                <div>
-                                    <h3 className="font-semibold text-foreground mb-3">Key Features</h3>
-                                    <ul className="space-y-2">
-                                        {[
-                                            "Real-time market insights",
-                                            "AI-powered analysis",
-                                            "Seamless integration",
-                                            "One-click actions",
-                                        ].map((item, idx) => (
-                                            <motion.li
-                                                key={idx}
-                                                className="flex items-center gap-2 text-sm text-muted-foreground"
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: idx * 0.1 }}
-                                            >
-                                                <span className="w-2 h-2 rounded-full bg-gradient-to-r from-primary to-primary/60" />
-                                                {item}
-                                            </motion.li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-
-                            {/* CTA buttons */}
-                            <div className="space-y-3 pt-4 border-t border-border">
-                                <Button
-                                    onClick={() => {
-                                        onNavigate?.(feature.id)
-                                        onClose()
-                                    }}
-                                    className="w-full font-semibold"
-                                    size="lg"
-                                >
-                                    {feature.ctaLabel}
-                                </Button>
-                                <Button onClick={onClose} variant="outline" className="w-full bg-transparent" size="lg">
-                                    Close
-                                </Button>
-                            </div>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
-    )
-}
 
 // Main component
 export function FeaturesGrid({ features = DEFAULT_FEATURES, onNavigate }: FeaturesGridProps) {
@@ -362,13 +237,7 @@ export function FeaturesGrid({ features = DEFAULT_FEATURES, onNavigate }: Featur
                 ))}
             </div>
 
-            {/* Detail panel */}
-            <DetailPanel
-                feature={selectedFeature}
-                isOpen={selectedFeatureId !== null}
-                onClose={() => setSelectedFeatureId(null)}
-                onNavigate={onNavigate}
-            />
+
         </div>
     )
 }

@@ -186,7 +186,7 @@ export default function Navbar() {
         setIsMobileMenuOpen(false)
         setIsMobileFeaturesOpen(false)
         setTimeout(() => scrollToSection(sectionId), 100)
-        router.push('/' + sectionId)
+        router.push(sectionId)
     }
 
     const handleDesktopNavClick = (e: React.MouseEvent, sectionId: string) => {
@@ -384,7 +384,7 @@ export default function Navbar() {
                                         {DEFAULT_FEATURES.map((feature) => (
                                             <button
                                                 key={feature.id}
-                                                onClick={() => handleMobileNavClick(feature.id)}
+                                                onClick={() => handleMobileNavClick(feature.href)}
                                                 className="w-full text-left flex items-start gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
                                             >
                                              <Link href={feature.href}>
