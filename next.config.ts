@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "polymarket-upload.s3.us-east-2.amazonaws.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "upload.wikimedia.org",
         port: "",
         pathname: "/**",
@@ -25,6 +31,18 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "api.dicebear.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "x.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "pbs.twimg.com",
         port: "",
         pathname: "/**",
       }

@@ -28,9 +28,10 @@ export default function LeaderboardMain() {
             id: entry.rank,
             rank: entry.rank,
             username: entry.username,
+            proxyAddress: entry.walletAddress,
             profitLoss: entry.profit || 0,
             volume: entry.volume || null,
-            avatar: entry.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`
+            profileImage: entry.profileImage || `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(entry.username)}&backgroundColor=000000`
         })).filter(entry => {
             // Apply search filter
             if (!searchQuery) return true;
@@ -47,7 +48,8 @@ export default function LeaderboardMain() {
             username: entry.username,
             profitLoss: entry.profit || 0,
             volume: entry.volume || null,
-            avatar: entry.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`
+            avatar: entry.profileImage || `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(entry.username)}&backgroundColor=000000`,
+            proxyAddress: entry.walletAddress
         }));
     }, [data.profit]);
 
@@ -60,7 +62,7 @@ export default function LeaderboardMain() {
             match: "Prediction Market", // This would need to come from a different API endpoint
             amount: entry.profit || 0,
             change: entry.change || 0,
-            avatar: entry.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`
+            avatar: entry.profileImage || `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(entry.username)}&backgroundColor=000000`
         }));
     }, [data.profit]);
 

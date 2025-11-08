@@ -29,7 +29,6 @@ export async function GET() {
       orderBy: { updatedAt: 'desc' }
     })
 
-    console.log('conversations:', conversations, 'messages:', conversations.map((c: typeof conversations[number]) => c.messages));
     return NextResponse.json({ conversations })
   } catch (error) {
     console.error('Error fetching conversations:', error)

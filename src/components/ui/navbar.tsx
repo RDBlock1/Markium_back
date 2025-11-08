@@ -273,6 +273,18 @@ export default function Navbar() {
                         )}
                     </div>
 
+                    <Link href={"/market"}>
+                        <button
+                            className={`relative px-4 py-2 transition-colors cursor-pointer ${activeSection === "testimonials"
+                                ? "text-foreground"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            onClick={(e) => handleDesktopNavClick(e, "market")}
+                        >
+                            <span className="relative z-20">Market</span>
+                        </button>
+                    </Link>
+
                  <Link href={"/leaderboard"}>
                         <button
                             className={`relative px-4 py-2 transition-colors cursor-pointer ${activeSection === "pricing"
@@ -283,15 +295,7 @@ export default function Navbar() {
                             <span className="relative z-20">Leaderboard</span>
                         </button>
                  </Link>
-                    <button
-                        className={`relative px-4 py-2 transition-colors cursor-pointer ${activeSection === "testimonials"
-                                ? "text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                        onClick={(e) => handleDesktopNavClick(e, "testimonials")}
-                    >
-                        <span className="relative z-20">Contact</span>
-                    </button>
+             
                     <Link href="/blog"
                         className={`relative px-4 py-2 transition-colors cursor-pointer ${activeSection === "faq"
                                 ? "text-foreground"
@@ -405,6 +409,16 @@ export default function Navbar() {
                             </div>
 
                             <button
+                                onClick={() => handleMobileNavClick("market")}
+                                className={`text-left px-4 py-3 text-lg font-medium transition-colors rounded-lg hover:bg-background/50 ${activeSection === "contact"
+                                    ? "text-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                            >
+                                Market
+                            </button>
+
+                            <button
                                 onClick={() => handleMobileNavClick("leaderboard")}
                                 className={`text-left px-4 py-3 text-lg font-medium transition-colors rounded-lg hover:bg-background/50 ${activeSection === "pricing"
                                         ? "text-foreground"
@@ -413,15 +427,7 @@ export default function Navbar() {
                             >
                                 Leaderboard
                             </button>
-                            <button
-                                onClick={() => handleMobileNavClick("contact")}
-                                className={`text-left px-4 py-3 text-lg font-medium transition-colors rounded-lg hover:bg-background/50 ${activeSection === "contact"
-                                        ? "text-foreground"
-                                        : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                            >
-                                Contact
-                            </button>
+                        
                             <button
                                 onClick={() => handleMobileNavClick("blog")}
                                 className={`text-left px-4 py-3 text-lg font-medium transition-colors rounded-lg hover:bg-background/50 ${activeSection === "faq"

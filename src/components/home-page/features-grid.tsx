@@ -19,6 +19,7 @@ interface Feature {
     href: string
     icon?: React.ReactNode
     isAvailable?: boolean
+    isComingSoon?: boolean
 }
 
 interface FeaturesGridProps {
@@ -54,7 +55,7 @@ const DEFAULT_FEATURES: Feature[] = [
     {
         id: "watchlist",
         title: "Watchlist",
-        subtitle: "Personalize & follow markets you care about",
+        subtitle: "Personalize & follow markets you care about.",
         description:
             "Save markets to your watchlist, get push-style notifications inside the app, and see a compact timeline of key events. Never miss important market movements again.",
         video: "/videos/watchlist-demo.mp4",
@@ -66,7 +67,7 @@ const DEFAULT_FEATURES: Feature[] = [
     {
         id: "user-analytics",
         title: "User Analytics",
-        subtitle: "Analyze trader activity & behavior",
+        subtitle: "Analyze trader activity & behavior.",
         description:
             "Aggregate and explore trader-level metrics like conviction, trade frequency, and profit signals to help you spot informed actors. Learn from the best traders on the platform.",
         video: "/videos/user-analytics-demo.mp4",
@@ -78,7 +79,7 @@ const DEFAULT_FEATURES: Feature[] = [
     {
         id: "user-explorer",
         title: "User Explorer",
-        subtitle: "Discover top traders and their history",
+        subtitle: "Discover top traders and their history.",
         description:
             "Explore top traders on Polymarket, filter by accuracy, volume, and sectors, and follow them for quick insights. Build your network of successful traders.",
         video: "/videos/user-explorer-demo.mp4",
@@ -114,7 +115,7 @@ const DEFAULT_FEATURES: Feature[] = [
     {
         id:"copy-trading",
         title: "Copy Trading",
-        subtitle: "Follow and replicate top traders' strategies",
+        subtitle: "Follow and replicate top traders' strategies.",
         description:
             "Identify successful traders on Polymarket and automatically replicate their trades in real-time. Benefit from the expertise of top performers and enhance your trading outcomes.",
         video: "/videos/copy-trading-demo.mp4",
@@ -122,6 +123,7 @@ const DEFAULT_FEATURES: Feature[] = [
         icon: <Users className="w-5 h-5" />,
         isAvailable: false,
         href: "/copy-trading",
+        isComingSoon: true,
     }
 ]
 
@@ -191,15 +193,11 @@ const FeatureCard = ({
                             animate={{ x: isSelected ? 4 : 0 }}
                         >
                             <span>Learn more</span>
-                            <motion.span animate={{ x: isSelected ? 4 : 0 }}>→</motion.span>
-                            {feature.isAvailable ? (
-                                <Link href={feature.href} className="text-primary">
-                                    <span>Go</span>
-                                </Link>
-                            ) : (
-                                <span className="text-muted-foreground">Coming soon</span>
+                            {feature.isComingSoon && (
+                                <p className="text-xs text-muted-foreground">Coming soon</p>
                             )}
                         </motion.div>
+                       
                     </div>
                </Link>
             </div>

@@ -7,6 +7,7 @@ interface ChatHeaderProps {
     onMenuClick?: () => void
     chatCount?: number
     isMobile?: boolean
+
 }
 
 export function ChatHeader({ onNewChat, onMenuClick, chatCount = 0, isMobile = false }: ChatHeaderProps) {

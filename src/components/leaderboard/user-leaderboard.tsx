@@ -18,7 +18,7 @@ export default function Leaderboard() {
             username: entry.username,
             profitLoss: entry.profit || 0,
             volume: entry.volume || null,
-            avatar: entry.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`
+            avatar: entry.profileImage ||  `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(entry.username)}&backgroundColor=000000` // Fallback avatar'
         }));
     }, [data.profit]);
 
@@ -101,7 +101,7 @@ export default function Leaderboard() {
                         </div>
 
                         {/* 3rd Place - Right */}
-                        <div className="podium-user podium-third">
+                        <div className="podium-user podium-third mt-5">
                             <div className="avatar-wrapper avatar-second">
                                 <img
                                     src={topHolders[2]?.avatar}
@@ -110,7 +110,7 @@ export default function Leaderboard() {
                                 />
                             </div>
                             <div className="medal medal-small">🥉</div>
-                            <div className="user-info">
+                            <div className="user-info mt-5">
                                 <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[2]?.username}</p>
                                 <p className="text-green-400 font-bold text-sm sm:text-lg">
                                     {topHolders[2]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {

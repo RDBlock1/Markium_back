@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 
 export function useChatHistory() {
-  const { data: session } = useSession()
+  const session = useSession()
   const [chatHistories, setChatHistories] = useState<ChatHistory[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -15,7 +15,7 @@ export function useChatHistory() {
 
   // Fetch conversations on mount
   useEffect(() => {
-    if (session?.user) {
+    if (session?.data?.user) {
       fetchConversations()
     }
   }, [session])
@@ -58,7 +58,9 @@ export function useChatHistory() {
   }
 
   const saveMessage = async (message: Message, markets?: any[]) => {
-    if (!session?.user) {
+    console.log('Saving message:', message);
+    console.log('session:', session?.data?.user);
+    if (!session?.data  ?.user?.email) {
       toast.error('Please sign in to save messages')
       return null
     }
@@ -101,7 +103,8 @@ export function useChatHistory() {
 
   // Helper function to save message with explicit conversationId
   const saveMessageWithId = async (message: Message, forceConversationId: string | null, markets?: any[]) => {
-    if (!session?.user) {
+    console.log('forceConversationId:', forceConversationId);
+    if (!session?.data?.user) {
       toast.error('Please sign in to save messages')
       return null
     }
@@ -142,7 +145,7 @@ export function useChatHistory() {
       }
 
       // Otherwise, create a new conversation with the first message
-      if (messages.length > 0 && session?.user) {
+      if (messages.length > 0 && session?.data?.user) {
         const result = await saveMessage(messages[0])
         return result?.conversationId || null
       }
@@ -304,7 +307,7 @@ export function useChatHistory() {
   }, [])
 
   const refreshConversations = useCallback(() => {
-    if (session?.user) {
+    if (session?.data?.user) {
       fetchConversations()
     }
   }, [session])

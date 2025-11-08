@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/leaderboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,7 +16,7 @@ interface TransformedEntry {
   id: string;
   rank: number;
   username: string;
-  avatar: string;
+  profileImage: string;
   walletAddress: string;
   volume?: number;
   profit?: number;
@@ -142,7 +143,7 @@ function transformVolumeEntry(entry: PolymarketLeaderboardEntry, index: number):
     id: `volume-${entry.proxyWallet}`,
     rank: parseInt(entry.rank, 10) || index + 1,
     username: entry.userName || 'Anonymous',
-    avatar: entry.profileImage || '',
+    profileImage: entry.profileImage || '',
     walletAddress: entry.proxyWallet,
     volume: entry.vol || 0,
     change: 0, // Calculate from historical data if needed
@@ -154,7 +155,7 @@ function transformProfitEntry(entry: PolymarketLeaderboardEntry, index: number):
     id: `profit-${entry.proxyWallet}`,
     rank: parseInt(entry.rank, 10) || index + 1,
     username: entry.userName || 'Anonymous',
-    avatar: entry.profileImage || '',
+    profileImage: entry.profileImage || '',
     walletAddress: entry.proxyWallet,
     profit: entry.pnl || 0,
     change: 0, // Calculate from historical data if needed

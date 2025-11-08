@@ -4,7 +4,7 @@ export interface LeaderboardEntry {
   id: string;
   rank: number;
   username: string;
-  avatar: string;
+  profileImage: string;
   walletAddress: string;
   volume?: number;
   profit?: number;

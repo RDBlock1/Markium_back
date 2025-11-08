@@ -100,3 +100,21 @@ export interface Tag {
   forceHide?: boolean;
   [k: string]: unknown;
 }
+export interface OrderBookEntry {
+  price: string;
+  size: string;
+}
+
+export interface OrderBook {
+  market: string;
+  asset_id: string;
+  timestamp: string;
+  hash: string;
+  bids: OrderBookEntry[];
+  asks: OrderBookEntry[];
+  min_order_size: string;
+  tick_size: string;
+  neg_risk: boolean;
+}
+
+export type OrderBookResponse = OrderBook[];

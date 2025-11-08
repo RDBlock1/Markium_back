@@ -11,6 +11,7 @@ import { useChatHistory } from "@/hooks/use-chat-history"
 import { toast } from "sonner"
 import type { Message, MessageSection, StreamingWord, ActiveButton } from "@/types/chat"
 import type { ImageFile } from "@/components/ai-market-analyzer/image-upload"
+import { useSession } from "next-auth/react"
 
 // Market types
 export interface MarketSlug {
@@ -46,6 +47,8 @@ export default function ChatInterface() {
     const mainContainerRef = useRef<HTMLDivElement>(null)
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const hasInitializedRef = useRef(false)
+
+    const session = useSession()
 
     // Chat history management - get conversationId from hook
     const {
@@ -268,6 +271,16 @@ export default function ChatInterface() {
         try {
             setIsStreaming(true)
 
+            if(!session?.data?.user
+    || !session?.data?.user?.email
+            ){
+
+                toast.error('Please sign in to analyze markets')
+                setIsStreaming(false)
+                return
+
+            }
+
             // Create and save user message
             const userMessage: Message = {
                 id: Date.now().toString(),
@@ -303,20 +316,8 @@ export default function ChatInterface() {
             const data = await response.json()
 
             // Build AI response content
-            let aiContent = data.analysis || `I found ${markets.length} market(s) related to your query.`
+            const aiContent = data.analysis || `I found ${markets.length} market(s) related to your query.`
 
-            if (markets.length > 0 && !data.analysis?.includes("polymarket.com")) {
-                aiContent += "\n\n## Related Markets Found:\n"
-                markets.forEach(market => {
-                    aiContent += `\n**${market.question}**\n`
-                    if (market.outcomePrices?.[0]) {
-                        aiContent += `Current probability: ${(market.outcomePrices[0] * 100).toFixed(1)}%\n`
-                    }
-                    if (market.slug) {
-                        aiContent += `[View on Polymarket](https://polymarket.com/event/${market.slug})\n`
-                    }
-                })
-            }
 
             // Create AI message
             const aiMessage: Message = {
@@ -328,8 +329,8 @@ export default function ChatInterface() {
             }
 
             // IMPORTANT: Manually pass the conversationId to ensure it uses the same conversation
-            await saveMessageWithId(aiMessage, activeConversationId, markets)
-
+            const result =      await saveMessageWithId(aiMessage, activeConversationId, markets)
+            console.log('AI message saved to conversation:', result?.conversationId)
             // Update UI
             setMessages((prev) => [...prev, aiMessage])
             setCompletedMessages((prev) => new Set(prev).add(aiMessage.id))

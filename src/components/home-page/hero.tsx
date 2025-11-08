@@ -20,6 +20,27 @@ export default function Hero() {
         return null
     }
 
+    const logos = [
+        {
+            name: "polymark.et",
+            href: "https://polymark.et",
+            src: "https://res.cloudinary.com/dlttworg3/image/upload/v1761135234/Screenshot_2025-10-22_at_5.40.54_PM_pebeax.png",
+        },
+        {
+            name: "𝗡𝗜𝗖𝗢𝗟𝗘✰",
+            src: "https://pbs.twimg.com/profile_images/1984018430417092611/G6Tqc-z__400x400.jpg",
+        },
+        { name: "ATOMS" },
+        { name: "gamechanger" },
+        {
+            name: "Said",
+            src: "https://pbs.twimg.com/profile_images/1984009470628761600/g0ajJ_4j_400x400.jpg",
+        },
+        {
+            name: "eli5defi",
+            href: "https://markium.ai/press",
+        },
+    ];
     return (
         <>
             <section className="relative overflow-hidden  flex flex-col ">
@@ -121,7 +142,7 @@ export default function Hero() {
                                         />
                                  </Link>
                                 </div>
-
+{/* 
                                 <div className="opacity-60 grayscale hover:opacity-100 hover:grayscale-0 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-300">
 <Link href={"https://polymark.et"} target="_blank" rel="noopener noreferrer">
                                         <Image
@@ -133,10 +154,66 @@ export default function Hero() {
                                         />
                                     </Link>
 
-                                </div>
+                                </div> */}
 
                                 
 
+                            </div>
+                        </div>
+                    </motion.div>
+
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                        className="my-10 overflow-hidden "
+                    >
+                        <div className="text-center">
+                            <h3 className=" text-muted-foreground my-6">Featured In</h3>
+
+                            {/* Scroll Container */}
+                            <div className="relative w-full  max-w-lg mx-auto overflow-hidden">
+                                <motion.div
+                                    className="flex gap-6 items-center whitespace-nowrap"
+                                    animate={{
+                                        x: ["0%", "-100%"],
+                                    }}
+                                    transition={{
+                                        ease: "linear",
+                                        duration: 25, // adjust speed here
+                                        repeat: Infinity,
+                                    }}
+                                >
+                                    {/* Duplicate logos twice for seamless loop */}
+                                    {[...Array(2)].map((_, i) => (
+                                        <div key={i} className="flex gap-6 items-center">
+                                            {logos.map((logo, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex gap-x-2 items-center justify-center border p-2 rounded-md font-semibold min-w-[120px] grayscale hover:opacity-100 hover:grayscale-0 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-300"
+                                                >
+                                                    {logo.href ? (
+                                                        <Link href={logo.href} target="_blank" rel="noopener noreferrer">
+                                                            <p className="text-sm">{logo.name}</p>
+                                                        </Link>
+                                                    ) : (
+                                                        <p>{logo.name}</p>
+                                                    )}
+                                                    {logo.src && (
+                                                        <Image
+                                                            src={logo.src}
+                                                            alt={logo.name}
+                                                            width={20}
+                                                            height={20}
+                                                            className="rounded-sm"
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </motion.div>
                             </div>
                         </div>
                     </motion.div>

@@ -60,6 +60,7 @@ export async function POST(req: Request) {
       where: { id: conversation.id },
       data: { updatedAt: new Date() }
     })
+    console.log('savedMessage:', savedMessage);
 
     return NextResponse.json({
       success: true,

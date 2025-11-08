@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useRef, useEffect } from "react"
 import { ChatHeader } from "@/components/ai-rule-analyzer/chat-header"
-import { MessageList } from "@/components/ai-rule-analyzer/message-list"
 import { ChatInput } from "@/components/ai-rule-analyzer/chat-input"
 import * as ChatSidebarModule from "@/components/ai-rule-analyzer/chat-sidebar"
 const ChatSidebar: any = (ChatSidebarModule as any)?.ChatSidebar || (ChatSidebarModule as any)?.default || ChatSidebarModule
@@ -12,6 +12,8 @@ import { toast } from "sonner"
 import type { Message, MessageSection, StreamingWord, ActiveButton } from "@/types/chat"
 import type { ImageFile } from "@/components/ai-market-analyzer/image-upload"
 import { useRuleChatHistory } from "@/hooks/use-rule-chat-history"
+import { useSession } from "next-auth/react"
+import { MessageList } from "../ai-market-analyzer/message-list"
 
 // Market types
 export interface MarketSlug {
@@ -31,6 +33,7 @@ export default function ChatInterface() {
     const [messages, setMessages] = useState<Message[]>([])
     const [messageSections, setMessageSections] = useState<MessageSection[]>([])
     const [isStreaming, setIsStreaming] = useState(false)
+    const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [streamingWords, setStreamingWords] = useState<StreamingWord[]>([])
     const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
     const [viewportHeight, setViewportHeight] = useState(0)
@@ -48,7 +51,7 @@ export default function ChatInterface() {
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const hasInitializedRef = useRef(false)
 
-    // Chat history management - get conversationId from hook
+    // Chat history management
     const {
         chatHistories,
         currentChatId,
@@ -62,6 +65,8 @@ export default function ChatInterface() {
         setCurrentChatId,
         saveMessageWithId
     } = useRuleChatHistory()
+
+    const session = useSession()
 
     const trendingMarkets = [
         "New York City Mayoral Election",
@@ -121,8 +126,9 @@ export default function ChatInterface() {
     // Handle market query from URL
     const handleMarketQueryFromURL = async (query: string) => {
         try {
-            console.log('Handling market query from URL:', query);
+            console.log('Handling market query from URL:', query)
             setIsStreaming(true)
+            setIsAnalyzing(true)
             setShowSuggestions(false)
 
             const userMessage: Message = {
@@ -137,7 +143,7 @@ export default function ChatInterface() {
             setMessages([userMessage])
 
             const markets = await searchMarkets(query)
-            await analyzeMarket(query, markets)
+            await analyzeMarket(query, markets, userMessage)
         } catch (error) {
             console.error("Error processing URL market query:", error)
 
@@ -150,45 +156,47 @@ export default function ChatInterface() {
             }
             setMessages((prev) => [...prev, errorMessage])
             setIsStreaming(false)
+            setIsAnalyzing(false)
         }
     }
 
     // Initialize from URL query parameter
     useEffect(() => {
-        if (hasInitializedRef.current) return;
-        hasInitializedRef.current = true;
+        if (hasInitializedRef.current || session.status === 'loading') return
+
+        hasInitializedRef.current = true
 
         const tryDecode = (s: string | null) =>
-            s ? decodeURIComponent(String(s).replace(/\+/g, " ")) : null;
+            s ? decodeURIComponent(String(s).replace(/\+/g, " ")) : null
 
-        let marketQuery = new URLSearchParams(window.location.search).get("market");
+        let marketQuery = new URLSearchParams(window.location.search).get("market")
 
-        const rawHash = window.location.hash || "";
-        const hashFragment = rawHash ? rawHash.replace(/^#/, "") : "";
+        const rawHash = window.location.hash || ""
+        const hashFragment = rawHash ? rawHash.replace(/^#/, "") : ""
 
         if (marketQuery && hashFragment) {
-            marketQuery = marketQuery.trimEnd() + hashFragment;
+            marketQuery = marketQuery.trimEnd() + hashFragment
         }
 
         if (!marketQuery && hashFragment) {
-            marketQuery = hashFragment;
+            marketQuery = hashFragment
         }
 
         if (!marketQuery) {
-            const href = window.location.href;
-            const match = href.match(/[?&]market=([^&]*)/);
+            const href = window.location.href
+            const match = href.match(/[?&]market=([^&]*)/)
             if (match && match[1]) {
-                marketQuery = match[1];
+                marketQuery = match[1]
             }
         }
 
         if (marketQuery) {
-            const decodedQuery = tryDecode(marketQuery);
-            setShowSuggestions(false);
-            console.log("Decoded market query:", decodedQuery);
-            handleMarketQueryFromURL(decodedQuery ?? "");
+            const decodedQuery = tryDecode(marketQuery)
+            setShowSuggestions(false)
+            console.log("Decoded market query:", decodedQuery)
+            handleMarketQueryFromURL(decodedQuery ?? "")
         }
-    }, []);
+    }, [session.status])
 
     // Auto-search when user types
     useEffect(() => {
@@ -265,29 +273,59 @@ export default function ChatInterface() {
         setMessageSections(sections)
     }, [messages])
 
-    const analyzeMarket = async (question: string, markets: MarketSlug[]) => {
+    const analyzeMarket = async (question: string, markets: MarketSlug[], userMessage?: Message) => {
         try {
             setIsStreaming(true)
+            setIsAnalyzing(true)
+            console.log('session', session.data)
 
-            // Create user message
-            const userMessage: Message = {
-                id: Date.now().toString(),
-                type: "user",
-                content: question,
-                images: [],
-                completed: true,
+            if (session.status === 'loading') {
+                toast.loading('Loading session...')
+                setIsStreaming(false)
+                setIsAnalyzing(false)
+                return
             }
 
-            // Add user message to UI first
-            setMessages((prev) => [...prev, userMessage])
+            if (session.status === 'unauthenticated' || !session.data?.user) {
+                toast.info('Please sign in to access markets')
+                setIsStreaming(false)
+                setIsAnalyzing(false)
+                return
+            }
+
+            // Find the last user message from the messages array
+            const lastUserMessage = userMessage ?? messages.filter(m => m.type === 'user').pop();
+
+            console.log('messages', messages);
+            console.log('lastUserMessage', lastUserMessage);
+
+            if (!lastUserMessage) {
+                console.error('No user message found')
+                setIsStreaming(false)
+                setIsAnalyzing(false)
+                return
+            }
 
             // Save user message and get conversationId
-            const userSaveResult = await saveMessage(userMessage, markets)
+            const userSaveResult = await saveMessage(lastUserMessage, markets)
             const activeConversationId = userSaveResult?.conversationId
 
             console.log('User message saved to conversation:', activeConversationId)
 
-            // Call AI API for analysis - CHANGED ENDPOINT AND BODY
+            // Create loading message while analyzing
+            const loadingMessageId = `loading-${Date.now()}`
+            const loadingMessage: Message = {
+                id: loadingMessageId,
+                type: "system",
+                content: "",
+                images: [],
+                completed: false,
+                isLoading: true,
+            }
+
+            setMessages((prev) => [...prev, loadingMessage])
+
+            // Call AI API for analysis
             const response = await fetch("/api/analyze-market-rule", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -306,45 +344,67 @@ export default function ChatInterface() {
             const data = await response.json()
 
             // Build AI response content
-            let aiContent = data.analysis || `I found ${markets.length} market(s) related to your query.`
+            const aiContent = data.analysis || `I found ${markets.length} market(s) related to your query:\n\n${markets.map(m => `• ${m.question}`).join('\n')}\n\nWould you like me to analyze any of these markets in detail?`
 
-            // Add market information if available
-            if (markets.length > 0 && !data.analysis?.includes("polymarket.com")) {
-                aiContent += "\n\n## Related Markets Found:\n"
-                markets.forEach(market => {
-                    aiContent += `\n**${market.question}**\n`
-                    if (market.outcomePrices?.[0]) {
-                        aiContent += `Current probability: ${(market.outcomePrices[0] * 100).toFixed(1)}%\n`
-                    }
-                    if (market.slug) {
-                        aiContent += `[View on Polymarket](https://polymarket.com/event/${market.slug})\n`
-                    }
-                })
-            }
+            // Remove loading message
+            setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId))
 
-            // Create AI message
+            // Create AI message with proper ID
+            const aiMessageId = `ai-${Date.now()}`
             const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
+                id: aiMessageId,
                 type: "system",
                 content: aiContent,
                 images: [],
-                completed: true,
+                completed: false,
             }
 
-            // Add AI message to UI
             setMessages((prev) => [...prev, aiMessage])
-            setCompletedMessages((prev) => new Set(prev).add(aiMessage.id))
+            setStreamingMessageId(aiMessageId)
 
-            // Save AI message to the same conversation
-            await saveMessageWithId(aiMessage, activeConversationId, markets)
+            // Let the MessageItem component handle the typing animation
+            // Just mark it as completed after a delay based on content length
+            const words = aiContent.trim() ? aiContent.trim().split(/\s+/).length : 0
+            const chars = aiContent.length
+            const perWordMs = 45 // time per word in ms
+            const perCharMs = 0.5 // small char-based adjustment
+            const estimated = Math.round(words * perWordMs + Math.min(chars, 2000) * perCharMs)
+            const typingDuration = Math.max(300, Math.min(estimated, 8000)) // min 300ms, max 8s
 
-            console.log('AI message saved to conversation:', activeConversationId)
+            setTimeout(() => {
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === aiMessageId
+                            ? { ...msg, completed: true }
+                            : msg
+                    )
+                )
+                setCompletedMessages((prev) => new Set(prev).add(aiMessageId))
+                setStreamingMessageId(null)
+                setIsAnalyzing(false)
+
+                // Save AI message to the same conversation
+                const finalAiMessage: Message = {
+                    id: aiMessageId,
+                    type: "system",
+                    content: aiContent,
+                    images: [],
+                    completed: true,
+                }
+
+                saveMessageWithId(finalAiMessage, activeConversationId, markets)
+                    .then(result => console.log('AI message save result:', result))
+                    .catch(error => console.error('Failed to save AI message:', error))
+            }, typingDuration)
 
         } catch (error) {
             console.error("Analysis error:", error)
 
+            // Remove any loading messages
+            setMessages((prev) => prev.filter(msg => !msg.isLoading))
+
             const errorMessage: Message = {
-                id: (Date.now() + 2).toString(),
+                id: `error-${Date.now()}`,
                 type: "system",
                 content: "I apologize, but I encountered an error analyzing this market. Please try again.",
                 images: [],
@@ -354,9 +414,10 @@ export default function ChatInterface() {
             setMessages((prev) => [...prev, errorMessage])
         } finally {
             setIsStreaming(false)
-            setStreamingMessageId(null)
+            setTimeout(() => setIsAnalyzing(false), 500) // Small delay to ensure smooth transition
         }
     }
+
     const handleSubmit = async (images?: ImageFile[]) => {
         if ((inputValue.trim() || images?.length) && !isStreaming) {
             const userMessage = inputValue.trim()
@@ -428,11 +489,12 @@ export default function ChatInterface() {
         setStreamingWords([])
         setStreamingMessageId(null)
         setIsStreaming(false)
+        setIsAnalyzing(false)
         setSearchResults([])
         setShowSearchResults(false)
         setShowSuggestions(true)
 
-        // Start new chat - this resets conversationId in the hook
+        // Start new chat
         startNewChat()
 
         toast.success("New chat started")
@@ -458,6 +520,7 @@ export default function ChatInterface() {
             setStreamingWords([])
             setStreamingMessageId(null)
             setIsStreaming(false)
+            setIsAnalyzing(false)
         } catch (error) {
             console.error('Error loading chat:', error)
             toast.error("Failed to load chat")
@@ -502,7 +565,7 @@ export default function ChatInterface() {
         setInputValue("")
 
         const userMessage: Message = {
-            id: Date.now().toString(),
+            id: `user-${Date.now()}`,
             type: "user",
             content: `Analyze: ${market.question}`,
             images: [],
@@ -512,13 +575,14 @@ export default function ChatInterface() {
 
         setMessages((prev) => [...prev, userMessage])
 
-        await analyzeMarket(market.question, [market])
+        await analyzeMarket(market.question, [market], userMessage)
     }
 
     const stopStreaming = () => {
         setStreamingWords([])
         setStreamingMessageId(null)
         setIsStreaming(false)
+        setIsAnalyzing(false)
         toast.success("Analysis stopped")
     }
 
@@ -567,6 +631,7 @@ export default function ChatInterface() {
                     setShowSearchResults(false)
                     setInputValue("")
                 }}
+                isAnalyzing={isAnalyzing}
             />
 
             <ChatInput
@@ -574,7 +639,7 @@ export default function ChatInterface() {
                 onChange={setInputValue}
                 onSubmit={handleSubmit}
                 onStop={stopStreaming}
-                isStreaming={isStreaming}
+                isStreaming={isStreaming || isAnalyzing}
                 isMobile={isMobile}
                 activeButton={activeButton}
                 onButtonToggle={handleButtonToggle}

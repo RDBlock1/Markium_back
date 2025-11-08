@@ -682,7 +682,7 @@ export default function MarketDashboard({
                               className="w-12 h-12 rounded-full flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-semibold truncate">{getMarketDisplayText(token)}</div>
+                              <div className="font-semibold ">{getMarketDisplayText(token)}</div>
 
                               <div className="text-xs text-muted-foreground">
                                 {token.startDate ? toLocalString(token.startDate) : "—"}

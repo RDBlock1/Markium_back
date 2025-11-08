@@ -15,6 +15,8 @@ export interface Message {
   type: "user" | "system"
   completed?: boolean
   newSection?: boolean
+  isLoading?: boolean
+
 }
 
 export interface MessageSection {

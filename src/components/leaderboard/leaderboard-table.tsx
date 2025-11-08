@@ -1,14 +1,17 @@
 "use client"
 
 import { motion, Variants } from "framer-motion"
+import { Button } from "../ui/button"
+import Link from "next/link"
 
 interface LeaderboardEntry {
     id: number
     rank: number
+    proxyAddress: string
     username: string
     profitLoss: number
     volume: number | null
-    avatar: string
+    profileImage: string
 }
 
 interface LeaderboardTableProps {
@@ -59,23 +62,35 @@ export default function LeaderboardTable({ data, viewMode }: LeaderboardTablePro
                     whileHover="hover"
                     className="flex items-center gap-4 px-4 py-4 rounded-lg border border-neutral-800 transition-all cursor-pointer"
                 >
-                    {/* Rank */}
-                    <div className="text-xl font-bold text-cyan-500 w-8">{entry.rank}</div>
+                <Link href={`/user-profile/${entry.proxyAddress}`} className="flex items-center gap-3 flex-1 min-w-0">
 
-                    {/* Avatar and Username */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="relative w-10 h-10 flex-shrink-0">
-                            <img
-                                src={entry.avatar || "/placeholder.svg"}
-                                alt={entry.username}
-                                width={40}
-                                height={40}
-                                className="rounded-full object-cover"
-                            />
+                        {/* Rank */}
+                        <div className="text-xl font-bold text-cyan-500 w-8">{entry.rank}</div>
+
+                        {/* Avatar and Username */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="relative w-10 h-10 flex-shrink-0">
+                                <img
+                                    src={entry.profileImage || "/placeholder.svg"}
+                                    alt={entry.username}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover"
+                                />
+                            </div>
+                            <span className="text-white font-medium truncate">{entry.username}</span>
                         </div>
-                        <span className="text-white font-medium truncate">{entry.username}</span>
-                    </div>
+                </Link>
 
+
+<div>
+  <Link href={`https://polygonscan.com/address/${entry.id}`} target="_blank" rel="noopener noreferrer">
+                            <Button variant={"outline"}>
+                                View on polygonscan
+
+                            </Button>
+  </Link>
+</div>
                     {/* Profit/Loss or Volume */}
                     <div className="text-right flex-shrink-0">
                         {viewMode === "Profit/Loss" ? (

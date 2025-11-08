@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 
 export function useRuleChatHistory() {
-  const { data: session } = useSession()
+  const session = useSession()
   const [chatHistories, setChatHistories] = useState<ChatHistory[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -15,7 +15,7 @@ export function useRuleChatHistory() {
 
   // Fetch conversations on mount
   useEffect(() => {
-    if (session?.user) {
+    if (session?.data?.user) {
       fetchConversations()
     }
   }, [session])
@@ -58,7 +58,7 @@ export function useRuleChatHistory() {
   }
 
   const saveMessage = async (message: Message, markets?: any[]) => {
-    if (!session?.user) {
+    if (!session?.data?.user) {
       toast.error('Please sign in to save messages')
       return null
     }
@@ -101,7 +101,7 @@ export function useRuleChatHistory() {
 
   // Helper function to save message with explicit conversationId
   const saveMessageWithId = async (message: Message, forceConversationId: string | null, markets?: any[]) => {
-    if (!session?.user) {
+    if (!session?.data?.user) {
       toast.error('Please sign in to save messages')
       return null
     }
@@ -142,7 +142,7 @@ export function useRuleChatHistory() {
       }
 
       // Otherwise, create a new conversation with the first message
-      if (messages.length > 0 && session?.user) {
+      if (messages.length > 0 && session?.data?.user) {
         const result = await saveMessage(messages[0])
         return result?.conversationId || null
       }
@@ -304,7 +304,7 @@ export function useRuleChatHistory() {
   }, [])
 
   const refreshConversations = useCallback(() => {
-    if (session?.user) {
+    if (session?.data?.user) {
       fetchConversations()
     }
   }, [session])
