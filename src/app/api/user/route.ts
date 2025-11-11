@@ -83,11 +83,10 @@ async function generateClobCredentials(walletAddress: string) {
 // Helper function to get or create user
 async function getOrCreateUser(walletAddress: string): Promise<{ user: User; isNewUser: boolean }> {
   const normalizedAddress = walletAddress.toLowerCase();
-  const session = await auth()
+  const session = await auth();
 
-  if(!session?.user?.email
-  ) {
-    throw new Error('Unauthorized')
+  if (!session?.user?.email) {
+    throw new Error('Unauthorized');
   }
   
   try {
@@ -116,9 +115,8 @@ async function getOrCreateUser(walletAddress: string): Promise<{ user: User; isN
     
     // Create new user with wallet address
     const newUser = await prisma.user.update({
-      where: {  email: session.user.email },
+      where: { email: session.user.email },
       data: {
-        email: `${normalizedAddress}@wallet.local`, // Required field, using wallet address
         walletAddress: normalizedAddress,
         clobApiKey: credentials.apiKey,
         clobSecret: credentials.secret,
@@ -173,10 +171,7 @@ async function getUserByAddress(walletAddress: string): Promise<User | null> {
 }
 
 // POST - Create or get user
-export async function POST(
-  req: NextRequest,
-  res: NextResponse<CreateUserResponse | ErrorResponse>
-) {
+export async function POST(req: NextRequest) {
   try {
     const { walletAddress } = await req.json();
 
@@ -211,26 +206,33 @@ export async function POST(
   } catch (error) {
     console.error('API error:', error);
 
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Internal server error',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Internal server error',
+      },
+      { status: 500 }
+    );
   }
 }
 
-// GET - Get user by wallet address
-export async function GET(
-  req: NextRequest,
-  res: NextResponse<{ user: Omit<User, 'clobApiKey' | 'clobSecret' | 'clobPassphrase'> } | ErrorResponse>
-) {
+// GET - Get user by wallet address (from query params)
+export async function GET(req: NextRequest) {
   try {
-    const { walletAddress } = await req.json();
+    const { searchParams } = new URL(req.url);
+    const walletAddress = searchParams.get('walletAddress');
 
     if (!walletAddress || typeof walletAddress !== 'string') {
-      return NextResponse.json({ error: 'Wallet address is required and must be a string' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Wallet address is required and must be a string' },
+        { status: 400 }
+      );
     }
 
     if (!isValidEthereumAddress(walletAddress)) {
-      return NextResponse.json({ error: 'Invalid Ethereum address format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid Ethereum address format' },
+        { status: 400 }
+      );
     }
 
     const user = await getUserByAddress(walletAddress);
@@ -251,8 +253,11 @@ export async function GET(
   } catch (error) {
     console.error('API error:', error);
 
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Internal server error',
-    });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Internal server error',
+      },
+      { status: 500 }
+    );
   }
 }
