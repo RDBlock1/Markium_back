@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // components/blog-page/read-more-section.tsx
-import { getRelatedPosts } from "@/lib/blog";
+import { getRelatedBlogPosts } from "@/lib/blog";
 import { BlogCard } from "./blog-card";
 
 const formatDate = (date: Date): string => {
@@ -17,7 +17,7 @@ interface ReadMoreSectionProps {
 }
 
 export async function ReadMoreSection({ currentSlug, currentTags }: ReadMoreSectionProps) {
-    const relatedPosts = await getRelatedPosts(currentSlug, currentTags, 3);
+    const relatedPosts = await getRelatedBlogPosts(currentSlug, currentTags, 3);
 
     if (relatedPosts.length === 0) {
         return null;

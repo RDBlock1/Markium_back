@@ -92,15 +92,16 @@ export default async function HomePage({
                         className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 relative overflow-hidden border-x border-border ${filteredBlogs.length < 4 ? "border-b" : "border-b-0"
                             }`}
                     >
-                        {filteredBlogs.map((blog: { date: string | number | Date; id: Key | null | undefined; slug: any; title: string; description: string; }) => {
-                            const formattedDate = formatDate(new Date(blog.date));
+                        {filteredBlogs.map((blog) => {
+                            const dateValue = blog.date ?? null;
+                            const formattedDate = dateValue ? formatDate(new Date(dateValue)) : "";
 
                             return (
                                 <BlogCard
                                     key={blog.id}
                                     url={`/blog/${blog.slug}`}
                                     title={blog.title}
-                                    description={blog.description}
+                                    description={blog.description ?? ""}
                                     date={formattedDate}
                                     showRightBorder={filteredBlogs.length < 3}
                                 />

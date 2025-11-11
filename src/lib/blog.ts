@@ -6,7 +6,7 @@ export async function getBlogPosts(tag?: string) {
   const blogs = await prisma.blogPost.findMany({
     where: {
       published: true,
-      ...(tag && tag !== "All" ? { tags: { has: tag } } : {}),
+      ...(tag && tag !== "All" ? { tags: { contains: tag } } : {}),
     },
     orderBy: {
       date: "desc",
@@ -46,22 +46,23 @@ export async function getAllTags() {
   });
 
   const tagSet = new Set<string>();
-  blogs.forEach((blog: { tags: any[]; }) => {
-    blog.tags.forEach((tag: string) => tagSet.add(tag));
+  blogs.forEach((blog: { tags: string | string[] | null; }) => {
+    const tags = blog.tags ?? [];
+    const arr = Array.isArray(tags) ? tags : (typeof tags === "string" ? tags.split(",").map(s => s.trim()).filter(Boolean) : []);
+    arr.forEach((tag: string) => tagSet.add(tag));
   });
 
   return ["All", ...Array.from(tagSet).sort()];
 }
 
-export async function getRelatedPosts(currentSlug: string, tags?: string[], limit: number = 3) {
+export async function getRelatedBlogPosts(currentSlug: string, tags?: string[] | null, limit = 3) {
+  const tagList = tags ?? [];
   const blogs = await prisma.blogPost.findMany({
     where: {
       published: true,
       slug: { not: currentSlug },
-      ...(tags && tags.length > 0 ? {
-        tags: {
-          hasSome: tags,
-        },
+      ...(tagList && tagList.length > 0 ? {
+        OR: tagList.map((t) => ({ tags: { contains: t } })),
       } : {}),
     },
     orderBy: {
@@ -79,6 +80,6 @@ export async function getRelatedPosts(currentSlug: string, tags?: string[], limi
       readTime: true,
     },
   });
-
+   
   return blogs;
 }

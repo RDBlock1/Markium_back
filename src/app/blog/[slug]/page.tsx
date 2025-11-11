@@ -43,7 +43,7 @@ export default async function BlogPost({ params }: PageProps) {
         notFound();
     }
 
-    const formattedDate = formatDate(new Date(post.date));
+    const formattedDate = formatDate(new Date(post.createdAt));
 
     return (
         <div className="min-h-screen bg-background relative">
@@ -68,9 +68,9 @@ export default async function BlogPost({ params }: PageProps) {
                                 <span className="sr-only">Back to all articles</span>
                             </Link>
                         </Button>
-                        {post.tags && post.tags.length > 0 && (
+                        {(Array.isArray(post.tags) ? post.tags.length > 0 : typeof post.tags === "string" && post.tags.length > 0) && (
                             <div className="flex flex-wrap gap-3 text-muted-foreground">
-                                {post.tags.map((tag: string) => (
+                                {(Array.isArray(post.tags) ? post.tags : typeof post.tags === "string" ? [post.tags] : []).map((tag: string) => (
                                     <span
                                         key={tag}
                                         className="h-6 w-fit px-3 text-sm font-medium bg-muted text-muted-foreground rounded-md border flex items-center justify-center"
@@ -168,7 +168,7 @@ export default async function BlogPost({ params }: PageProps) {
                     <div className="mt-10">
                         <ReadMoreSection
                             currentSlug={slug}
-                            currentTags={post.tags}
+                            currentTags={Array.isArray(post.tags) ? post.tags : post.tags ? [post.tags] : undefined}
                         />
                     </div>
                 </main>
