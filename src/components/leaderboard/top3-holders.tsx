@@ -2,13 +2,14 @@
 "use client"
 
 import React, { useMemo } from 'react';
-import LeaderboardMain from './leaderboard-main';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
 
-export default function Leaderboard() {
+export default function Top3Holders({timePeriod = 'Monthly', limit = 20, category = 'overall'}) {
     // Fetch data for the podium (using monthly data by default)
-    const { data, loading, error } = useLeaderboardData('Monthly', 3);
+    const { data, loading, error } = useLeaderboardData(timePeriod, limit, category);
 
     // Get top 3 holders from profit data
     const topHolders = useMemo(() => {
@@ -17,13 +18,14 @@ export default function Leaderboard() {
             rank: entry.rank,
             username: entry.username,
             profitLoss: entry.profit || 0,
+            proxyAddress: entry.walletAddress,
             volume: entry.volume || null,
             avatar: entry.profileImage ||  `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(entry.username)}&backgroundColor=000000` // Fallback avatar'
         }));
     }, [data.profit]);
 
     return (
-        <div style={{ background: '#000', color: '#fff', minHeight: '100vh', width: '100vw', position: 'relative', overflowY: 'auto' }}>
+        <div className='w-full relative overflow-auto'>
             <h1 className='text-cyan-500 text-3xl sm:text-4xl md:text-5xl text-center mt-6 sm:mt-10 font-bold px-4'>Leaderboard</h1>
 
             {loading ? (
@@ -56,77 +58,84 @@ export default function Leaderboard() {
                     <div className="podium-users">
                         {/* 1st Place - Center */}
                         <div className="podium-user podium-first">
-                            <div className="avatar-wrapper avatar-first">
-                                <img
-                                    src={topHolders[0]?.avatar}
-                                    alt={topHolders[0]?.username}
-                                    className="avatar-img avatar-img-first"
-                                />
-                            </div>
-                            <div className="medal">🥇</div>
-                            <div className="user-info">
-                                <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[0]?.username}</p>
-                                <p className="text-green-400 font-bold text-sm sm:text-lg">
-                                    {topHolders[0]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD',
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0
-                                    }).format(topHolders[0]?.profitLoss || 0)}
-                                </p>
-                            </div>
+                            <Link href={`/user-profile/${topHolders[0]?.proxyAddress}`} className="flex flex-col items-center">
+                                        <div className="avatar-wrapper avatar-first">
+                                            <img
+                                                src={topHolders[0]?.avatar}
+                                                alt={topHolders[0]?.username}
+                                                className="avatar-img avatar-img-first"
+
+                                            />
+                                        </div>
+                                        <div className="medal">🥇</div>
+                                        <div className="user-info">
+                                            <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[0]?.username}</p>
+                                            <p className="text-green-400 font-bold text-sm sm:text-lg">
+                                                {topHolders[0]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: 'USD',
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: 0
+                                                }).format(topHolders[0]?.profitLoss || 0)}
+                                            </p>
+                                        </div>
+                            </Link>
                         </div>
 
                         {/* 2nd Place - Left */}
-                        <div className="podium-user podium-second">
-                            <div className="avatar-wrapper avatar-second">
-                                <img
-                                    src={topHolders[1]?.avatar}
-                                    alt={topHolders[1]?.username}
-                                    className="avatar-img avatar-img-second"
-                                />
-                            </div>
-                            <div className="medal medal-small">🥈</div>
-                            <div className="user-info">
-                                <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[1]?.username}</p>
-                                <p className="text-green-400 font-bold text-sm sm:text-lg">
-                                    {topHolders[1]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD',
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0
-                                    }).format(topHolders[1]?.profitLoss || 0)}
-                                </p>
-                            </div>
-                        </div>
+                        <Link href={`/user-profile/${topHolders[1]?.proxyAddress}`} className="flex flex-col items-center">
+                                    <div className="podium-user podium-second">
+                                        <div className="avatar-wrapper avatar-second">
+                                            <img
+                                                src={topHolders[1]?.avatar}
+                                                alt={topHolders[1]?.username}
+                                                className="avatar-img avatar-img-second"
+                                            />
+                                        </div>
+                                        <div className="medal medal-small">🥈</div>
+                                        <div className="user-info">
+                                            <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[1]?.username}</p>
+                                            <p className="text-green-400 font-bold text-sm sm:text-lg">
+                                                {topHolders[1]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: 'USD',
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: 0
+                                                }).format(topHolders[1]?.profitLoss || 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                        </Link>
+                  
 
                         {/* 3rd Place - Right */}
-                        <div className="podium-user podium-third mt-5">
-                            <div className="avatar-wrapper avatar-second">
-                                <img
-                                    src={topHolders[2]?.avatar}
-                                    alt={topHolders[2]?.username}
-                                    className="avatar-img avatar-img-second"
-                                />
-                            </div>
-                            <div className="medal medal-small">🥉</div>
-                            <div className="user-info mt-5">
-                                <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[2]?.username}</p>
-                                <p className="text-green-400 font-bold text-sm sm:text-lg">
-                                    {topHolders[2]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD',
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0
-                                    }).format(topHolders[2]?.profitLoss || 0)}
-                                </p>
-                            </div>
-                        </div>
+                        <Link href={`/user-profile/${topHolders[2]?.proxyAddress}`} className="flex flex-col items-center">
+                                    <div className="podium-user podium-third mt-5">
+                                        <div className="avatar-wrapper avatar-second">
+                                            <img
+                                                src={topHolders[2]?.avatar}
+                                                alt={topHolders[2]?.username}
+                                                className="avatar-img avatar-img-second"
+                                            />
+                                        </div>
+                                        <div className="medal medal-small">🥉</div>
+                                        <div className="user-info mt-5">
+                                            <p className="text-white font-semibold text-xs sm:text-sm">{topHolders[2]?.username}</p>
+                                            <p className="text-green-400 font-bold text-sm sm:text-lg">
+                                                {topHolders[2]?.profitLoss >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: 'USD',
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: 0
+                                                }).format(topHolders[2]?.profitLoss || 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    </Link>
                     </div>
                 </div>
             )}
 
-            <LeaderboardMain />
 
             <style jsx>{`
                 .podium-container {

@@ -2,12 +2,12 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { TrendingUp, Zap, Loader2,Upload, AlertCircle, BarChart3, Target, PieChart, Activity, DollarSign, AlertTriangle, Sparkles, Award } from "lucide-react"
+import { TrendingUp, Zap,Upload, AlertCircle, BarChart3, Target, Activity, AlertTriangle, Sparkles, Award, Copy } from "lucide-react"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { motion, Variants } from "framer-motion"
 import { Skeleton } from "../ui/skeleton"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import { Card, CardContent } from "../ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
@@ -30,14 +30,23 @@ import {
     Tooltip,
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart"
+import PolymarketPositionCard, { PositionCard } from "./polymarket-position-card"
 
 
 const PositionItem = ({
     position,
-    index
+    index,
+    isPositionCardOpen,
+    setIsPositionCardOpen,
+    selectedPosition,
+    handleCreatePositionCard
 }: {
     position: Position
     index: number
+    isPositionCardOpen: boolean
+    setIsPositionCardOpen: (open: boolean) => void
+    selectedPosition: PositionCard | null
+    handleCreatePositionCard: (position: Position) => void
 }) => {
 
     const cardVariants: Variants = {
@@ -100,6 +109,17 @@ const PositionItem = ({
                                                     </Badge>
                                                 </div>
                                             </div>
+                                            <div>
+
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleCreatePositionCard(position)}
+                                                    className="bg-gradient-to-r from-cyan-600/20 to-cyan-600/20 border-cyan-500/30 hover:from-cyan-600/30 hover:to-cyan-600/30 text-cyan-300 hover:text-cyan-200 transition-all duration-200"
+                                                >
+                                                    <Upload className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </Link>
 
@@ -144,19 +164,32 @@ const PositionItem = ({
                                 (
                                     <>
                                         <Link href={`/market/${position.eventSlug}`} target="_blank" rel="noopener noreferrer">
-                                            <div className="relative">
-                                                {position.icon ? (
-                                                    <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
-                                                ) : (
-                                                    <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                                                        {tokenSymbol}
-                                                    </div>
-                                                )}
-                                                <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 ${isOpen ? 'bg-emerald-400' : 'bg-gray-400'
-                                                    }`}></div>
+                                            <div className="relative flex items-start gap-3 mb-2">
+                                               <div>
+                                                    {position.icon ? (
+                                                        <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
+                                                    ) : (
+                                                        <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                                                            {tokenSymbol}
+                                                        </div>
+                                                    )}
+                                               </div>
+
+                                                <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2 truncate">{position.market}</p>
+
+                                                <div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleCreatePositionCard(position)}
+                                                        className="bg-gradient-to-r from-cyan-600/20 to-cyan-600/20 border-cyan-500/30 hover:from-cyan-600/30 hover:to-cyan-600/30 text-cyan-300 hover:text-cyan-200 transition-all duration-200"
+                                                    >
+                                                        <Upload className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+
                                             </div>
                                             <div>
-                                                <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{position.market}</p>
                                                 <div className="flex gap-2">
                                                     <Badge
                                                         variant="outline"
@@ -175,6 +208,7 @@ const PositionItem = ({
                                                     </Badge>
                                                 </div>
                                             </div>
+                                          
                                         </Link>
 
                                         <div className="grid grid-cols-2 gap-4">
@@ -286,6 +320,15 @@ const PositionItem = ({
                                                 ? `${position.percentPnl > 0 ? "+" : ""}${position.percentPnl.toFixed(1)}%`
                                                 : `${position.realizedPnl > 0 ? "+" : ""}${position.realizedPnl.toFixed(1)}%`}
                                         </p>
+
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleCreatePositionCard(position)}
+                                            className="bg-gradient-to-r from-cyan-600/20 to-cyan-600/20 border-cyan-500/30 hover:from-cyan-600/30 hover:to-cyan-600/30 text-cyan-300 hover:text-cyan-200 transition-all duration-200"
+                                        >
+                                            <Upload className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 </>
                             )
@@ -371,17 +414,43 @@ const PositionItem = ({
                                     </div>
 
 
-                                    <div className="col-span-3 text-right">
-                                        {calculateProfitPercentage({
-                                            avgPrice: position.avgPrice,
-                                            totalBought: position.totalBought,
-                                            realizedPnl: position.realizedPnl,
-                                            curPrice: position.currentPrice
-                                        })}%
+                                    <div className="col-span-3 text-right  flex  w-full items-center justify-end gap-x-4">
+                                       <div>
+                                            {calculateProfitPercentage({
+                                                avgPrice: position.avgPrice,
+                                                totalBought: position.totalBought,
+                                                realizedPnl: position.realizedPnl,
+                                                curPrice: position.currentPrice
+                                            })}%
+                                       </div>
+
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleCreatePositionCard(position!)}
+                                            className="bg-gradient-to-r from-cyan-600/20 to-cyan-600/20 border-cyan-500/30 hover:from-cyan-600/30 hover:to-cyan-600/30 text-cyan-300 hover:text-cyan-200 transition-all duration-200"
+                                        >
+                                            <Upload className="h-4 w-4" />
+                                        </Button>
+
                                     </div>
+
                                 </>
 
                         }
+
+                        {/* Position Card Dialog */}
+                        <Dialog open={isPositionCardOpen} onOpenChange={setIsPositionCardOpen}>
+                            <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 p-0" aria-describedby="trade-card-description">
+                                <DialogHeader className="p-6 pb-0">
+                                    <DialogTitle className="text-white">Position Card</DialogTitle>
+                                    <div id="trade-card-description" className="sr-only">
+                                        Generate and share a visual card for your Polymarket position
+                                    </div>
+                                </DialogHeader>
+                                {selectedPosition && <PolymarketPositionCard position={selectedPosition!} />}
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </CardContent>
             </Card>
@@ -485,6 +554,9 @@ interface Metrics {
 interface Position {
     status: 'open' | 'closed'
     id: string
+    proxyWallet?: string
+    asset?: string
+    conditionId?: string
     market: string
     slug: string
     eventSlug: string
@@ -501,6 +573,11 @@ interface Position {
     endDate: string
     totalBought: number
     closedAt?: string
+    curPrice?: number
+    title?: string
+    outcomeIndex?: number
+    oppositeOutcome?: string
+    oppositeAsset?: string
 }
 
 interface ActivityItem {
@@ -583,6 +660,8 @@ export default function UserProfile({ address }: { address: string }) {
     const [positionFilter, setPositionFilter] = useState<'all' | 'open' | 'closed'>('open')
     const [isTradeCardOpen, setIsTradeCardOpen] = useState(false)
     const [selectedTrade, setSelectedTrade] = useState<TradeData | null>(null)
+    const [isPositionCardOpen, setIsPositionCardOpen] = useState(false)
+    const [selectedPosition, setSelectedPosition] = useState<PositionCard | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     // Loading states - separated for each data type
@@ -784,6 +863,50 @@ export default function UserProfile({ address }: { address: string }) {
         setIsTradeCardOpen(true)
     }, [])
 
+    const handleCreatePositionCard = useCallback((position: Position) => {
+        console.log('Creating position card for position:', position);
+        if(!position) {
+
+            toast.error('Cannot create position card: Position is missing');
+            return;
+        }
+        const positionCard: PositionCard = {
+            id: position.id,
+            conditionId: position.conditionId || '',
+            market: position.market,
+            slug: position.slug,
+            eventSlug: position.eventSlug,
+            icon: position.icon,
+            outcome: position.outcome,
+            outcomeIndex: position.outcomeIndex || 0,
+            oppositeOutcome: position.oppositeOutcome || '',
+            shares: position.shares,
+            totalBought: position.totalBought,
+            totalSold: 0, // Assuming totalSold is not available in Position
+            avgPrice: position.avgPrice,
+            avgBuyPrice: position.avgPrice, // Assuming avgBuyPrice is same as avgPrice
+            avgSellPrice: 0, // Assuming avgSellPrice is not available in Position
+            currentPrice: position.currentPrice,
+            closePrice: 0, // Assuming closePrice is not available in Position
+            initialValue: position.avgPrice * position.shares,
+            currentValue: position.currentValue,
+            pnl: position.pnl,
+            realizedPnl: position.realizedPnl,
+            unrealizedPnl: position.pnl - position.realizedPnl,
+            percentPnl: position.percentPnl,
+            percentRealizedPnl: position.percentRealizedPnl,
+            redeemable: false, // Assuming redeemable is not available in Position
+            mergeable: false, // Assuming mergeable is not available in Position
+            negativeRisk: false, // Assuming negativeRisk is not available in Position
+            endDate: position.endDate,
+            closedAt: position.closedAt || '',
+            status: position.status
+
+        }
+        setSelectedPosition(positionCard)
+        setIsPositionCardOpen(true)
+    }, [])
+
     // Refresh data - only refreshes positions and activity
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)
@@ -873,6 +996,8 @@ export default function UserProfile({ address }: { address: string }) {
             year: 'numeric'
         })
     }, [userData])
+     
+
 
     // Loading state
     if (loading) {
@@ -917,9 +1042,22 @@ export default function UserProfile({ address }: { address: string }) {
                             <h2 className="text-2xl sm:text-3xl font-bold text-white truncate">
                                 {userData?.name || userData?.pseudonym || "Loading..."}
                             </h2>
-                            <p className="text-gray-500 text-xs sm:text-sm font-light truncate">
-                                {userData?.proxyWallet || address} • {joinDate && `Joined ${joinDate}`}
+                            <p className="text-gray-500 text-xs sm:hidden font-light ">
+{formatAddress(userData?.proxyWallet || address)}
+                                <Button variant="outline" size="sm" className="ml-2 px-2 py-1 h-auto" onClick={copyAddressHandler}>
+                                    <Copy className="w-3 h-3 mr-1" />
+                                </Button>
                             </p>
+
+                            <p className="hidden sm:block text-gray-500 text-xs sm:text-sm font-light ">
+                                {userData?.proxyWallet || address}
+                                <Button variant="outline" size="sm" className="ml-2 px-2 py-1 h-auto" onClick={copyAddressHandler}>
+                                    <Copy className="w-3 h-3 mr-1" />
+                                </Button>
+                            </p>
+                            <span>
+                                {joinDate && `Joined ${joinDate}`}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1064,22 +1202,22 @@ export default function UserProfile({ address }: { address: string }) {
 
                 <motion.div variants={itemVariants}>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="bg-zinc-900 border border-zinc-800 shadow-lg w-fit mb-6">
+                        <TabsList className="bg-zinc-900 border border-zinc-800 shadow-lg w-fit mb-6 gap-x-8 mx-2">
                             <TabsTrigger
                                 value="positions"
-                                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
+                                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-cyan-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
                             >
                                 Positions
                             </TabsTrigger>
                             <TabsTrigger
                                 value="activity"
-                                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
+                                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-cyan-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
                             >
                                 Activity ({activity.length})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="analytics"
-                                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
+                                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-cyan-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
                             >
                                 Analytics
                             </TabsTrigger>
@@ -1093,17 +1231,13 @@ export default function UserProfile({ address }: { address: string }) {
                                     variant={positionFilter === 'open' ? 'default' : 'ghost'}
                                     size="sm"
                                     onClick={() => handleFilterChange('open')}
-                                    disabled={loadingStates.openPositions}
+
                                     className={`flex items-center gap-2 ${positionFilter === 'open'
-                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                                         : 'text-gray-400 hover:text-white hover:bg-zinc-800'
                                         }`}
                                 >
-                                    {loadingStates.openPositions ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                                    )}
+                                
                                     Open
                                     <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
                                         {positionCounts.open}
@@ -1114,17 +1248,12 @@ export default function UserProfile({ address }: { address: string }) {
                                     variant={positionFilter === 'closed' ? 'default' : 'ghost'}
                                     size="sm"
                                     onClick={() => handleFilterChange('closed')}
-                                    disabled={loadingStates.closedPositions}
                                     className={`flex items-center gap-2 ${positionFilter === 'closed'
-                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                                         : 'text-gray-400 hover:text-white hover:bg-zinc-800'
                                         }`}
                                 >
-                                    {loadingStates.closedPositions ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                                    )}
+                                 
                                     Closed
                                     <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
                                         {positionCounts.closed}
@@ -1183,9 +1312,17 @@ export default function UserProfile({ address }: { address: string }) {
                                                 key={`${position.id}-${position.outcome}`}
                                                 position={position}
                                                 index={index}
+                                                isPositionCardOpen={isPositionCardOpen}
+                                                setIsPositionCardOpen={setIsPositionCardOpen}
+                                                selectedPosition={selectedPosition}
+                                                handleCreatePositionCard={handleCreatePositionCard}
+
                                             />
                                         ))}
                                     </motion.div>
+
+
+                               
                                 </>
                             )}
                         </TabsContent>

@@ -42,21 +42,27 @@ model User {
   id                    String               @id @default(cuid())
   name                  String?
   email                 String               @unique
-    emailVerified         DateTime?            @map("email_verified")  // Add this line
+  emailVerified         DateTime?            @map("email_verified")  // Add this line
   password              String? // for Credentials
   verifyToken           String? // for email verification
   verifyTokenExpiry     DateTime? // for email verification
+    walletAddress   String?   @unique
+  clobApiKey      String?
+  clobSecret      String?  
+  clobPassphrase  String?  
   image                 String?
   accounts              Account[]
   sessions              Session[]
   blogPost              BlogPost[]
   createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
   accessToken           String?              @map("access_token")
   telegramIntegrationId String?              @map("telegram_integration_id")
   telegramIntegration   TelegramIntegration?
   watchLists            WatchList[]
   conversations        Conversation[]
   rulesConversations   RulesConversation[]
+
 
   @@map("users")
 }
@@ -367,20 +373,29 @@ model BlogPost {
   id          String    @id @default(cuid())
   slug        String    @unique
   title       String
-  description String
-  content     String    @db.Text
-  date        DateTime  @default(now())
-  tags        String[]  @default([])
-  author      String?
+
+  // NEW FIELDS (nullable so this step is non-breaking)
+  description String?
+  date        DateTime?           // will backfill from createdAt
+  tagsArray   String[]  @default([]) @map("tags_array") // new array column
   thumbnail   String?
   featured    Boolean   @default(false)
   readTime    String?
   published   Boolean   @default(true)
+
+  // NEW AUTHOR FK (nullable)
+  authorUserId String?  @map("author_user_id")
+  authorUser   User?    @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  // OLD FIELDS (kept for now so we don't lose data)
+  content     String    @db.Text
+  tags        String    // old, single string
+  author      String?   // old, free-text author
+  // keep createdAt/updatedAt to help us backfill date
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  authorUser  User?     @relation(fields: [author], references: [id], onDelete: SetNull)
 
-  @@index([date])
-  @@index([published])
   @@index([slug])
+  @@index([published])
+  @@index([date])
 }

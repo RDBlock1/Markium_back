@@ -99,6 +99,8 @@ const DEFAULT_FEATURES: Feature[] = [
         href: "/mentions-analyzer",
         icon: <MessageSquare className="w-5 h-5" />,
         isAvailable: false,
+        isComingSoon: true,
+
     },
     {
         id: "keywords-search",

@@ -50,23 +50,15 @@ const periodMap: Record<Period, string> = {
 async function fetchLeaderboardData(
   type: LeaderboardType,
   period: Period,
+  category: string = 'overall',
   limit: number = 20
 ): Promise<PolymarketLeaderboardEntry[]> {
-  const cacheKey = `${type}-${period}`;
-  
-  // Check cache
-  const cached = leaderboardCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < LEADERBOARD_CACHE_DURATION) {
-    console.log(`Returning cached data for ${cacheKey}`);
-    return cached.data;
-  }
-
   try {
     const timePeriod = periodMap[period];
     const orderBy = type === 'volume' ? 'VOL' : 'PNL';
-    
-    const apiUrl = `https://data-api.polymarket.com/v1/leaderboard?timePeriod=${timePeriod}&orderBy=${orderBy}&limit=${limit}&offset=0&category=overall`;
-    
+
+    const apiUrl = `https://data-api.polymarket.com/v1/leaderboard?timePeriod=${timePeriod}&orderBy=${orderBy}&limit=${limit}&offset=0&category=${category}`;
+
     console.log(`Fetching ${type} leaderboard for ${period}:`, apiUrl);
     
     const response = await fetch(apiUrl, {
@@ -81,12 +73,7 @@ async function fetchLeaderboardData(
     }
 
     const data: PolymarketLeaderboardEntry[] = await response.json();
-    
-    // Cache the result
-    leaderboardCache.set(cacheKey, {
-      data: data,
-      timestamp: Date.now()
-    });
+
     
     return data;
   } catch (error) {
@@ -98,25 +85,20 @@ async function fetchLeaderboardData(
 // Fetch both leaderboards efficiently
 async function fetchBothLeaderboards(
   period: Period,
+  category: string = 'overall',
   limit: number = 20
 ): Promise<{
   volume: PolymarketLeaderboardEntry[];
   profit: PolymarketLeaderboardEntry[];
 }> {
-  const cacheKey = `both-${period}`;
-  
-  // Check cache
-  const cached = leaderboardCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < LEADERBOARD_CACHE_DURATION) {
-    console.log(`Returning cached data for ${cacheKey}`);
-    return cached.data;
-  }
+  console.log('Fetching both leaderboards for', period);
+
 
   try {
     // Fetch both in parallel
     const [volumeData, profitData] = await Promise.all([
-      fetchLeaderboardData('volume', period, limit),
-      fetchLeaderboardData('profit', period, limit)
+      fetchLeaderboardData('volume', period, category, limit),
+      fetchLeaderboardData('profit', period, category, limit)
     ]);
     
     const result = {
@@ -124,12 +106,7 @@ async function fetchBothLeaderboards(
       profit: profitData
     };
     
-    // Cache the result
-    leaderboardCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now()
-    });
-    
+
     return result;
   } catch (error) {
     console.error('Error fetching both leaderboards:', error);
@@ -169,6 +146,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as LeaderboardType | null;
     const period = searchParams.get('period') as Period | null;
     const limitParam = searchParams.get('limit');
+    const category = searchParams.get('category') || 'overall';
     
     const limit = limitParam ? parseInt(limitParam, 10) : 20;
     const validPeriod: Period = period && ['day', 'week', 'month', 'all'].includes(period) 
@@ -204,9 +182,9 @@ export async function GET(request: NextRequest) {
     };
     
     if (type === 'both') {
-      rawData = await fetchBothLeaderboards(validPeriod, limit);
+      rawData = await fetchBothLeaderboards(validPeriod, category, limit);
     } else {
-      const leaderboard = await fetchLeaderboardData(type, validPeriod, limit);
+      const leaderboard = await fetchLeaderboardData(type, validPeriod, category, limit);
       rawData = { [type]: leaderboard };
     }
 

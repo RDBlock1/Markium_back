@@ -25,7 +25,7 @@ const periodMap: Record<string, Period> = {
   'All': 'all'
 };
 
-export function useLeaderboardData(timePeriod: string, limit: number = 20) {
+export function useLeaderboardData(timePeriod: string, limit: number = 20,category:string='overall') {
   const [data, setData] = useState<LeaderboardData>({ volume: [], profit: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +37,8 @@ export function useLeaderboardData(timePeriod: string, limit: number = 20) {
       
       try {
         const period = periodMap[timePeriod] || 'week';
-        const response = await fetch(`/api/leaderboard?type=both&period=${period}&limit=${limit}`);
-        
+        const response = await fetch(`/api/leaderboard?type=both&period=${period}&limit=${limit}&category=${category}`);
+
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.statusText}`);
         }
@@ -54,7 +54,7 @@ export function useLeaderboardData(timePeriod: string, limit: number = 20) {
     };
 
     fetchData();
-  }, [timePeriod, limit]);
+  }, [timePeriod, limit,category]);
 
   return { data, loading, error };
 }

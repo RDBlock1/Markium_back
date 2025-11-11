@@ -8,6 +8,9 @@ import { useState } from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from "sonner";
+import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import '@rainbow-me/rainbowkit/styles.css';
+import { Footer } from "@/components/home-page/footer";
 
 
 
@@ -19,6 +22,8 @@ export default function Provider({ children, initialState }: { children: React.R
         <SessionProvider>
           <WagmiProvider config={config} initialState={initialState}>
             <QueryClientProvider client={queryClient}>
+                      <RainbowKitProvider theme={darkTheme()} initialChain={config.chains[0]} >
+              
 
   <ThemeProvider
           attribute="class"
@@ -29,12 +34,14 @@ export default function Provider({ children, initialState }: { children: React.R
             <Navbar />
           {children}
 
+          <Footer />
           <Toaster
           position="top-center"
           theme="dark"
           />
 
         </ThemeProvider>
+        </RainbowKitProvider>
         </QueryClientProvider>
         </WagmiProvider>
         </SessionProvider>

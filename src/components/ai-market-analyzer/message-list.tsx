@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 
 interface StreamingWord {
     id: number
@@ -151,9 +152,11 @@ function MarketSearchResults({
                                         {market.question}
                                     </p>
                                     {market.image && (
-                                        <img
+                                        <Image
                                             src={market.image}
                                             alt=""
+                                            height={40}
+                                            width={40}
                                             className="w-10 h-10 rounded-lg object-cover flex-shrink-0 ring-1 ring-gray-700"
                                             loading="lazy"
                                         />
@@ -173,25 +176,17 @@ function MarketSearchResults({
                                             </Badge>
                                         )}
                                     </div>
-                                    {market.outcomePrices && market.outcomePrices[0] !== undefined && (
-                                        <span className={cn(
-                                            "font-semibold",
-                                            market.outcomePrices[0] > 0.5 ? "text-green-400" : "text-red-400"
-                                        )}>
-                                            {(market.outcomePrices[0] * 100).toFixed(0)}%
-                                        </span>
-                                    )}
                                 </div>
 
                                 {market.slug && (
                                     <a
-                                        href={`https://polymarket.com/event/${market.slug}`}
+                                        href={`${process.env.NEXT_PUBLIC_BASE_URL}/market/${market.slug}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
                                         className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-cyan-400 transition-colors"
                                     >
-                                        View on Polymarket <ExternalLink className="w-3 h-3" />
+                                        View market <ExternalLink className="w-3 h-3" />
                                     </a>
                                 )}
                             </div>

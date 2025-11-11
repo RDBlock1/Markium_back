@@ -1,4 +1,4 @@
-import Leaderboard from "@/components/leaderboard/user-leaderboard";
+import LeaderboardMain from "@/components/leaderboard/leaderboard-main";
 
 
 
@@ -7,7 +7,7 @@ export default function LeaderboardPage() {
 
     return (
         <div>
-            <Leaderboard />
+            <LeaderboardMain />
         </div>
     )
 }

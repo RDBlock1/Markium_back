@@ -54,7 +54,7 @@ export default function LeaderboardTable({ data, viewMode }: LeaderboardTablePro
     }
 
     return (
-        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-2">
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-2 w-full max-w-5xl mx-auto">
             {data.map((entry) => (
                 <motion.div
                     key={entry.id}
