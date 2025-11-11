@@ -1,3 +1,5 @@
+//new prisma model file
+
 generator client {
   provider = "prisma-client-js"
 }
