@@ -15,7 +15,7 @@ const oldDb = new PrismaClient({
 const newDb = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://postgresy:markium-123@localhost:5440/postgres'
+      url: 'postgresql://postgres:markium-123@localhost:5440/postgres'
     }
   }
 });
