@@ -6,6 +6,7 @@ import { TagFilter } from "@/components/blog-page/tag-filter";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { getBlogPosts, getAllTags } from "@/lib/blog";
 import Image from "next/image";
+import { Metadata } from "next";
 
 const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", {
@@ -13,6 +14,63 @@ const formatDate = (date: Date): string => {
         month: "long",
         day: "numeric",
     });
+};
+
+export const metadata: Metadata = {
+    title: 'Blog | Markium -  Prediction Markets, Pre-IPO and Tokenized Assets Platform ',
+    description:
+        'Stay updated with the latest trends in prediction markets, pre-IPO investments, and tokenized assets with insights from Markium experts.',
+    alternates: {
+        canonical: 'https://markiumpro.com/blog',
+    },
+    keywords:[
+        'blog',
+        'markium blogs',
+        'markium',
+        'markium pro',
+        'prediction markets',
+        'pre-IPO investments',
+        'tokenized assets',
+        'Markium insights',
+        'financial news',
+        'investment strategies',
+        'market analysis',
+        'crypto trends',
+        'blockchain updates'
+    ],
+    openGraph: {
+        title: 'Blog | Markium - Prediction Markets Insights & Updates',
+        description:
+            'Stay updated with the latest trends in prediction markets, pre-IPO investments, and tokenized assets with insights from Markium experts.',
+        type: 'website',
+        url: 'https://markiumpro.com/blog',
+        images: [
+            {
+                url: 'https://markiumpro.com/images/og-blog.jpg',
+                width: 1200,
+                height: 630,
+                alt: 'Markium Blog',
+            },
+        ],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Blog | Markium - Prediction Markets Insights & Updates',
+        description:
+            'Stay updated with the latest trends in prediction markets, pre-IPO investments, and tokenized assets with insights from Markium experts.',
+    },
+    robots: {
+        index: true,
+        follow: true,
+        nocache: false,
+        googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+        },
+    },
 };
 
 export default async function HomePage({

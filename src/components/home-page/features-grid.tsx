@@ -86,7 +86,7 @@ const DEFAULT_FEATURES: Feature[] = [
         ctaLabel: "Explore Users",
         icon: <Users className="w-5 h-5" />,
         isAvailable: true,
-        href: "/user-explorer",
+        href: "/user-profile",
     },
     {
         id: "mentions-analyzer",
@@ -113,6 +113,8 @@ const DEFAULT_FEATURES: Feature[] = [
         icon: <Search className="w-5 h-5" />,
         isAvailable: false,
         href: "/keywords-search",
+        isComingSoon: true,
+
     },
     {
         id:"copy-trading",

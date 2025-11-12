@@ -72,7 +72,10 @@ export default function LeaderboardMain() {
     return (
         <div className="min-h-screen bg-black w-full">
             <div className="flex flex-col w-full  gap-6 p-4 md:p-8 max-w-7xl mx-auto">
-                <Top3Holders timePeriod={timePeriod} limit={20} category={category} />
+
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 mt-4 text-center">
+                    Leaderboard
+                </h1>
 
                 {/* Main Content */}
              <div className="flex flex-col lg:flex-row gap-8">

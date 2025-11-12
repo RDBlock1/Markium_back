@@ -1460,7 +1460,7 @@ export default function UserProfile({ address }: { address: string }) {
                                                     {[
                                                         {
                                                             label: "Total Profit",
-                                                            value: `$${analytics.performanceData.reduce((sum: any, d: { profit: any }) => sum + d.profit, 0).toLocaleString()}`,
+                                                            value: `${formatCurrency(metrics?.profit || 0)}`,
                                                             icon: TrendingUp,
                                                             color: "from-cyan-500/10 to-cyan-500/5",
                                                         },

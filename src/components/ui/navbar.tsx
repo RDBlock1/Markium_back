@@ -81,7 +81,7 @@ const DEFAULT_FEATURES: Feature[] = [
             "Explore top traders on Polymarket, filter by accuracy, volume, and sectors, and follow them for quick insights.",
         video: "/videos/user-explorer-demo.mp4",
         ctaLabel: "Explore Users",
-        href: "/user-explorer",
+        href: "/user-profile",
         icon: <Users className="w-5 h-5" />,
     },
     {
@@ -273,13 +273,13 @@ export default function Navbar() {
                         )}
                     </div>
 
-                    <Link href={"/market"}>
+                    <Link href={"/#markets"}>
                         <button
                             className={`relative px-4 py-2 transition-colors cursor-pointer ${activeSection === "testimonials"
                                 ? "text-foreground"
                                 : "text-muted-foreground hover:text-foreground"
                                 }`}
-                            onClick={(e) => handleDesktopNavClick(e, "market")}
+
                         >
                             <span className="relative z-20">Market</span>
                         </button>
@@ -409,7 +409,7 @@ export default function Navbar() {
                             </div>
 
                             <button
-                                onClick={() => handleMobileNavClick("market")}
+                                onClick={() => handleMobileNavClick("/#markets")}
                                 className={`text-left px-4 py-3 text-lg font-medium transition-colors rounded-lg hover:bg-background/50 ${activeSection === "contact"
                                     ? "text-foreground"
                                     : "text-muted-foreground hover:text-foreground"

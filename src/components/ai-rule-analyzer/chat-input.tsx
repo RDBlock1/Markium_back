@@ -343,7 +343,7 @@ export function ChatInput({
                                 className={cn(
                                     "min-h-[20px] w-full border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none overflow-y-auto leading-relaxed p-0",
                                     isMobile ? "text-base max-h-[120px]" : "text-sm max-h-[160px]",
-                                    !isAuthenticated ? "text-gray-500 bg-gray-50 cursor-not-allowed" : "text-gray-900"
+                                    !isAuthenticated ? "text-gray-500 bg-gray-50 cursor-not-allowed" : "text-gray-200"
                                 )}
                                 value={value}
                                 onChange={handleInputChange}

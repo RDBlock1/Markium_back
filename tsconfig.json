@@ -32,6 +32,6 @@
         "src/types/**/*.d.ts"
 ,
   ".source.config.ts"
-],
+, "../markium/src/app/user-profile/page.tsx"],
   "exclude": ["node_modules"]
 }
