@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3007",
+    "start": "next start -p 3006",
     "lint": "eslint",
     "migrate:data": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/migrate-data.ts",
     "migrate:safe": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/safe-migrate-between-dbs.ts"
