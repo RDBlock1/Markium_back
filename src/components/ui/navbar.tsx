@@ -25,6 +25,7 @@ interface Feature {
     video: string
     ctaLabel: string
     href: string
+    isAvalible?:boolean
     icon: React.ReactNode
 }
 
@@ -70,7 +71,7 @@ const DEFAULT_FEATURES: Feature[] = [
             "Aggregate and explore trader-level metrics like conviction, trade frequency, and profit signals.",
         video: "/videos/user-analytics-demo.mp4",
         ctaLabel: "View Analytics",
-        href: "/user-analytics",
+        href: "/leaderboard",
         icon: <BarChart3 className="w-5 h-5" />,
     },
     {
@@ -93,6 +94,8 @@ const DEFAULT_FEATURES: Feature[] = [
         video: "/videos/mentions-demo.mp4",
         ctaLabel: "Open Mentions",
         href: "/mentions-analyzer",
+        isAvalible: false,
+
         icon: <MessageSquare className="w-5 h-5" />,
     },
     {
@@ -104,6 +107,7 @@ const DEFAULT_FEATURES: Feature[] = [
         video: "/videos/keywords-demo.mp4",
         ctaLabel: "Search Markets",
         href: "/keywords-search",
+        isAvalible:false,
         icon: <Search className="w-5 h-5" />,
     },
     {
@@ -115,6 +119,7 @@ const DEFAULT_FEATURES: Feature[] = [
         video: "/videos/copy-trading-demo.mp4",
         ctaLabel: "Start Copy Trading",
         href: "/copy-trading",
+        isAvalible:false,
         icon: <Users className="w-5 h-5" />,
     },
 ]
@@ -264,6 +269,9 @@ export default function Navbar() {
                                                     <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                                                         {feature.subtitle}
                                                     </p>
+                                                    <span className="text-cyan-400">
+                                                        {feature.isAvalible===false? 'Comming Soon':''}
+                                                    </span>
                                                 </div>
                                             </Link>
                                         </button>

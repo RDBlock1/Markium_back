@@ -56,7 +56,7 @@ export default function Hero() {
                             <Badge variant="outline" className="inline-flex items-center gap-2 px-4 py-2 text-sm">
                         
                                 <Image
-                                    src="https://play-lh.googleusercontent.com/VgY__XR8YoIwxNW8-tD8ct3T5zk1hSHDnJSUxrG5et2srt-XT1VeEs__AxckXgtSwNk=w240-h480-rw"
+                                    src="/markium-logo.jpg"
                                     alt="Markium Logo"
                                     width={20}
                                     height={20}

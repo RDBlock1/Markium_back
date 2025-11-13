@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/purity */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
@@ -7,27 +8,19 @@ import { TrendingUp } from "lucide-react";
 import Image from "next/image";
 import MultiHistoryChart from "../multi-market-chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { OrderBook, PolymarketEvent } from "@/types";
+import { PolymarketEvent } from "@/types";
 import OrderBookTable from "./order-book-table";
-import { fetchSingleOrderBook } from "@/utils/orderbook";
 import SingleMarketHistoryChart from "../single-market-chart";
 import { TradingPanel } from "../trading-panel";
 import { MarketSlug } from "@/types/market";
 import { formatVolume, toLocalString } from "@/utils";
 import { AIBotButton } from "./ai-bot-button";
 import useMarketSelectionStore from "@/store/marketSelectionStore";
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { TopHolders } from "./top-holders";
 import { NewsFeed } from "./news/news-feed";
 import TabContentSkeleton from "@/components/ui/tabs-content-skeleton";
+import { useSession } from "next-auth/react";
+import { watchlistAPI } from "@/lib/watchlist-api";
 
 
 interface MarketOption {
@@ -49,9 +42,14 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
     const [openMarketId, setOpenMarketId] = useState<string | null>(null);
     const [isMoreMarketOpen, setIsMoreMarketOpen] = useState(false)
     const [selectedMarketData, setSelectedMarketData] = useState<any>(null);
-    const { selectedMarket,setSelectedMarket } = useMarketSelectionStore();
-    const [isChartDataReady, setIsChartDataReady] = useState(false);
+    const { selectedMarket, setSelectedMarket } = useMarketSelectionStore();
 
+    const [isChartDataReady, setIsChartDataReady] = useState(false);
+    const { data: session, status: sessionStatus } = useSession();
+
+    // Watchlist state
+    const [watchedMarketIds, setWatchedMarketIds] = useState<Set<string>>(new Set());
+    const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
 
     // Process market data in useMemo
     const { top3Markets, top4Markets, otherMarkets, top4ClobTokenIds } = useMemo(() => {
@@ -141,8 +139,81 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
         };
     }, [marketData]);
 
+    // Fetch watchlists on mount
+    useEffect(() => {
+        const fetchWatchlists = async () => {
+            console.log('session',session);
+            console.log('session status',sessionStatus);
+            if (!session?.user?.email) {
+                setIsLoadingWatchlist(false);
+                console.log('return with nothin..');
+                return;
+            }
 
+            try {
+                setIsLoadingWatchlist(true);
+                const watchlists = await watchlistAPI.getWatchlists(session.user.email);
+                console.log('watchlist',watchlists);
 
+                // Extract marketIds from watchlists and store in Set for O(1) lookup
+                                const marketIds = new Set<string>(
+                                    (watchlists.watchLists || [])
+                                        .map((item: any) => String(item.marketId).trim())
+                                        .filter(Boolean) as string[]
+                                );
+                
+                                setWatchedMarketIds(marketIds);
+                                console.log('Watched market IDs:', marketIds);
+            } catch (err) {
+                console.error('Failed to fetch watchlists', err);
+            } finally {
+                setIsLoadingWatchlist(false);
+            }
+        };
+
+        fetchWatchlists();
+    }, [session?.user?.email]);
+
+    // Helper function to check if a market is watched
+    const isMarketWatched = (marketId: string): boolean => {
+        return watchedMarketIds.has(marketId);
+    };
+
+    // Handler to toggle watchlist
+    const handleToggleWatchlist = async (market: any) => {
+        if (!session?.user?.email) {
+            // Handle unauthenticated user - maybe show a login prompt
+            console.log('User must be logged in to use watchlist');
+            return;
+        }
+
+        const marketId = market.id || market.assetId;
+        const isWatched = isMarketWatched(marketId);
+
+        try {
+            if (isWatched) {
+                // Remove from watchlist
+                await watchlistAPI.deleteWatchlist(marketId, session.user.email);
+                setWatchedMarketIds(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(marketId);
+                    return newSet;
+                });
+            } else {
+                // Add to watchlist
+                await watchlistAPI.createWatchlist({
+                    email: session.user.email,
+                    marketId: marketId,
+                    triggerType: 'price_change', // Default trigger type
+                    isEmailNotification: true,
+                });
+                setWatchedMarketIds(prev => new Set(prev).add(marketId));
+            }
+        } catch (err) {
+            console.error('Failed to toggle watchlist', err);
+            // Optionally show error toast/notification
+        }
+    };
 
     // Helper function to get clobTokenIds from market
     const getClobTokenIds = (market: any): [string, string] | null => {
@@ -161,7 +232,6 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
     };
     const startTimestamp = Math.floor(Date.now() / 1000) - 120 * 24 * 60 * 60;
 
-    // In your SpecificMarketMain component, add this useEffect:
     function formatClobTokenId(market: MarketSlug): string {
         const clobTokenIds = getClobTokenIds(market);
         return clobTokenIds ? clobTokenIds.join(", ") : "Unknown";
@@ -171,21 +241,18 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
         // Always set the first top market when component mounts or top3Markets changes
         if (top3Markets.length > 0) {
             setSelectedMarket(top3Markets[0] as unknown as MarketSlug);
-            setIsChartDataReady(true); // ✅ Add this line
-
+            setIsChartDataReady(true);
         }
 
         // Cleanup: clear selection when component unmounts
         return () => {
             setSelectedMarket(null);
-            setIsChartDataReady(false); 
-
+            setIsChartDataReady(false);
         };
-    }, [top3Markets, setSelectedMarket]);    // Render market row component
+    }, [top3Markets, setSelectedMarket]);
+
+    // Render market row component
     const MarketRow = ({ market, index }: { market: any; index: number }) => {
-
-        console.log('Market ID:', market.id, 'Asset ID:', market.assetId);
-
         const prices = (() => {
             try {
                 return JSON.parse(market.outcomePrices || "[]") as string[];
@@ -202,14 +269,20 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
         const uniqueId = market.assetId || `${market.id}-${index}`;
         const isOpen = openMarketId === uniqueId;
 
+        const marketId = market.id ;
+        const isWatched = isMarketWatched(marketId);
 
         return (
             <div key={index}>
                 {/* Desktop view */}
                 <div
                     className="hidden md:block"
-                    onClick={() => {
-                        setOpenMarketId(isOpen ? null : uniqueId); // ✅ Use uniqueId
+                    onClick={(e) => {
+                        // Prevent toggle when clicking watch button
+                        if ((e.target as HTMLElement).closest('button[data-watch-button]')) {
+                            return;
+                        }
+                        setOpenMarketId(isOpen ? null : uniqueId);
                         setSelectedMarketData(market);
                         setSelectedMarket(market as unknown as MarketSlug);
                     }}
@@ -228,14 +301,14 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                                 <h2 className="text-sm sm:text-lg font-semibold text-muted-foreground">
                                     {market.groupItemTitle}
                                 </h2>
-                               <div className="flex flex-col sm:flex-col text-sm sm:space-x-2">
+                                <div className="flex flex-col sm:flex-col text-sm sm:space-x-2">
                                     <span className="text-xs text-accent-foreground">
                                         Volume: {market?.volume ? formatVolume(Number(market.volume)) : "No detail available"}
                                     </span>
                                     <span className="text-xs text-accent-foreground">
                                         Created: {marketData?.startDate ? toLocalString(marketData.startDate) : "—"}
                                     </span>
-                               </div>
+                                </div>
                             </div>
                         </div>
 
@@ -255,6 +328,18 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                             <Button variant="outline" className="ml-2">
                                 No {(noPrice * 100).toFixed(0)}%
                             </Button>
+                            <Button
+                                variant={isWatched ? "default" : "ghost"}
+                                className="ml-2"
+                                data-watch-button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleWatchlist(market);
+                                }}
+                                disabled={isLoadingWatchlist}
+                            >
+                                {isWatched ? "Watched" : "Watch"}
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -262,11 +347,13 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                 {/* Mobile view */}
                 <div
                     className="md:hidden"
-                    onClick={() => {
-                        setOpenMarketId(isOpen ? null : uniqueId); // ✅ Use uniqueId
+                    onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button[data-watch-button]')) {
+                            return;
+                        }
+                        setOpenMarketId(isOpen ? null : uniqueId);
                         setSelectedMarketData(market);
                         setSelectedMarket(market as unknown as MarketSlug);
-
                     }}
                 >
                     <div className="flex flex-col w-full mt-6 px-2 border rounded-xl py-3">
@@ -280,19 +367,17 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                                     loading="lazy"
                                     className="inline-block mr-1 rounded-xl"
                                 />
-                               <div>
+                                <div>
                                     <h2 className="text-sm sm:text-lg font-semibold text-muted-foreground">
                                         {market.groupItemTitle}
                                     </h2>
 
                                     <div>
-
                                         <span className="text-xs ml-1 text-accent-foreground">
                                             Volume: {market?.volume ? formatVolume(Number(market.volume)) : "No detail available"}
                                         </span>
                                     </div>
-                               </div>
-
+                                </div>
                             </div>
 
                             <div className="flex items-center my-auto">
@@ -311,6 +396,18 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                             </Button>
                             <Button variant="outline" className="flex-1 min-w-0">
                                 No {(noPrice * 100).toFixed(0)}%
+                            </Button>
+                            <Button
+                                variant={isWatched ? "default" : "ghost"}
+                                className="flex-1 min-w-0"
+                                data-watch-button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleWatchlist(market);
+                                }}
+                                disabled={isLoadingWatchlist}
+                            >
+                                {isWatched ? "Watched" : "Watch"}
                             </Button>
                         </div>
                     </div>
@@ -333,22 +430,15 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                                 >
                                     Graph
                                 </TabsTrigger>
-                                {/* <TabsTrigger
-                                    value="market-info"
-                                    className="bg-transparent text-white px-0 rounded-none data-[state=active]:text-cyan-500 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 font-semibold text-sm md:text-base transition-colors"
-                                >
-                                    Market Info
-                                </TabsTrigger> */}
                             </TabsList>
 
                             {/* Order Book Tab Content */}
                             <TabsContent value="trade-order-book" className="mt-6 md:mt-8">
                                 <div className="space-y-4 md:space-y-6">
-
-                                        <OrderBookTable
-                                            tokenId={tokenIds[0]}
-                                            lastPrice={yesPrice.toFixed(2)}
-                                        />
+                                    <OrderBookTable
+                                        tokenId={tokenIds[0]}
+                                        lastPrice={yesPrice.toFixed(2)}
+                                    />
                                 </div>
                             </TabsContent>
 
@@ -361,14 +451,6 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                                     />
                                 </div>
                             </TabsContent>
-
-                            {/* Market Info Tab Content */}
-                            {/* <TabsContent value="market-info" className="mt-6 md:mt-8">
-                                <div className="space-y-4 md:space-y-6 text-white">
-
-
-                                </div>
-                            </TabsContent> */}
                         </Tabs>
                     </div>
                 )}
@@ -475,7 +557,7 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mt-10 mb-4 px-2">
+                        <div className="flex items-center justify-between mt-10 mb-4 px-2">
                             <h3 className="font-bold text-2xl sm:text-3xl mt-10 mb-4 text-white">
                                 Rules and Information
                             </h3>
@@ -483,37 +565,29 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                             <div className="my-auto">
                                 <AIBotButton isAnimated={false} market={selectedMarket?.question || marketData.ticker} />
                             </div>
-                      </div>
-
-
+                        </div>
 
                         <div>
-
                             <div className="mt-4 border p-2 bg-neutral-900 rounded-lg">
                                 <p className="text-muted-foreground text-sm sm:text-base">
                                     {selectedMarket?.description || "No additional information available for this market."}
                                 </p>
                             </div>
                         </div>
-
-                        
                     </div>
 
                     <div className="p-2 mt-10">
                         {
-                            selectedMarket &&  selectedMarket ? (
+                            selectedMarket && selectedMarket ? (
                                 <NewsFeed
-                                    key={`news-${selectedMarket.id}`} // Force re-render with key
+                                    key={`news-${selectedMarket.id}`}
                                     slug={selectedMarket.question || marketData.title || ""}
                                 />
                             ) : (
                                 <TabContentSkeleton />
                             )}
-                        
                     </div>
                 </div>
-
-
 
                 <div className="md:col-auto shadow-2xl mx-auto w-full md:w-auto flex flex-col gap-6">
                     {/* Buy/sell trade card */}
@@ -522,12 +596,13 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                         selectedMarket && (
                             <TopHolders
                                 yesHolderId={formatClobTokenId(selectedMarket)[0]}
-                                noHolderId={formatClobTokenId(selectedMarket)[1]} marketId={selectedMarket.conditionId}                            />
+                                noHolderId={formatClobTokenId(selectedMarket)[1]}
+                                marketId={selectedMarket.conditionId}
+                            />
                         )
                     }
                 </div>
             </div>
-
         </div>
     );
 }
