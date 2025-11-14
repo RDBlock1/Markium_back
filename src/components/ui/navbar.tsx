@@ -270,7 +270,7 @@ export default function Navbar() {
                                                         {feature.subtitle}
                                                     </p>
                                                     <span className="text-cyan-400">
-                                                        {feature.isAvalible===false? 'Comming Soon':''}
+                                                        {feature.isAvalible===false? 'Coming Soon':''}
                                                     </span>
                                                 </div>
                                             </Link>
