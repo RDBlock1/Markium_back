@@ -61,6 +61,7 @@ export const auth = betterAuth({
     "https://markiumpro.com",
     process.env.NEXT_PUBLIC_BASE_URL!,
   ],
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL!,
   secret: process.env.AUTH_SECRET!,
     advanced: {
  useSecureCookies: process.env.NODE_ENV === "production",
