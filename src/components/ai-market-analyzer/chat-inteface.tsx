@@ -11,7 +11,7 @@ import { useChatHistory } from "@/hooks/use-chat-history"
 import { toast } from "sonner"
 import type { Message, MessageSection, StreamingWord, ActiveButton } from "@/types/chat"
 import type { ImageFile } from "@/components/ai-market-analyzer/image-upload"
-import { useSession } from "next-auth/react"
+import { useSession } from "@/lib/auth-client"
 
 // Market types
 export interface MarketSlug {
@@ -66,11 +66,11 @@ export default function ChatInterface() {
     } = useChatHistory()
 
     const trendingMarkets = [
-        "New York City Mayoral Election",
-        "Will Hamas release all Israeli hostages by November 31?",
-        "Fed decision in November?",
-        "100% tariff on China in effect by November 5?",
+        "Fed decision in December?",
+        "Super Bowl Champion 2026",
         "When will the Government shutdown end?",
+        "Gemini 3.0 released by...?",
+        "Democratic Presidential Nominee 2028",
     ]
 
     // Enhanced mobile detection and viewport management

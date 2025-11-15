@@ -12,39 +12,65 @@ datasource db {
 
 model Account {
   id                String  @id @default(cuid())
+  accountId         String? @map("account_id")  // optional
   userId            String  @map("user_id")
-  type              String
-  provider          String
-  providerAccountId String  @map("provider_account_id")
+  type              String?                       // <- made optional
+  providerId          String?
+  providerAccountId String? @map("provider_account_id")
   refresh_token     String? @db.Text
+  refreshToken String?
   access_token      String? @db.Text
+  accessToken String?
   expires_at        Int?
   token_type        String?
   scope             String?
   id_token          String? @db.Text
+  idToken String?
   session_state     String?
+accessTokenExpiresAt DateTime? @map("access_token_expires_at")
+createdAt        DateTime?  @map("created_at")
+updatedAt        DateTime?  @map("updated_at")
+sessionToken   String?  @map("session_token")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, providerAccountId])
+  @@unique([providerId, accountId])
   @@map("accounts")
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique @map("session_token")
-  userId       String   @map("user_id")
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+
+model Session {
+  id           String    @id @default(cuid())
+  // Prisma field name matches Better-Auth payload (sessionToken)
+  // Map it to your DB column "session_token"
+  sessionToken String ?    @map("session_token") @default(uuid())
+
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Better-Auth sends `expiresAt` (Date). Map to your DB column "expires" (if that's what exists).
+  // Keep it optional initially to avoid destructive migration.
+  expiresAt    DateTime? @map("expires")
+
+  // Extra metadata Better-Auth may send
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+
+  // Timestamps (keep them in DB; non-destructive defaults)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
+   token String?   @map("token")
   @@map("sessions")
 }
+
 
 model User {
   id                    String               @id @default(cuid())
   name                  String?
   email                 String               @unique
-  emailVerified         DateTime?            @map("email_verified")  // Add this line
+  emailVerified         Boolean?          @default(false) @map("email_verified")
   password              String? // for Credentials
   verifyToken           String? // for email verification
   verifyTokenExpiry     DateTime? // for email verification
@@ -69,6 +95,20 @@ model User {
   @@map("users")
 }
 
+// Add these models to your existing schema.prisma
+
+// Update your Verification model
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")  // ADD THIS LINE
+
+  @@unique([identifier, value])
+  @@map("verifications")
+}
 model Conversation {
   id        String   @id @default(cuid())
   userId    String

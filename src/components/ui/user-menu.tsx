@@ -34,7 +34,7 @@ export function UserMenu({
 }: UserMenuProps) {
     const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
-
+   console.log('imageUrl:', imageUrl);
     const initials = React.useMemo(() => {
         const parts = name.trim().split(/\s+/).slice(0, 2)
         return parts.map((p) => p[0]?.toUpperCase()).join("") || "US"

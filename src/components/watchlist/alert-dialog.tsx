@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
 import { watchlistAPI } from "@/lib/watchlist-api"
 import { toast } from "sonner"
-import { useSession } from "next-auth/react"
+import { useSession } from "@/lib/auth-client"
 
 export type AlertType = "price_above" | "price_below" | "price_crosses" | "yes_above" | "yes_below" | "no_above" | "no_below"
 

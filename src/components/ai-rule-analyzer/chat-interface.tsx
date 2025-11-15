@@ -12,8 +12,8 @@ import { toast } from "sonner"
 import type { Message, MessageSection, StreamingWord, ActiveButton } from "@/types/chat"
 import type { ImageFile } from "@/components/ai-market-analyzer/image-upload"
 import { useRuleChatHistory } from "@/hooks/use-rule-chat-history"
-import { useSession } from "next-auth/react"
 import { MessageList } from "../ai-market-analyzer/message-list"
+import { useSession } from "@/lib/auth-client"
 
 // Market types
 export interface MarketSlug {
@@ -69,11 +69,11 @@ export default function ChatInterface() {
     const session = useSession()
 
     const trendingMarkets = [
-        "New York City Mayoral Election",
-        "Will Hamas release all Israeli hostages by November 31?",
-        "Fed decision in November?",
-        "100% tariff on China in effect by November 5?",
+        "Fed decision in December?",
+        "Super Bowl Champion 2026",
         "When will the Government shutdown end?",
+        "Gemini 3.0 released by...?",
+        "Democratic Presidential Nominee 2028",
     ]
 
     // Enhanced mobile detection and viewport management
@@ -162,7 +162,7 @@ export default function ChatInterface() {
 
     // Initialize from URL query parameter
     useEffect(() => {
-        if (hasInitializedRef.current || session.status === 'loading') return
+        if (hasInitializedRef.current || session.isPending === true) return
 
         hasInitializedRef.current = true
 
@@ -196,7 +196,7 @@ export default function ChatInterface() {
             console.log("Decoded market query:", decodedQuery)
             handleMarketQueryFromURL(decodedQuery ?? "")
         }
-    }, [session.status])
+    }, [session.isPending,session.data?.user])
 
     // Auto-search when user types
     useEffect(() => {
@@ -279,14 +279,14 @@ export default function ChatInterface() {
             setIsAnalyzing(true)
             console.log('session', session.data)
 
-            if (session.status === 'loading') {
+            if (session.isPending === true) {
                 toast.loading('Loading session...')
                 setIsStreaming(false)
                 setIsAnalyzing(false)
                 return
             }
 
-            if (session.status === 'unauthenticated' || !session.data?.user) {
+            if (session.error || !session.data?.user) {
                 toast.info('Please sign in to access markets')
                 setIsStreaming(false)
                 setIsAnalyzing(false)

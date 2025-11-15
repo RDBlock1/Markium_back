@@ -3,11 +3,11 @@
 
 import { useState, useCallback, useEffect } from "react"
 import type { ChatHistory, Message } from "@/types/chat"
-import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import { useSession } from "@/lib/auth-client"
 
 export function useChatHistory() {
-  const session = useSession()
+  const session = useSession  ()
   const [chatHistories, setChatHistories] = useState<ChatHistory[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)

@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { ImageUpload, type ImageFile } from "./image-upload"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
-import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { signIn, useSession } from "@/lib/auth-client"
 
 type ActiveButton = "none" | "add" | "deepSearch" | "think"
 
@@ -29,11 +29,11 @@ interface ChatInputProps {
 }
 
 const defaultTrendingMarkets = [
-    "New York City Mayoral Election",
-    "Will Hamas release all Israeli hostages by October 31?",
-    "Fed decision in October?",
-    "100% tariff on China in effect by November 1?",
+    "Fed decision in December?",
+    "Super Bowl Champion 2026",
     "When will the Government shutdown end?",
+    "Gemini 3.0 released by...?",
+    "Democratic Presidential Nominee 2028",
 ]
 
 export function ChatInput({
@@ -49,7 +49,7 @@ export function ChatInput({
     trendingMarkets = defaultTrendingMarkets,
     onSuggestionClick,
 }: ChatInputProps) {
-    const { data: session, status } = useSession()
+    const { data: session, isPending: isSessionPending } = useSession()
     const router = useRouter()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const inputContainerRef = useRef<HTMLDivElement>(null)
@@ -58,8 +58,8 @@ export function ChatInput({
     const [showImageUpload, setShowImageUpload] = useState(false)
     const hasTyped = value.trim() !== "" || images.length > 0
 
-    const isAuthenticated = status === "authenticated"
-    const isLoading = status === "loading"
+    const isLoading = isSessionPending
+    const isAuthenticated = !!session?.user
 
     // Auto-resize textarea
     useEffect(() => {
@@ -79,7 +79,9 @@ export function ChatInput({
     }, [isMobile, isStreaming, isAuthenticated])
 
     const handleAuthRequired = () => {
-        signIn('google')
+        signIn.social({
+            provider: 'google',
+        })
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -239,7 +241,7 @@ export function ChatInput({
     }
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 backdrop-blur-sm border-t border-gray-800">
+        <div className="fixed bottom-10 left-0 right-0  backdrop-blur-sm border-t border-gray-800">
             <div className={cn("safe-area-bottom", isMobile ? "p-3 pb-4" : "p-4")}>
                 {/* Auth Required Banner */}
                 {!isAuthenticated && !isLoading && (

@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { prisma } from '@/db/prisma';
 import { ClobClient } from '@polymarket/clob-client';
 import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 
 // Type definitions
@@ -83,17 +84,25 @@ async function generateClobCredentials(walletAddress: string) {
 // Helper function to get or create user
 async function getOrCreateUser(walletAddress: string): Promise<{ user: User; isNewUser: boolean }> {
   const normalizedAddress = walletAddress.toLowerCase();
-  const session = await auth();
+const session = await auth.api.getSession({
+    headers: await headers()
+  });
 
-  if (!session?.user?.email) {
+
+
+  if (!session?.user.email) {
     throw new Error('Unauthorized');
   }
   
+      console.log('Found user:');
+
   try {
     // Check if user exists by wallet address
     const user = await prisma.user.findUnique({
-      where: { walletAddress: normalizedAddress, email: session.user.email },
+      where: { email: session.user.email },
     });
+
+    console.log('Found user:', user);
     
     if (user) {
       return {
@@ -138,7 +147,8 @@ async function getOrCreateUser(walletAddress: string): Promise<{ user: User; isN
     };
   } catch (error) {
     console.error('Database error:', error);
-    throw new Error('Failed to get or create user');
+    // Ensure the function does not fall through without returning by rethrowing the error
+    throw error;
   }
 }
 

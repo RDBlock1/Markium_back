@@ -3,8 +3,8 @@
 
 import { useState, useCallback, useEffect } from "react"
 import type { ChatHistory, Message } from "@/types/chat"
-import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import { useSession } from "@/lib/auth-client"
 
 export function useRuleChatHistory() {
   const session = useSession()

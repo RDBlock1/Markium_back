@@ -20,7 +20,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import type { ChatHistory } from "@/types/chat"
 import { NavUser } from "../ai-market-analyzer/nav-user"
-import { useSession } from "next-auth/react"
+import { useSession } from "@/lib/auth-client"
 
 interface ChatSidebarProps {
     isOpen: boolean

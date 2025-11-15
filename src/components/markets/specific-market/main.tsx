@@ -19,8 +19,8 @@ import useMarketSelectionStore from "@/store/marketSelectionStore";
 import { TopHolders } from "./top-holders";
 import { NewsFeed } from "./news/news-feed";
 import TabContentSkeleton from "@/components/ui/tabs-content-skeleton";
-import { useSession } from "next-auth/react";
 import { watchlistAPI } from "@/lib/watchlist-api";
+import { useSession } from "@/lib/auth-client";
 
 
 interface MarketOption {
@@ -45,7 +45,7 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
     const { selectedMarket, setSelectedMarket } = useMarketSelectionStore();
 
     const [isChartDataReady, setIsChartDataReady] = useState(false);
-    const { data: session, status: sessionStatus } = useSession();
+    const { data: session } = useSession();
 
     // Watchlist state
     const [watchedMarketIds, setWatchedMarketIds] = useState<Set<string>>(new Set());
@@ -143,7 +143,6 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
     useEffect(() => {
         const fetchWatchlists = async () => {
             console.log('session',session);
-            console.log('session status',sessionStatus);
             if (!session?.user?.email) {
                 setIsLoadingWatchlist(false);
                 console.log('return with nothin..');

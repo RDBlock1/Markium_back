@@ -42,10 +42,10 @@ import PolymarketMiniChart from "@/components/markets/mini-chart"
 import { formatVolume, toLocalString } from "@/utils/index"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
 import { PolymarketEvent } from "@/types/index"
 import { cn } from "@/lib/utils"
 import { geist } from "@/lib/fonts"
+import { useSession } from "@/lib/auth-client"
 
 
 // Sort options with icons

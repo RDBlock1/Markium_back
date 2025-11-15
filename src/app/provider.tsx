@@ -19,7 +19,6 @@ export default function Provider({ children, initialState }: { children: React.R
   const [queryClient] = useState(() => new QueryClient())
     return (
         <>
-        <SessionProvider>
           <WagmiProvider config={config} initialState={initialState}>
             <QueryClientProvider client={queryClient}>
                       <RainbowKitProvider theme={darkTheme()} initialChain={config.chains[0]} >
@@ -44,7 +43,6 @@ export default function Provider({ children, initialState }: { children: React.R
         </RainbowKitProvider>
         </QueryClientProvider>
         </WagmiProvider>
-        </SessionProvider>
         </>
     )
 }
