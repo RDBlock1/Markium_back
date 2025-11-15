@@ -41,6 +41,7 @@ export function TopHolders({ yesHolderId, noHolderId, marketId }: TopHoldersProp
                 const response = await fetch(`/api/market/top-holders?marketId=${marketId}`)
                 if (!response.ok) throw new Error('Failed to fetch holders')
                 const result = await response.json()
+            console.log('Fetched holders data:', result);
                 setData(result.data || [])
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred')
@@ -58,8 +59,8 @@ export function TopHolders({ yesHolderId, noHolderId, marketId }: TopHoldersProp
             (tokenData.holdersYes ?? []).concat(tokenData.holdersNo ?? [])
         )
         return {
-            yesHolders: allHolders.filter((holder) => holder.outcomeIndex === 1),
-            noHolders: allHolders.filter((holder) => holder.outcomeIndex === 0),
+            yesHolders: allHolders.filter((holder) => holder.outcomeIndex === 0),
+            noHolders: allHolders.filter((holder) => holder.outcomeIndex === 1),
         }
     }, [data])
 

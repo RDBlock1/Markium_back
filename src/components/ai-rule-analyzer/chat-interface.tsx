@@ -12,7 +12,7 @@ import { toast } from "sonner"
 import type { Message, MessageSection, StreamingWord, ActiveButton } from "@/types/chat"
 import type { ImageFile } from "@/components/ai-market-analyzer/image-upload"
 import { useRuleChatHistory } from "@/hooks/use-rule-chat-history"
-import { MessageList } from "../ai-market-analyzer/message-list"
+import { MessageList } from "../ai-rule-analyzer/message-list"
 import { useSession } from "@/lib/auth-client"
 
 // Market types
@@ -631,7 +631,6 @@ export default function ChatInterface() {
                     setShowSearchResults(false)
                     setInputValue("")
                 }}
-                isAnalyzing={isAnalyzing}
             />
 
             <ChatInput

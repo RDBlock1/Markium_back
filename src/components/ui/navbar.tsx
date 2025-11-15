@@ -43,7 +43,7 @@ const DEFAULT_FEATURES: Feature[] = [
     },
     {
         id: "rule-analyzer",
-        title: "AI Rule Analyzer",
+        title: "AI Rules Analyzer",
         subtitle: "Turn natural language into automated filters",
         description:
             "Write rules in plain English and let AI convert them into monitorable rules that watch markets in real-time.",

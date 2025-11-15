@@ -129,9 +129,9 @@ export function MessageList({
                         <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                             <Bot className="w-8 h-8 text-white" />
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-200 mb-2">Welcome to Markium AI Market Rules Analyzer</h2>
+                        <h2 className="text-xl font-semibold text-gray-200 mb-2">Welcome to Markium AI  Rules Analyzer</h2>
                         <p className="text-gray-300 max-w-md">
-                            Welcome to Polymarket AI Market Rules Analyzer! I can help you to understand rules in prediction markets with AI-powered insights. Enter a market question or select from trending markets below.
+                            Welcome to Polymarket AI Rules Analyzer! I can help you to understand rules in prediction markets with AI-powered insights. Enter a market question or select from trending markets below.
                         </p>
                     </div>
                 )}

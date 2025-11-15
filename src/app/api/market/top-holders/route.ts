@@ -39,12 +39,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Map API output into TokenHolders format
+    // Limit to 15 holders for Yes
+    // Remove first holder and limit to 15 for No
     const mappedData: TokenHolders = {
       tokenYes: rawData[0].token,
-      holdersYes: rawData[0].holders,
+      holdersYes: rawData[0].holders.slice(0, 15),
       tokenNo: rawData[1].token,
-      holdersNo: rawData[1].holders,
+      holdersNo: rawData[1].holders.slice(1, 16), // Skip first holder, take next 15
     };
+
+    console.log('Mapped top holders data:', mappedData);
 
     return NextResponse.json({ data: [mappedData] });
   } catch (error) {
