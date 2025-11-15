@@ -63,7 +63,11 @@ export const auth = betterAuth({
   ],
   secret: process.env.AUTH_SECRET!,
     advanced: {
-      cookiePrefix: "better-auth",
+ useSecureCookies: process.env.NODE_ENV === "production",
+    cookiePrefix: "auth",
+    crossSubDomainCookies: {
+      enabled: true,
+    },
 
       // This prevents state mismatches
       database: {
@@ -73,19 +77,6 @@ export const auth = betterAuth({
   },
 
 
-  // Store verification in cookies, not database
-  databaseHooks: {
-    verification: {
-      create: {
-        before: async (verification, context) => {
-          // Skip database storage for OAuth state
-          if (verification.identifier.includes('oauth_state')) {
-            return false; // Don't store in DB
-          }
-          return { data: verification };
-        }
-      }
-    }
-  }
+
 });
 
