@@ -59,16 +59,17 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     "https://markiumpro.com",
-    "https://www.markiumpro.com",
     process.env.NEXT_PUBLIC_BASE_URL!,
   ],
   secret: process.env.AUTH_SECRET!,
     advanced: {
-    useSecureCookies: process.env.NODE_ENV === "production",
-    cookiePrefix: "better-auth",
-    
-    // This prevents state mismatches
-    generateId: () => crypto.randomUUID(),
+      cookiePrefix: "better-auth",
+
+      // This prevents state mismatches
+      database: {
+        generateId: () => crypto.randomUUID(),
+    },
+
   },
 
 
