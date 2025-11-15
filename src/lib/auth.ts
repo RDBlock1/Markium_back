@@ -57,7 +57,11 @@ export const auth = betterAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     },
   },
-  trustedOrigins: [process.env.NEXT_PUBLIC_BASE_URL!],
+  trustedOrigins: [
+    "https://markiumpro.com",
+    "https://www.markiumpro.com",
+    process.env.NEXT_PUBLIC_BASE_URL!,
+  ],
   secret: process.env.AUTH_SECRET!,
 });
 
