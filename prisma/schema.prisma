@@ -46,6 +46,7 @@ model Session {
   // Prisma field name matches Better-Auth payload (sessionToken)
   // Map it to your DB column "session_token"
   sessionToken String ?    @map("session_token") @default(uuid())
+  token        String?    @unique @default(uuid()) @map("token")  // Better-Auth primary lookup field
 
   userId       String    @map("user_id")
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -61,7 +62,6 @@ model Session {
   // Timestamps (keep them in DB; non-destructive defaults)
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
-   token String?   @map("token")
   @@map("sessions")
 }
 
