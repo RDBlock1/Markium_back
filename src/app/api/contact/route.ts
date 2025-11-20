@@ -108,7 +108,7 @@ const EmailTemplate = ({
           
           <div class="field">
             <div class="label">Message</div>
-            <div class="message-field">${message}</div>
+            <div style="color: #22d3ee; text-decoration: none;">${message}</div>
           </div>
         </div>
         <div class="footer">

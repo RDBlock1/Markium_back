@@ -108,10 +108,11 @@ export default function ContactPageComponent() {
                                         Prefer email? You can reach us directly at:
                                     </p>
                                     <a
-                                        href="mailto:rugdetectives@gmail.com"
+                                        href="mailto:info@markiumpro.com"
                                         className="text-cyan-400 hover:text-cyan-300 transition-colors text-sm md:text-base font-medium"
                                     >
-                                        rugdetectives@gmail.com
+                                
+                                    info@markiumpro.com
                                     </a>
                                 </div>
                             </div>
