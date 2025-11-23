@@ -79,11 +79,14 @@ export function ChatInput({
         }
     }, [isMobile, isStreaming, isAuthenticated])
 
-    const handleAuthRequired = () => {
-         signIn.social({
-                    provider: 'google',
-                })  
-    }
+     const handleAuthRequired = () => {
+         const callback = `${window.location.origin}/ai-rules-analyzer`;
+ 
+          signIn.social({
+             provider: 'google',
+             callbackURL: callback,         // server will redirect user to this URL after OAuth
+         });
+     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         if (!isAuthenticated) {

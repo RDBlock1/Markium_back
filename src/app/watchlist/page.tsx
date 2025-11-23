@@ -137,7 +137,7 @@ export default function WatchListPage() {
             ) : (
                 <div className="w-full flex flex-col items-center justify-center gap-y-10">
                     <p className="text-xl">Please log in to view your watchlist.</p>
-                    <LoginButton />
+                    <LoginButton callbackUrlArgs={'/watchlist'} />
                 </div>
             )}
         </div>

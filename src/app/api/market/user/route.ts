@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const address = searchParams.get('address')
-    console.log('address',address);
     
+    console.log('address', address);
+
     if (!address) {
       return NextResponse.json(
         { error: 'Address parameter is required' },
@@ -33,18 +34,58 @@ export async function GET(request: NextRequest) {
         cache: 'no-store'
       }
     )
-    
+
     if (!profileResponse.ok) {
       throw new Error(`Profile fetch failed: ${profileResponse.status}`)
     }
-    
-    const profileData = await profileResponse.json()
 
-    return NextResponse.json(profileData, { headers: corsHeaders })
+    const profileData = await profileResponse.json()
+    console.log('Profile data:', profileData);
+
+    // Fetch user stats if we have proxyWallet and pseudonym
+    let statsData = null
+    if (profileData.proxyWallet && profileData.pseudonym) {
+      try {
+        const statsResponse = await fetch(
+          `https://polymarket.com/api/profile/stats?proxyAddress=${encodeURIComponent(profileData.proxyWallet)}&username=${encodeURIComponent(profileData.pseudonym)}`,
+          {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+          }
+        )
+
+        if (statsResponse.ok) {
+          statsData = await statsResponse.json()
+          console.log('Stats data:', statsData);
+        } else {
+          console.warn('Stats fetch failed:', statsResponse.status)
+        }
+      } catch (statsError) {
+        console.error('Error fetching stats:', statsError)
+        // Continue without stats if fetch fails
+      }
+    }
+
+    // Merge profile data with stats
+    const mergedData = {
+      ...profileData,
+      ...(statsData && {
+        trades: statsData.trades,
+        largestWin: statsData.largestWin,
+        views: statsData.views,
+        joinDate: statsData.joinDate
+      })
+    }
+
+    return NextResponse.json(mergedData, { headers: corsHeaders })
+    
   } catch (error) {
     console.error('Error fetching user data:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch user data' },
+      { 
+        error: 'Failed to fetch user data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500, headers: corsHeaders }
     )
   }

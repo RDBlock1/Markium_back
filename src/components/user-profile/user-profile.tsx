@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { TrendingUp, Zap,Upload, AlertCircle, BarChart3, Target, Activity, AlertTriangle, Sparkles, Award, Copy } from "lucide-react"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
@@ -31,6 +32,7 @@ import {
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart"
 import PolymarketPositionCard, { PositionCard } from "./polymarket-position-card"
+import UserAlertSystem from "./user-alert-system"
 
 
 const PositionItem = ({
@@ -330,6 +332,8 @@ const PositionItem = ({
                                             <Upload className="h-4 w-4" />
                                         </Button>
                                     </div>
+
+                                    
                                 </>
                             )
                                 :
@@ -351,6 +355,12 @@ const PositionItem = ({
                                             <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{position.market}</p>
                                             <div className="flex gap-2">
                                                 <Badge
+                                                    variant="secondary"
+                                                    className="bg-emerald-950/80 text-emerald-300 text-xs border border-emerald-400/30"
+                                                >
+                                                    {position.label}
+                                                </Badge>
+                                                <Badge
                                                     variant="outline"
                                                     className={`text-xs ${isOpen
                                                         ? 'border-emerald-400/50 text-emerald-400 bg-emerald-950/50'
@@ -359,12 +369,7 @@ const PositionItem = ({
                                                 >
                                                     {isOpen ? 'Open' : 'Closed'}
                                                 </Badge>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="bg-emerald-950/80 text-emerald-300 text-xs border border-emerald-400/30"
-                                                >
-                                                    {position.outcome}
-                                                </Badge>
+                                            
                                             </div>
                                         </div>
                                     </Link>
@@ -542,6 +547,8 @@ interface UserData {
     proxyWallet: string
     profileImage: string
     createdAt: string
+    largestWin:number;
+    trades:number
 }
 
 interface Metrics {
@@ -578,6 +585,7 @@ interface Position {
     outcomeIndex?: number
     oppositeOutcome?: string
     oppositeAsset?: string
+    label: 'WON' | 'LOST' | 'BREAK-EVEN'
 }
 
 interface ActivityItem {
@@ -616,9 +624,14 @@ interface ProfitStatsResponse {
         'all': WindowStat
     }
     latestPoint: { t: number; p: number } | null
-    sampleCount: number
-    fidelityUsed: '1h' | '1d'
-    series: Array<{ t: number; p: number }>
+    totalDataPoints: number
+    dataSourcesUsed: string[]
+    series: {
+        '1d': Array<{ t: number; p: number }>
+        '1w': Array<{ t: number; p: number }>
+        '1m': Array<{ t: number; p: number }>
+        'all': Array<{ t: number; p: number }>
+    }
 }
 // ============= UTILITY FUNCTIONS =============
 const formatAddress = (address: string) => {
@@ -641,6 +654,8 @@ const formatCurrency = (num: number) => {
         maximumFractionDigits: 2,
     }).format(num)
 }
+type Timeframe = '1D' | '1W' | '1M' | 'ALL';
+
 
 export default function UserProfile({ address }: { address: string }) {
     // State Management
@@ -653,7 +668,7 @@ export default function UserProfile({ address }: { address: string }) {
     const [chartData, setChartData] = useState<any[]>([])
 
     const [loading, setLoading] = useState(true)
-    const [chartTimeframe, setChartTimeframe] = useState("ALL")
+    const [chartTimeframe, setChartTimeframe] = useState<Timeframe>('ALL');
     const [profitStats, setProfitStats] = useState<ProfitStatsResponse | null>(null)
 
     const [activeTab, setActiveTab] = useState("positions")
@@ -690,7 +705,19 @@ export default function UserProfile({ address }: { address: string }) {
         }
     }
 
-    
+    // Add these states after your existing state declarations
+    const [loadingMore, setLoadingMore] = useState(false)
+    const [hasMoreOpen, setHasMoreOpen] = useState(true)
+    const [hasMoreClosed, setHasMoreClosed] = useState(true)
+    const [hasMoreActivity, setHasMoreActivity] = useState(true)
+    const [currentLimitOpen, setCurrentLimitOpen] = useState(50)
+    const [currentLimitClosed, setCurrentLimitClosed] = useState(50)
+    const [currentLimitActivity, setCurrentLimitActivity] = useState(50)
+    const loadMoreOpenRef = useRef<HTMLDivElement>(null)
+    const loadMoreClosedRef = useRef<HTMLDivElement>(null)
+    const loadMoreActivityRef = useRef<HTMLDivElement>(null)
+
+
     // ============= DATA FETCHING FUNCTIONS =============
     const fetchUserData = useCallback(async () => {
         try {
@@ -716,41 +743,69 @@ export default function UserProfile({ address }: { address: string }) {
         }
     }, [address])
 
-    const fetchOpenPositions = useCallback(async () => {
+    const fetchOpenPositions = useCallback(async (limit: number) => {
         try {
-            const response = await fetch(`/api/market/positions/open?address=${address}`)
-            if (!response.ok) throw new Error('Failed to fetch open positions')
+            const response = await fetch(`/api/market/positions/open?address=${address}&limit=${limit}`)
             const data = await response.json()
-            console.log('Fetched open positions:', data);
             setOpenPositions(data.positions || [])
+            setHasMoreOpen(data.hasMore || false)
         } catch (error) {
             console.error('Error fetching open positions:', error)
             setOpenPositions([])
         }
     }, [address])
 
-    const fetchClosedPositions = useCallback(async () => {
+    const fetchClosedPositions = useCallback(async (limit:number) => {
         try {
-            const response = await fetch(`/api/market/positions/closed?address=${address}`)
-            if (!response.ok) throw new Error('Failed to fetch closed positions')
+            const response = await fetch(`/api/market/positions/closed?address=${address}&limit=${limit}`)
             const data = await response.json()
             setClosedPositions(data.positions || [])
+            setHasMoreClosed(data.hasMore || false)
         } catch (error) {
             console.error('Error fetching closed positions:', error)
             setClosedPositions([])
         }
     }, [address])
 
-    const fetchActivity = useCallback(async () => {
+    const fetchActivity = useCallback(async (limit:number) => {
         try {
-            const response = await fetch(`/api/market/activity?address=${address}`)
-            if (!response.ok) throw new Error('Failed to fetch activity')
+            const response = await fetch(`/api/market/activity?address=${address}&limit=${limit}`)
             const data = await response.json()
-            setActivity(data)
+            const activityData = data.activities || data || []
+
+            setActivity(Array.isArray(activityData) ? activityData : [])
+            setHasMoreActivity(data.hasMore || false)
         } catch (error) {
             console.error('Error fetching activity:', error)
         }
     }, [address])
+
+    const loadMoreOpenPositions = useCallback(async () => {
+        if (loadingMore || !hasMoreOpen) return
+        setLoadingMore(true)
+        const newLimit = currentLimitOpen + 50
+        await fetchOpenPositions(newLimit)
+        setCurrentLimitOpen(newLimit)
+        setLoadingMore(false)
+    }, [loadingMore, hasMoreOpen, currentLimitOpen, fetchOpenPositions])
+
+    const loadMoreClosedPositions = useCallback(async () => {
+        if (loadingMore || !hasMoreClosed) return
+        setLoadingMore(true)
+        const newLimit = currentLimitClosed + 50
+        await fetchClosedPositions(newLimit)
+        setCurrentLimitClosed(newLimit)
+        setLoadingMore(false)
+    }, [loadingMore, hasMoreClosed, currentLimitClosed, fetchClosedPositions])
+
+    const loadMoreActivity = useCallback(async () => {
+        if (loadingMore || !hasMoreActivity) return
+        setLoadingMore(true)
+        const newLimit = currentLimitActivity + 50
+        await fetchActivity(newLimit)
+        setCurrentLimitActivity(newLimit)
+        setLoadingMore(false)
+    }, [loadingMore, hasMoreActivity, currentLimitActivity, fetchActivity])
 
     const fetchAnalytics = useCallback(async () => {
         try {
@@ -782,10 +837,13 @@ export default function UserProfile({ address }: { address: string }) {
             setProfitStats(data)
 
             // Transform series data for the chart
-            if (data?.series && data.series.length > 0) {
-                const transformedData = data.series.map((item: any) => ({
+            // Transform series data for the chart
+            // Transform series data for the chart - use 'all' as default
+            if (data?.series?.all && data.series.all.length > 0) {
+                const transformedData = data.series.all.map((item: any) => ({
                     date: new Date(item.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    value: item.p
+                    value: item.p,
+                    timestamp: item.t
                 }))
                 setChartData(transformedData)
             }
@@ -793,6 +851,148 @@ export default function UserProfile({ address }: { address: string }) {
             console.error('Error fetching profit stats:', error)
         }
     }, [address])
+
+    
+
+    useEffect(() => {
+        // Only observe when we're on the positions tab, viewing open positions, and have more to load
+        if (activeTab !== 'positions' || positionFilter !== 'open' || !hasMoreOpen) {
+            return
+        }
+
+        const currentRef = loadMoreOpenRef.current
+        if (!currentRef) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0]
+                if (entry.isIntersecting && !loadingMore && hasMoreOpen) {
+                    console.log('Loading more OPEN positions')
+                    loadMoreOpenPositions()
+                }
+            },
+            {
+                threshold: 0.1,
+                rootMargin: '200px'
+            }
+        )
+
+        observer.observe(currentRef)
+
+        return () => {
+            observer.disconnect()
+        }
+    }, [activeTab, positionFilter, hasMoreOpen, loadingMore, loadMoreOpenPositions])
+
+    // Observer for Closed Positions
+    useEffect(() => {
+        if (!loadMoreClosedRef.current || !hasMoreClosed || positionFilter !== 'closed' || activeTab !== 'positions') {
+            return
+        }
+
+        const currentRef = loadMoreClosedRef.current // Capture ref value
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0]
+                if (entry.isIntersecting && !loadingMore && hasMoreClosed) {
+                    console.log('Loading more CLOSED positions')
+                    loadMoreClosedPositions()
+                }
+            },
+            {
+                threshold: 0.1,
+                rootMargin: '200px'
+            }
+        )
+
+        observer.observe(currentRef)
+
+        return () => {
+            observer.disconnect()
+        }
+    }, [hasMoreClosed, loadingMore, positionFilter, activeTab, loadMoreClosedPositions]) // Added loadMoreClosedPositions
+
+    // Observer for Activity
+    useEffect(() => {
+        if (!loadMoreActivityRef.current || !hasMoreActivity || activeTab !== 'activity') {
+            return
+        }
+
+        const currentRef = loadMoreActivityRef.current // Capture ref value
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0]
+                if (entry.isIntersecting && !loadingMore && hasMoreActivity) {
+                    console.log('Loading more ACTIVITY')
+                    loadMoreActivity()
+                }
+            },
+            {
+                threshold: 0.1,
+                rootMargin: '200px'
+            }
+        )
+
+        observer.observe(currentRef)
+
+        return () => {
+            observer.disconnect()
+        }
+    }, [hasMoreActivity, loadingMore, activeTab, loadMoreActivity]) // Added loadMoreActivity
+    useEffect(() => {
+        if (!profitStats?.series) return;
+
+        const timeframeMap = {
+            '1D': '1d',
+            '1W': '1w',
+            '1M': '1m',
+            'ALL': 'all'
+        } as const;
+
+        const key = timeframeMap[chartTimeframe as keyof typeof timeframeMap];
+        const seriesData = profitStats.series[key];
+
+        if (seriesData && seriesData.length > 0) {
+            const transformedData = seriesData.map((item) => {
+                const date = new Date(item.t * 1000);
+                let dateLabel: string;
+
+                if (chartTimeframe === '1D') {
+                    dateLabel = date.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                } else if (chartTimeframe === '1W') {
+                    dateLabel = date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                } else if (chartTimeframe === '1M') {
+                    dateLabel = date.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                } else {
+                    dateLabel = date.toLocaleDateString('en-US', {
+                        month: 'short',
+                        year: '2-digit'
+                    });
+                }
+
+                return {
+                    date: dateLabel,
+                    value: item.p,
+                    timestamp: item.t
+                };
+            });
+
+            setChartData(transformedData);
+        }
+    }, [profitStats, chartTimeframe]);
 
     // ============= COMBINED DATA OPERATIONS =============
 
@@ -900,31 +1100,15 @@ export default function UserProfile({ address }: { address: string }) {
             negativeRisk: false, // Assuming negativeRisk is not available in Position
             endDate: position.endDate,
             closedAt: position.closedAt || '',
-            status: position.status
+            status: position.status,
+            label:position.label
 
         }
         setSelectedPosition(positionCard)
         setIsPositionCardOpen(true)
     }, [])
 
-    // Refresh data - only refreshes positions and activity
-    const handleRefresh = useCallback(async () => {
-        setRefreshing(true)
-        try {
-            await Promise.all([
-                fetchMetrics(),
-                fetchOpenPositions(),
-                fetchClosedPositions(),
-                fetchActivity(),
-                fetchAnalytics()
-            ])
-            toast.success('Data refreshed successfully')
-        } catch (error) {
-            toast.error('Failed to refresh some data')
-        } finally {
-            setRefreshing(false)
-        }
-    }, [fetchMetrics, fetchOpenPositions, fetchClosedPositions, fetchActivity, fetchAnalytics])
+  
 
     // ============= EFFECTS =============
     useEffect(() => {
@@ -933,9 +1117,9 @@ export default function UserProfile({ address }: { address: string }) {
             await Promise.all([
                 fetchUserData(),
                 fetchMetrics(),
-                fetchOpenPositions(),
-                fetchClosedPositions(),
-                fetchActivity(),
+                fetchOpenPositions(currentLimitOpen),
+                fetchClosedPositions(currentLimitClosed),
+                fetchActivity(currentLimitActivity),
                 fetchAnalytics(),
                 fetchProfitStats() 
 
@@ -1025,7 +1209,7 @@ export default function UserProfile({ address }: { address: string }) {
         <div className="min-h-screen bg-black">
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-                <div className="mb-6 sm:mb-8">
+                <div className="mb-6 sm:mb-8 flex justify-between">
                     <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                         <Avatar className="h-16 w-16 md:h-20 md:w-20 ring-2 ring-emerald-400/20 ring-offset-2 ring-offset-black">
                             <AvatarImage src={userData?.profileImage } />
@@ -1033,11 +1217,7 @@ export default function UserProfile({ address }: { address: string }) {
                                 {userData?.name?.slice(0, 2).toUpperCase() || "PM"}
                             </AvatarFallback>
                         </Avatar>
-                        <motion.div
-                            className="absolute -bottom-1 -right-1 h-6 w-6 bg-emerald-400 rounded-full border-2 border-black shadow-lg shadow-emerald-400/50"
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                        />
+               
                         <div className="min-w-0">
                             <h2 className="text-2xl sm:text-3xl font-bold text-white truncate">
                                 {userData?.name || userData?.pseudonym || "Loading..."}
@@ -1060,6 +1240,10 @@ export default function UserProfile({ address }: { address: string }) {
                             </span>
                         </div>
                     </div>
+
+                    <div className="my-auto">
+                        <UserAlertSystem userAddress={userData?.proxyWallet || ''}/>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
@@ -1081,14 +1265,10 @@ export default function UserProfile({ address }: { address: string }) {
                     {/* Total Profit/Loss */}
                     <Card className="gradient-dark-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-[#1a1a1a] hover:border-cyan-500/50 transition group">
                         <div className="flex items-center justify-between mb-3 sm:mb-4">
-                            <span className="text-gray-400 text-xs sm:text-sm font-medium">Total Profit/Loss</span>
-                            <div className="flex items-center gap-1 bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded text-xs font-semibold">
-                                <TrendingUp className="w-3 h-3" />
-                                {metrics?.profit ? `+${profitPercentage}%` : '0%'}
-                            </div>
-                        </div>
+                            <span className="text-gray-400 text-xs sm:text-sm font-medium">Predictions </span>
+                           </div>
                         <p className="text-2xl sm:text-3xl font-bold text-white">
-                            {formatCurrency(metrics?.profit || 0)}
+                            {userData?.trades || 0}
                         </p>
                         <div className="h-1 bg-gradient-to-r from-cyan-500 to-transparent rounded-full mt-3 sm:mt-4 opacity-0 group-hover:opacity-100 transition"></div>
                     </Card>
@@ -1111,12 +1291,10 @@ export default function UserProfile({ address }: { address: string }) {
                     {/* Active Positions */}
                     <Card className="gradient-dark-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-[#1a1a1a] hover:border-cyan-500/50 transition group">
                         <div className="flex items-center justify-between mb-3 sm:mb-4">
-                            <span className="text-gray-400 text-xs sm:text-sm font-medium">Active Positions</span>
-                            <span className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded text-xs font-semibold">
-                                {openPositions.length} markets
-                            </span>
+                            <span className="text-gray-400 text-xs sm:text-sm font-medium">Biggest Win</span>
+                        
                         </div>
-                        <p className="text-2xl sm:text-3xl font-bold text-white">{openPositions.length}</p>
+                        <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(userData?.largestWin!) || 0}</p>
                         <div className="h-1 bg-gradient-to-r from-cyan-500 to-transparent rounded-full mt-3 sm:mt-4 opacity-0 group-hover:opacity-100 transition"></div>
                     </Card>
                 </div>
@@ -1223,7 +1401,7 @@ export default function UserProfile({ address }: { address: string }) {
                             </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="positions" className="space-y-4">
+                        <TabsContent value="positions" className="space-y-4" ref={loadMoreOpenRef}>
                             {/* Position Filters */}
                             <div className="flex flex-wrap gap-2 p-1 bg-zinc-900/40 rounded-lg border border-zinc-800 w-fit">
 
@@ -1321,16 +1499,46 @@ export default function UserProfile({ address }: { address: string }) {
                                         ))}
                                     </motion.div>
 
+                                        {/* Load More Trigger for OPEN positions */}
+                                        {positionFilter === 'open' && hasMoreOpen && (
+                                            <div ref={loadMoreOpenRef} className="py-8 text-center">
+                                                {loadingMore ? (
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500" />
+                                                        <span className="text-gray-400">Loading more open positions...</span>
+                                                    </div>
+                                                ) : (
+                                                 <div className="flex flex-col items-center justify-center">
+                                                            <span className="text-gray-500 text-sm">Scroll for more</span>
+                                                            <Button onClick={loadMoreOpenPositions} className="w-fit">
+                                                                Click to load more </Button>
+                                                 </div>
+                                                )}
+                                            </div>
+                                        )}
 
+                                        {/* Load More Trigger for CLOSED positions */}
+                                        {positionFilter === 'closed' && hasMoreClosed && (
+                                            <div ref={loadMoreClosedRef} className="py-8 text-center">
+                                                {loadingMore ? (
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500" />
+                                                        <span className="text-gray-400">Loading more closed positions...</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-500 text-sm">Scroll for more</span>
+                                                )}
+                                            </div>
+                                        )}
                                
                                 </>
                             )}
                         </TabsContent>
 
-                        <TabsContent value="activity" className="space-y-4">
+                        <TabsContent value="activity" className="space-y-4" ref={loadMoreActivityRef}>
                             <div>
                                 <div className="space-y-4">
-                                    {activity.length === 0 ? (
+                                    {activity && activity.length === 0 ? (
                                         <Card className="bg-zinc-900/60 border border-zinc-800 shadow-2xl">
                                             <CardContent className="p-8 text-center">
                                                 <div className="h-12 w-12 text-gray-400 mx-auto mb-4">
@@ -1342,75 +1550,95 @@ export default function UserProfile({ address }: { address: string }) {
                                             </CardContent>
                                         </Card>
                                     ) : (
-                                        <div className="space-y-3">
-                                            {activity.map((item: any, index: number) => {
-                                                const tokenColor = getTokenColor(item.market)
-                                                const tokenSymbol = getTokenSymbol(item.market)
-                                                const isBuy = item.side.toLowerCase() === 'buy'
-                                                return (
-                                                    <div key={`${item.id}-${index}`}>
-                                                        <Card className="bg-zinc-900/60 border border-zinc-800 hover:bg-zinc-900/80 hover:border-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/5 transition-all duration-300 backdrop-blur-xl overflow-hidden">
-                                                            <CardContent className="p-4 md:p-6">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="relative">
-                                                                        {item.icon ? (
-                                                                            <img src={item.icon} alt="" className="w-10 h-10 rounded-lg" />
-                                                                        ) : (
-                                                                            <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                                                                                {tokenSymbol}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex-1">
-                                                                        <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{item.market}</p>
-                                                                        <Badge
-                                                                            variant="secondary"
-                                                                            className={`text-xs border ${isBuy
-                                                                                ? "bg-emerald-950/80 text-emerald-300 border-emerald-400/30"
-                                                                                : "bg-red-950/80 text-red-300 border-red-400/30"
-                                                                                }`}
-                                                                        >
-                                                                            {item.outcome}
-                                                                        </Badge>
-                                                                    </div>
+                                        <>
+                                            <div className="space-y-3">
+                                                {activity && activity.map((item: any, index: number) => {
+                                                    const tokenColor = getTokenColor(item.market)
+                                                    const tokenSymbol = getTokenSymbol(item.market)
+                                                    const isBuy = item.side.toLowerCase() === 'buy'
+                                                    return (
+                                                        <div key={`${item.id}-${index}`}>
+                                                            <Card className="bg-zinc-900/60 border border-zinc-800 hover:bg-zinc-900/80 hover:border-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/5 transition-all duration-300 backdrop-blur-xl overflow-hidden">
+                                                                <CardContent className="p-4 md:p-6">
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="text-right">
-                                                                            <p className={`text-sm font-semibold ${isBuy ?
-                                                                                'text-emerald-400'
-                                                                                : 'text-red-400'
-                                                                                }`}>
-                                                                                {isBuy ? '+' : '-'}{formatNumber(item.size)} shares
-                                                                            </p>
-                                                                            <p className="text-gray-400 text-xs">{formatCurrency(item.usdcSize)}</p>
+                                                                        <div className="relative">
+                                                                            {item.icon ? (
+                                                                                <img src={item.icon} alt="" className="w-10 h-10 rounded-lg" />
+                                                                            ) : (
+                                                                                <div className={`w-10 h-10 ${tokenColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                                                                                    {tokenSymbol}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                        <Button
-                                                                            size="sm"
-                                                                            variant="outline"
-                                                                            onClick={() => handleCreateTradeCard(item)}
-                                                                            className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-purple-500/30 hover:from-purple-600/30 hover:to-blue-600/30 text-purple-300 hover:text-purple-200 transition-all duration-200"
-                                                                        >
-                                                                            <Upload className="h-4 w-4" />
-                                                                        </Button>
+                                                                        <div className="flex-1">
+                                                                            <p className="text-white text-sm font-medium leading-tight mb-1 line-clamp-2">{item.market}</p>
+                                                                            <Badge
+                                                                                variant="secondary"
+                                                                                className={`text-xs border ${isBuy
+                                                                                    ? "bg-emerald-950/80 text-emerald-300 border-emerald-400/30"
+                                                                                    : "bg-red-950/80 text-red-300 border-red-400/30"
+                                                                                    }`}
+                                                                            >
+                                                                                {item.outcome}
+                                                                            </Badge>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="text-right">
+                                                                                <p className={`text-sm font-semibold ${isBuy ?
+                                                                                    'text-emerald-400'
+                                                                                    : 'text-red-400'
+                                                                                    }`}>
+                                                                                    {isBuy ? '+' : '-'}{formatNumber(item.size)} shares
+                                                                                </p>
+                                                                                <p className="text-gray-400 text-xs">{formatCurrency(item.usdcSize)}</p>
+                                                                            </div>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleCreateTradeCard(item)}
+                                                                                className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-purple-500/30 hover:from-purple-600/30 hover:to-blue-600/30 text-purple-300 hover:text-purple-200 transition-all duration-200"
+                                                                            >
+                                                                                <Upload className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                                <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-gray-400">
-                                                                    <div>
-                                                                        <p className="font-semibold">{item.side.charAt(0).toUpperCase() + item.side.slice(1)}</p>
+                                                                    <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-gray-400">
+                                                                        <div>
+                                                                            <p className="font-semibold">{item.side.charAt(0).toUpperCase() + item.side.slice(1)}</p>
+                                                                        </div>
+                                                                        <div className="text-center">
+                                                                            <p className="font-semibold">{(item.price * 100).toFixed(1)}¢</p>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="font-medium">{formatDate(item.timestamp)}</p>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-center">
-                                                                        <p className="font-semibold">{(item.price * 100).toFixed(1)}¢</p>
-                                                                    </div>
-                                                                    <div className="text-right">
-                                                                        <p className="font-medium">{formatDate(item.timestamp)}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </CardContent>
-                                                        </Card>
+                                                                </CardContent>
+                                                            </Card>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+
+                                                {/* 🔥 FIXED INFINITE SCROLL TRIGGER */}
+                                                {hasMoreActivity && (
+                                                    <div ref={loadMoreActivityRef} className="py-8 text-center mt-4">
+                                                        {loadingMore ? (
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500" />
+                                                                <span className="text-gray-400">Loading more activity...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-500 text-sm">Scroll for more</span>
+                                                        )}
                                                     </div>
-                                                )
-                                            })}
-                                        </div>
+                                                )}
+
+                                        </>
                                     )}
+
+
+                                  
                                 </div>
 
                                 {/* Trade Card Dialog */}
@@ -1427,7 +1655,6 @@ export default function UserProfile({ address }: { address: string }) {
                                 </Dialog>
                             </div>
                         </TabsContent>
-
 
 
                         <TabsContent value="analytics" className="space-y-6">

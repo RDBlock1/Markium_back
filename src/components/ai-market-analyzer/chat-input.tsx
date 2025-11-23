@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ImageUpload, type ImageFile } from "./image-upload"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { redirect, useRouter } from "next/navigation"
 import { signIn, useSession } from "@/lib/auth-client"
 
 type ActiveButton = "none" | "add" | "deepSearch" | "think"
@@ -79,9 +79,12 @@ export function ChatInput({
     }, [isMobile, isStreaming, isAuthenticated])
 
     const handleAuthRequired = () => {
-        signIn.social({
+        const callback = `${window.location.origin}/ai-market-analyzer`;
+
+         signIn.social({
             provider: 'google',
-        })
+            callbackURL: callback,         // server will redirect user to this URL after OAuth
+        });
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

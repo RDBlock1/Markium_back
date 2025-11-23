@@ -34,7 +34,12 @@ interface ProfitStatsResponse {
   latestPoint: PolymarketPnLDataPoint | null;
   totalDataPoints: number;
   dataSourcesUsed: string[];
-  series: PolymarketPnLResponse;
+  series: {
+    '1d': PolymarketPnLResponse;
+    '1w': PolymarketPnLResponse;
+    '1m': PolymarketPnLResponse;
+    'all': PolymarketPnLResponse;
+  };
 }
 
 /**
@@ -90,42 +95,6 @@ async function fetchPolymarketData(
   return data;
 }
 
-/**
- * Merge multiple data series, keeping the most detailed (latest) point for each timestamp
- */
-function mergeSeries(...series: PolymarketPnLResponse[]): PolymarketPnLResponse {
-  const pointMap = new Map<number, PolymarketPnLDataPoint>();
-
-  // Add all points to map, later series override earlier ones at same timestamp
-  for (const s of series) {
-    for (const point of s) {
-      pointMap.set(point.t, point);
-    }
-  }
-
-  // Convert back to array and sort by timestamp
-  return Array.from(pointMap.values()).sort((a, b) => a.t - b.t);
-}
-
-/**
- * Find the closest data point at or before the target timestamp
- */
-function findPointAtOrBefore(
-  series: PolymarketPnLResponse,
-  targetTs: number
-): PolymarketPnLDataPoint | null {
-  let candidate: PolymarketPnLDataPoint | null = null;
-
-  for (let i = series.length - 1; i >= 0; i--) {
-    if (series[i].t <= targetTs) {
-      candidate = series[i];
-      break;
-    }
-  }
-
-  return candidate;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -144,37 +113,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    /**
-     * Strategy: Fetch multiple combinations to ensure we have data for all windows
-     * 
-     * - For 1d: fetch interval=1d with fidelity=1h (hourly granularity for 24 hours)
-     * - For 1w: fetch interval=1w with fidelity=3h (3-hour granularity for 7 days)
-     * - For 1m: fetch interval=1m with fidelity=1d (daily granularity for 30 days)
-     * - For all: fetch interval=all with fidelity=1d (daily granularity for all time)
-     * 
-     * We merge all datasets to get the most complete picture
-     */
-
     const dataSourcesUsed: string[] = [];
 
-    // Fetch data for different time windows
+    // Fetch data for each specific window
     const [data1d, data1w, data1m, dataAll] = await Promise.all([
       fetchPolymarketData(userAddress, '1d', '1h'),
       fetchPolymarketData(userAddress, '1w', '3h'),
-      fetchPolymarketData(userAddress, '1m', '1d'),
+      fetchPolymarketData(userAddress, '1m', '1h'),
       fetchPolymarketData(userAddress, 'all', '1d'),
     ]);
 
     // Track which data sources returned data
     if (data1d.length > 0) dataSourcesUsed.push('1d/1h');
     if (data1w.length > 0) dataSourcesUsed.push('1w/3h');
-    if (data1m.length > 0) dataSourcesUsed.push('1m/1d');
+    if (data1m.length > 0) dataSourcesUsed.push('1m/1h');
     if (dataAll.length > 0) dataSourcesUsed.push('all/1d');
 
-    // Merge all data series
-    const mergedSeries = mergeSeries(data1d, data1w, data1m, dataAll);
-
-    if (mergedSeries.length === 0) {
+    // Use dataAll for the full series and current PnL
+    if (dataAll.length === 0) {
       const empty: ProfitStatsResponse = {
         address: userAddress,
         windows: {
@@ -186,128 +142,114 @@ export async function GET(request: NextRequest) {
         latestPoint: null,
         totalDataPoints: 0,
         dataSourcesUsed,
-        series: [],
+        series: {
+          '1d': [],
+          '1w': [],
+          '1m': [],
+          'all': [],
+        },
       };
       return NextResponse.json<ProfitStatsResponse>(empty, withCacheHeaders());
     }
 
-    const latest = mergedSeries[mergedSeries.length - 1];
-    const first = mergedSeries[0];
+    // Get latest and first points from ALL data
+    const latestAll = dataAll[dataAll.length - 1];
+    const firstAll = dataAll[0];
 
-    console.log(`Latest point: t=${latest.t}, p=${latest.p}, date=${new Date(latest.t * 1000).toISOString()}`);
-    console.log(`First point: t=${first.t}, p=${first.p}, date=${new Date(first.t * 1000).toISOString()}`);
-    console.log(`Total data points: ${mergedSeries.length}`);
+    console.log('\n=== ALL TIME DATA ===');
+    console.log(`Latest: t=${latestAll.t}, p=${latestAll.p}, date=${new Date(latestAll.t * 1000).toISOString()}`);
+    console.log(`First: t=${firstAll.t}, p=${firstAll.p}, date=${new Date(firstAll.t * 1000).toISOString()}`);
 
-    // Calculate target timestamps (in seconds)
-    const DAY = 86400;
-    const now = latest.t;
-
-    const targets = {
-      '1d': now - 1 * DAY,
-      '1w': now - 7 * DAY,
-      '1m': now - 30 * DAY,
-    };
-
-    console.log('\nTarget timestamps:');
-    console.log(`  1D target: ${targets['1d']} (${new Date(targets['1d'] * 1000).toISOString()})`);
-    console.log(`  1W target: ${targets['1w']} (${new Date(targets['1w'] * 1000).toISOString()})`);
-    console.log(`  1M target: ${targets['1m']} (${new Date(targets['1m'] * 1000).toISOString()})`);
-
-    // Find reference points for each window
-    const ref1d = findPointAtOrBefore(mergedSeries, targets['1d']);
-    const ref1w = findPointAtOrBefore(mergedSeries, targets['1w']);
-    const ref1m = findPointAtOrBefore(mergedSeries, targets['1m']);
-
-    console.log('\nFound reference points:');
-    if (ref1d) console.log(`  1D ref: t=${ref1d.t}, p=${ref1d.p}, date=${new Date(ref1d.t * 1000).toISOString()}`);
-    if (ref1w) console.log(`  1W ref: t=${ref1w.t}, p=${ref1w.p}, date=${new Date(ref1w.t * 1000).toISOString()}`);
-    if (ref1m) console.log(`  1M ref: t=${ref1m.t}, p=${ref1m.p}, date=${new Date(ref1m.t * 1000).toISOString()}`);
-
-    // Let's also check what points are around the 1W mark
-    console.log('\nData points around 1W target:');
-    const weekIdx = mergedSeries.findIndex(p => p.t >= targets['1w']);
-    if (weekIdx > 0) {
-      for (let i = Math.max(0, weekIdx - 2); i < Math.min(mergedSeries.length, weekIdx + 3); i++) {
-        const p = mergedSeries[i];
-        console.log(`    [${i}] t=${p.t}, p=${p.p}, date=${new Date(p.t * 1000).toISOString()}`);
-      }
-    }
-
-    /**
-     * CRITICAL INSIGHT: Polymarket uses the point CLOSEST to exactly N time ago
-     * Not "at or before", not "minimum in window", but literally the closest point
-     */
-    
-    // Find the closest point to a target timestamp (can be before or after)
-    const findClosestPoint = (targetTs: number): PolymarketPnLDataPoint | null => {
-      if (mergedSeries.length === 0) return null;
-      
-      return mergedSeries.reduce((closest, point) => {
-        const closestDiff = Math.abs(closest.t - targetTs);
-        const pointDiff = Math.abs(point.t - targetTs);
-        return pointDiff < closestDiff ? point : closest;
-      });
-    };
-
-    const closest1d = findClosestPoint(targets['1d']);
-    const closest1w = findClosestPoint(targets['1w']);
-
-    console.log('\nClosest points to exact targets:');
-    if (closest1d) console.log(`  1D closest: t=${closest1d.t}, p=${closest1d.p}, date=${new Date(closest1d.t * 1000).toISOString()}, diff=${Math.abs(closest1d.t - targets['1d'])}s`);
-    if (closest1w) console.log(`  1W closest: t=${closest1w.t}, p=${closest1w.p}, date=${new Date(closest1w.t * 1000).toISOString()}, diff=${Math.abs(closest1w.t - targets['1w'])}s`);
-
-    // Helper to calculate window stats
-    const calc = (
-      to: PolymarketPnLDataPoint,
-      from: PolymarketPnLDataPoint | null,
+    // Helper to calculate window stats from a dataset
+    const calcWindow = (
+      data: PolymarketPnLResponse,
       windowKey: StatKey
     ): WindowStat => {
-      if (!from) {
-        from = first;
+      if (data.length === 0) {
+        return zeroStat();
       }
 
+      let oldest = data[0];
+      const latest = data[data.length - 1];
+      
+      // SPECIAL CASE for 1M: Polymarket uses the point closest to exactly 30 days ago
+      if (windowKey === '1m' && data.length > 1) {
+        const DAY = 86400; // seconds in a day
+        const targetTimestamp = latest.t - (30 * DAY);
+        
+        // Find the point with timestamp closest to 30 days ago
+        let closestIndex = 0;
+        let smallestTimeDiff = Math.abs(data[0].t - targetTimestamp);
+        
+        for (let i = 1; i < data.length; i++) {
+          const timeDiff = Math.abs(data[i].t - targetTimestamp);
+          if (timeDiff < smallestTimeDiff) {
+            smallestTimeDiff = timeDiff;
+            closestIndex = i;
+          }
+        }
+        
+        oldest = data[closestIndex];
+        console.log(`\n=== 1M REFERENCE POINT ===`);
+        console.log(`Target timestamp (30d ago): ${targetTimestamp} (${new Date(targetTimestamp * 1000).toISOString()})`);
+        console.log(`Using index ${closestIndex}, time diff: ${smallestTimeDiff}s`);
+        console.log(`Point: t=${oldest.t}, p=${oldest.p}, date=${new Date(oldest.t * 1000).toISOString()}`);
+      }
+      
       let value: number;
-
-      // For 1D and 1W, calculate the change from the reference point
-      // For 1M and ALL, show absolute current PnL
-      if (windowKey === '1m' || windowKey === 'all') {
-        value = round2(to.p);
+      
+      if (windowKey === 'all') {
+        // For ALL: show the current PnL (latest point value)
+        value = round2(latest.p);
       } else {
-        value = round2(to.p - from.p);
+        // For all time-based windows: simple difference
+        value = round2(latest.p - oldest.p);
       }
+
+      console.log(`\n=== ${windowKey.toUpperCase()} WINDOW ===`);
+      console.log(`Oldest: t=${oldest.t}, p=${oldest.p}, date=${new Date(oldest.t * 1000).toISOString()}`);
+      console.log(`Latest: t=${latest.t}, p=${latest.p}, date=${new Date(latest.t * 1000).toISOString()}`);
+      console.log(`Value: ${value} (${windowKey === 'all' ? 'absolute' : 'change'})`);
 
       return {
         value,
         formatted: formatUSD(value),
-        fromTimestamp: from.t,
-        toTimestamp: to.t,
-        fromPnL: round2(from.p),
-        toPnL: round2(to.p),
+        fromTimestamp: oldest.t,
+        toTimestamp: latest.t,
+        fromPnL: round2(oldest.p),
+        toPnL: round2(latest.p),
       };
     };
 
+    // Calculate each window using its specific dataset
     const windows: Record<StatKey, WindowStat> = {
-      '1d': calc(latest, closest1d, '1d'),
-      '1w': calc(latest, closest1w, '1w'),
-      '1m': calc(latest, ref1m, '1m'),
-      'all': calc(latest, first, 'all'),
+      '1d': calcWindow(data1d, '1d'),
+      '1w': calcWindow(data1w, '1w'),
+      '1m': calcWindow(data1m, '1m'),
+      'all': calcWindow(dataAll, 'all'),
     };
 
-    console.log('Computed windows:', JSON.stringify(windows, null, 2));
-    console.log('Polymarket comparison:');
-    console.log('  1D yours vs PM:', windows['1d'].formatted, 'vs -$143,665.00');
-    console.log('  1W yours vs PM:', windows['1w'].formatted, 'vs $631,326.78'); 
-    console.log('  1M yours vs PM:', windows['1m'].formatted, 'vs $389,879.90');
-    console.log('  ALL yours vs PM:', windows['all'].formatted, 'vs $1,070,776.90');
+    console.log('\n=== COMPARISON ===');
+    console.log('1D yours:', windows['1d'].formatted);
+    console.log('1W yours:', windows['1w'].formatted);
+    console.log('1M yours:', windows['1m'].formatted);
+    console.log('ALL yours:', windows['all'].formatted);
 
     const payload: ProfitStatsResponse = {
       address: userAddress,
       windows,
-      latestPoint: latest,
-      totalDataPoints: mergedSeries.length,
+      latestPoint: latestAll,
+      totalDataPoints: dataAll.length,
       dataSourcesUsed,
-      series: mergedSeries,
+      series: {
+        '1d': data1d,
+        '1w': data1w,
+        '1m': data1m,
+        'all': dataAll,
+      },
     };
+    
+    console.log("payload", payload);
 
     return NextResponse.json<ProfitStatsResponse>(payload, withCacheHeaders());
   } catch (error) {

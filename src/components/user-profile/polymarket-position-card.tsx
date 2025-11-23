@@ -35,6 +35,7 @@ export interface PositionCard {
     endDate: string
     closedAt?: string
     status: 'open' | 'closed'
+    label: 'WON' | 'LOST' | 'BREAK-EVEN'
 }
 
 // Sample open position
@@ -61,7 +62,8 @@ const sampleOpenPosition: PositionCard = {
     endDate: "2025-11-11",
     negativeRisk: false,
     totalBought: 133037.301311,
-    status: "open"
+    status: "open",
+    label:'WON'
 }
 
 export default function PolymarketPositionCard({ position = sampleOpenPosition }: { position?: PositionCard }) {

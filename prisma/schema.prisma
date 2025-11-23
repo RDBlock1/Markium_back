@@ -441,3 +441,37 @@ model BlogPost {
   @@index([published])
   @@index([date])
 }
+
+
+model Alert {
+  id            String   @id @default(cuid())
+  userId        String
+  userEmail     String
+  walletAddress String
+  tradeType     String   // 'both', 'buy', 'sell'
+  minAmount     String?
+  market        String   // 'all', 'sports', 'politics', 'crypto', 'pop-culture'
+  notifyVia     String   // 'app', 'email'
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([walletAddress])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  userEmail     String
+  walletAddress String
+  tradeType     String   // 'buy', 'sell'
+  amount        String
+  market        String
+  timestamp     DateTime @default(now())
+  read          Boolean  @default(false)
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([read])
+}
