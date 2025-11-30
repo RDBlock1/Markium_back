@@ -716,6 +716,7 @@ export default function UserProfile({ address }: { address: string }) {
     const loadMoreOpenRef = useRef<HTMLDivElement>(null)
     const loadMoreClosedRef = useRef<HTMLDivElement>(null)
     const loadMoreActivityRef = useRef<HTMLDivElement>(null)
+    const [chartLoading, setChartLoading] = useState(true)
 
 
     // ============= DATA FETCHING FUNCTIONS =============
@@ -820,37 +821,31 @@ export default function UserProfile({ address }: { address: string }) {
                     date: item.month,
                     value: item.profit
                 }))
-                setChartData(transformedData)
             }
         } catch (error) {
             console.error('Error fetching analytics:', error)
         }
     }, [address])
 
-    // Add to DATA FETCHING FUNCTIONS section
     const fetchProfitStats = useCallback(async () => {
         try {
+            setChartLoading(true)
             const response = await fetch(`/api/market/user/profit-stats?user_address=${address}&fidelity=1d`)
             if (!response.ok) throw new Error('Failed to fetch profit stats')
             const data = await response.json()
             console.log('Fetched profit stats:', data);
+
+            // ONLY set profitStats - let the useEffect handle chartData transformation
             setProfitStats(data)
 
-            // Transform series data for the chart
-            // Transform series data for the chart
-            // Transform series data for the chart - use 'all' as default
-            if (data?.series?.all && data.series.all.length > 0) {
-                const transformedData = data.series.all.map((item: any) => ({
-                    date: new Date(item.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    value: item.p,
-                    timestamp: item.t
-                }))
-                setChartData(transformedData)
-            }
         } catch (error) {
             console.error('Error fetching profit stats:', error)
+            setProfitStats(null) // Set to null on error so useEffect can handle fallback
+        } finally {
+            setChartLoading(false)
         }
     }, [address])
+
 
     
 
@@ -942,7 +937,14 @@ export default function UserProfile({ address }: { address: string }) {
         }
     }, [hasMoreActivity, loadingMore, activeTab, loadMoreActivity]) // Added loadMoreActivity
     useEffect(() => {
-        if (!profitStats?.series) return;
+        if (!profitStats?.series) {
+            // Set empty state with better fallback
+            setChartData([
+                { date: "Start", value: 0, timestamp: 0 },
+                { date: "Now", value: 0, timestamp: Date.now() / 1000 }
+            ]);
+            return;
+        }
 
         const timeframeMap = {
             '1D': '1d',
@@ -991,6 +993,12 @@ export default function UserProfile({ address }: { address: string }) {
             });
 
             setChartData(transformedData);
+        } else {
+            // No data for this timeframe
+            setChartData([
+                { date: "Start", value: 0, timestamp: 0 },
+                { date: "Now", value: 0, timestamp: Date.now() / 1000 }
+            ]);
         }
     }, [profitStats, chartTimeframe]);
 
@@ -1348,34 +1356,44 @@ export default function UserProfile({ address }: { address: string }) {
                         </p>
                     </div>
 
-                    <ResponsiveContainer width="100%" height={250}>
-                        <LineChart data={chartData.length > 0 ? chartData : [
-                            { date: "Jan", value: 0 },
-                            { date: "Feb", value: 0 },
-                            { date: "Mar", value: 0 },
-                        ]}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-                            <XAxis dataKey="date" stroke="#666666" tick={{ fontSize: 12 }} />
-                            <YAxis stroke="#666666" tick={{ fontSize: 12 }} />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: "#0a0a0a",
-                                    border: "1px solid #1a1a1a",
-                                    borderRadius: "8px",
-                                }}
-                                labelStyle={{ color: "#ffffff" }}
-                                formatter={(value: number) => formatCurrency(value)}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#00d9ff"
-                                strokeWidth={3}
-                                dot={false}
-                                isAnimationActive={true}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    {!profitStats?.series && !chartData ? (
+
+                        <div className="flex items-center justify-center h-[250px]">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500" />
+                        </div>
+                    ) : (
+                            <ResponsiveContainer width="100%" height={250}>
+                                <LineChart data={chartData.length > 0 ? chartData : [
+                                    { date: "Jan", value: 0 },
+                                    { date: "Feb", value: 0 },
+                                    { date: "Mar", value: 0 },
+                                ]}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                                    <XAxis dataKey="date" stroke="#666666" tick={{ fontSize: 12 }} />
+                                    <YAxis stroke="#666666" tick={{ fontSize: 12 }} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: "#0a0a0a",
+                                            border: "1px solid #1a1a1a",
+                                            borderRadius: "8px",
+                                        }}
+                                        labelStyle={{ color: "#ffffff" }}
+                                        formatter={(value: number) => formatCurrency(value)}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke="#00d9ff"
+                                        strokeWidth={3}
+                                        dot={false}
+                                        isAnimationActive={true}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+
+                    )
+                }
+                
                 </  Card>
 
                 <motion.div variants={itemVariants}>
@@ -1391,7 +1409,7 @@ export default function UserProfile({ address }: { address: string }) {
                                 value="activity"
                                 className="data-[state=active]:bg-zinc-800 data-[state=active]:text-cyan-400 data-[state=active]:shadow-lg font-semibold text-gray-300"
                             >
-                                Activity ({activity.length})
+                                Activity 
                             </TabsTrigger>
                             <TabsTrigger
                                 value="analytics"
@@ -1417,9 +1435,7 @@ export default function UserProfile({ address }: { address: string }) {
                                 >
                                 
                                     Open
-                                    <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
-                                        {positionCounts.open}
-                                    </Badge>
+                                  
                                 </Button>
 
                                 <Button
@@ -1433,9 +1449,7 @@ export default function UserProfile({ address }: { address: string }) {
                                 >
                                  
                                     Closed
-                                    <Badge variant="secondary" className="bg-zinc-700 text-zinc-200 text-xs">
-                                        {positionCounts.closed}
-                                    </Badge>
+                                  
                                 </Button>
                             </div>
 
