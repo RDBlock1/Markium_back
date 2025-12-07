@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SearchResults, AnalyticsData } from "./types"
 
-const API_BASE_URL = "https://cultyfi.com"
+const API_BASE_URL = "http://localhost:8000"
 
 export class ApiService {
   /**

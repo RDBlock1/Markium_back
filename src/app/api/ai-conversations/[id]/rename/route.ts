@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 
 export async function PATCH(
   req: Request,
-  context: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> } // 👈 params is now a Promise
 ) {
   try {
     const session = await auth.api.getSession({
@@ -17,16 +17,15 @@ export async function PATCH(
     }
 
     // Ensure we support either params or Promise<params>
-    const paramsResolved = await context.params
-    const id = paramsResolved?.id
+
+    const { id } = await params // 👈 await params
     if (!id) {
       return NextResponse.json({ error: 'Missing conversation id' }, { status: 400 })
     }
-    const params = await context.params
     const { title } = await req.json()
 
     const conversation = await prisma.conversation.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { title }
     })
 

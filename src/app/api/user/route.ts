@@ -40,6 +40,7 @@ function isValidEthereumAddress(address: string): boolean {
 }
 
 // Helper function to generate CLOB credentials using Polymarket
+// Helper function to generate CLOB credentials using Polymarket
 async function generateClobCredentials(walletAddress: string) {
   try {
     const host = process.env.POLYMARKET_CLOB_HOST || 'https://clob.polymarket.com';
@@ -58,11 +59,20 @@ async function generateClobCredentials(walletAddress: string) {
       wallet
     );
 
-    // Create or derive API credentials
-    const apiCreds = await clobClient.createApiKey();
+    // Derive API credentials using the correct method
+    const apiCredsKey = await clobClient.creds?.key;
+    const apiSecrets = await clobClient.creds?.secret;
+    const apiPassphrase = await clobClient.creds?.passphrase;
+
+
+
+    const apiCreds = {
+      secret: apiSecrets,
+      passphrase: apiPassphrase,
+    };
 
     return {
-      apiKey: apiCreds.key,
+      apiKey: apiCredsKey,
       secret: apiCreds.secret,
       passphrase: apiCreds.passphrase,
     };
