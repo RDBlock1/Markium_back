@@ -48,6 +48,36 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  webpack: (config, { isServer }) => {
+    // Ignore React Native modules that MetaMask SDK tries to import
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@react-native-async-storage/async-storage': false,
+      'react-native': false,
+      'react-native-randombytes': false,
+    };
+
+    // Fallback for Node.js modules in browser
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+      };
+    }
+
+    // Handle ES modules properly
+    config.resolve.extensionAlias = {
+      '.js': ['.js', '.ts', '.tsx'],
+      '.jsx': ['.jsx', '.tsx'],
+    };
+
+    return config;
+  },
+  // Transpile the @polymarket/clob-client package
+  transpilePackages: ['@polymarket/clob-client'],
 };
 
 export default nextConfig;
