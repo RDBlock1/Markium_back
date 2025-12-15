@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // hooks/useUserAnalytics.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -93,12 +94,27 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
   });
   
   const isSearchingAddress = useRef(false);
-  const debouncedSearchQuery = useDebounce(filters.searchQuery, 500);
+const debouncedFilters = useDebounce(
+  {
+    volumeRange: filters.volumeRange,
+    ageRange: filters.ageRange,
+    winRateRange: filters.winRateRange,
+    buyRatioRange: filters.buyRatioRange,
+    sellRatioRange: filters.sellRatioRange,
+    largestLossRange: filters.largestLossRange,
+    highestProfitRange: filters.highestProfitRange,
+    avgReturnRange: filters.avgReturnRange,
+    timeframe: filters.timeframe,
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
+  },
+  1000 // 500ms delay
+);
 
-  // Check if input is a valid Ethereum address
-  const isValidAddress = (input: string): boolean => {
-    return input.startsWith('0x') && input.length === 42;
-  };
+// Check if input is a valid Ethereum address
+const isValidAddress = (input: string): boolean => {
+  return input.startsWith('0x') && input.length === 42;
+};
 
   // Function to search by username
   const searchUserByUsername = useCallback(async (username: string) => {
@@ -212,125 +228,124 @@ export function useUserAnalytics(): UseUserAnalyticsReturn {
   }, []);
 
   // Memoized function to fetch all users from database
-  const fetchAllUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+const fetchAllUsers = useCallback(async () => {
+  setLoading(true);
+  setError(null);
 
-    try {
-      const params = new URLSearchParams();
-      
-      if (filters.volumeRange[0] !== 0 || filters.volumeRange[1] !== 500) {
-        params.append('volumeRange', JSON.stringify(filters.volumeRange));
-      }
-      
-      if (filters.ageRange[0] !== 0 || filters.ageRange[1] !== 365) {
-        params.append('ageRange', JSON.stringify(filters.ageRange));
-      }
-      
-      if (filters.winRateRange[0] !== 0 || filters.winRateRange[1] !== 100) {
-        params.append('winRateRange', JSON.stringify(filters.winRateRange));
-      }
-      
-      if (filters.buyRatioRange[0] !== 0 || filters.buyRatioRange[1] !== 100) {
-        params.append('buyRatioRange', JSON.stringify(filters.buyRatioRange));
-      }
-      
-      if (filters.sellRatioRange[0] !== 0 || filters.sellRatioRange[1] !== 100) {
-        params.append('sellRatioRange', JSON.stringify(filters.sellRatioRange));
-      }
-      
-      if (filters.largestLossRange[0] !== -100 || filters.largestLossRange[1] !== 0) {
-        params.append('largestLossRange', JSON.stringify(filters.largestLossRange));
-      }
-      
-      if (filters.highestProfitRange[0] !== 0 || filters.highestProfitRange[1] !== 100) {
-        params.append('highestProfitRange', JSON.stringify(filters.highestProfitRange));
-      }
-      
-      if (filters.avgReturnRange[0] !== 0 || filters.avgReturnRange[1] !== 50) {
-        params.append('avgReturnRange', JSON.stringify(filters.avgReturnRange));
-      }
-
-      params.append('timeframe', filters.timeframe);
-      params.append('page', filters.page.toString());
-      params.append('limit', filters.limit.toString());
-      params.append('sortBy', filters.sortBy);
-      params.append('sortOrder', filters.sortOrder);
-
-      const response = await fetch(`/api/market/user/explorer?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
-      const data = await response.json();
-      setUsers(data.users || []);
-      setPagination(data.pagination || {
-        page: filters.page,
-        limit: 30,
-        total: 0,
-        totalPages: 0
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error fetching users:', err);
-    } finally {
-      setLoading(false);
+  try {
+    const params = new URLSearchParams();
+    
+    if (debouncedFilters.volumeRange[0] !== 0 || debouncedFilters.volumeRange[1] !== 500) {
+      params.append('volumeRange', JSON.stringify(debouncedFilters.volumeRange));
     }
-  }, [
-    filters.volumeRange,
-    filters.ageRange,
-    filters.winRateRange,
-    filters.buyRatioRange,
-    filters.sellRatioRange,
-    filters.largestLossRange,
-    filters.highestProfitRange,
-    filters.avgReturnRange,
-    filters.timeframe,
-    filters.page,
-    filters.sortBy,
-    filters.sortOrder,
-  ]);
-
-  // Main effect to handle fetching based on DEBOUNCED search query
-  useEffect(() => {
-    if (!debouncedSearchQuery || debouncedSearchQuery.length === 0) {
-      // No search query, fetch all users
-      fetchAllUsers();
-      return;
+    
+    if (debouncedFilters.ageRange[0] !== 0 || debouncedFilters.ageRange[1] !== 365) {
+      params.append('ageRange', JSON.stringify(debouncedFilters.ageRange));
+    }
+    
+    if (debouncedFilters.winRateRange[0] !== 0 || debouncedFilters.winRateRange[1] !== 100) {
+      params.append('winRateRange', JSON.stringify(debouncedFilters.winRateRange));
+    }
+    
+    if (debouncedFilters.buyRatioRange[0] !== 0 || debouncedFilters.buyRatioRange[1] !== 100) {
+      params.append('buyRatioRange', JSON.stringify(debouncedFilters.buyRatioRange));
+    }
+    
+    if (debouncedFilters.sellRatioRange[0] !== 0 || debouncedFilters.sellRatioRange[1] !== 100) {
+      params.append('sellRatioRange', JSON.stringify(debouncedFilters.sellRatioRange));
+    }
+    
+    if (debouncedFilters.largestLossRange[0] !== -100 || debouncedFilters.largestLossRange[1] !== 0) {
+      params.append('largestLossRange', JSON.stringify(debouncedFilters.largestLossRange));
+    }
+    
+    if (debouncedFilters.highestProfitRange[0] !== 0 || debouncedFilters.highestProfitRange[1] !== 100) {
+      params.append('highestProfitRange', JSON.stringify(debouncedFilters.highestProfitRange));
+    }
+    
+    if (debouncedFilters.avgReturnRange[0] !== 0 || debouncedFilters.avgReturnRange[1] !== 50) {
+      params.append('avgReturnRange', JSON.stringify(debouncedFilters.avgReturnRange));
     }
 
-    // Check if it's an address or username
-    if (isValidAddress(debouncedSearchQuery)) {
-      // Search by address
-      searchUserByAddress(debouncedSearchQuery);
-    } else {
-      // Search by username
-      searchUserByUsername(debouncedSearchQuery);
-    }
-  }, [debouncedSearchQuery, searchUserByAddress, searchUserByUsername, fetchAllUsers]);
+    params.append('timeframe', debouncedFilters.timeframe);
+    params.append('page', filters.page.toString());
+    params.append('limit', filters.limit.toString());
+    params.append('sortBy', debouncedFilters.sortBy);
+    params.append('sortOrder', debouncedFilters.sortOrder);
 
-  // Effect to handle filter changes (excluding search query and page)
-  useEffect(() => {
-    // Only fetch if there's no search query and we're not currently searching
-    if (!filters.searchQuery && !isSearchingAddress.current) {
+    const response = await fetch(`/api/market/user/explorer?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    const data = await response.json();
+    setUsers(data.users || []);
+    setPagination(data.pagination || {
+      page: filters.page,
+      limit: 30,
+      total: 0,
+      totalPages: 0
+    });
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'An error occurred');
+    console.error('Error fetching users:', err);
+  } finally {
+    setLoading(false);
+  }
+}, [
+  debouncedFilters.volumeRange,
+  debouncedFilters.ageRange,
+  debouncedFilters.winRateRange,
+  debouncedFilters.buyRatioRange,
+  debouncedFilters.sellRatioRange,
+  debouncedFilters.largestLossRange,
+  debouncedFilters.highestProfitRange,
+  debouncedFilters.avgReturnRange,
+  debouncedFilters.timeframe,
+  debouncedFilters.sortBy,
+  debouncedFilters.sortOrder,
+  filters.page,
+  filters.limit,
+]);
+
+const debouncedSearchQuery = useDebounce(filters.searchQuery, 300);
+
+useEffect(() => {
+  if (!debouncedSearchQuery || debouncedSearchQuery.length === 0) {
+    // No search query, fetch all users
+    if (!isSearchingAddress.current) {
       fetchAllUsers();
     }
-  }, [
-    filters.volumeRange,
-    filters.ageRange,
-    filters.winRateRange,
-    filters.buyRatioRange,
-    filters.sellRatioRange,
-    filters.largestLossRange,
-    filters.highestProfitRange,
-    filters.avgReturnRange,
-    filters.timeframe,
-    filters.page,
-    filters.sortBy,
-    filters.sortOrder,
-    fetchAllUsers
-  ]);
+    return;
+  }
+
+  // Check if it's an address or username
+  if (isValidAddress(debouncedSearchQuery)) {
+    searchUserByAddress(debouncedSearchQuery);
+  } else {
+    searchUserByUsername(debouncedSearchQuery);
+  }
+}, [
+  debouncedSearchQuery,
+  debouncedFilters.volumeRange,
+  debouncedFilters.ageRange,
+  debouncedFilters.winRateRange,
+  debouncedFilters.buyRatioRange,
+  debouncedFilters.sellRatioRange,
+  debouncedFilters.largestLossRange,
+  debouncedFilters.highestProfitRange,
+  debouncedFilters.avgReturnRange,
+  debouncedFilters.timeframe,
+  debouncedFilters.sortBy,
+  debouncedFilters.sortOrder,
+  filters.page,
+  searchUserByAddress,
+  searchUserByUsername,
+  fetchAllUsers
+]);
+
+
 
   const updateFilter = useCallback((key: keyof Filters, value: any) => {
     setFilters(prev => ({
