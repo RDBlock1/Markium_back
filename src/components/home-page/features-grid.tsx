@@ -222,7 +222,6 @@ export function FeaturesGrid({ features = DEFAULT_FEATURES, onNavigate }: Featur
             <h2
                 className={cn(
                     "via-foreground mb-8 bg-gradient-to-b mt-6 from-zinc-800 to-zinc-700 bg-clip-text text-center text-4xl font-semibold tracking-tighter text-transparent md:text-[54px] md:leading-[60px]",
-                    geist.className,
                 )}
             >
                 Features

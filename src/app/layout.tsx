@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/inline-script-id */
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Poppins } from "next/font/google";
+import {  Inconsolata } from "next/font/google";
 import "./globals.css";
 import { headers } from 'next/headers'
 
@@ -9,21 +9,10 @@ import { cookieToInitialState } from "wagmi";
 import { getConfig } from "@/utils/config";
 import Script from "next/script";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
+const inconsolata = Inconsolata({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inconsolata",
+  display: "swap",
 });
 
 
@@ -258,7 +247,7 @@ export default  async function RootLayout({
         `}
       </Script>
       <body
-        className={`${poppins.variable} ${geistSans.variable} ${geistMono.variable} antialiased font-poppins bg-black`}
+        className={`${inconsolata.variable} font-mono antialiased  bg-black`}
       >
 
       <Provider initialState={initialState}>

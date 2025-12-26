@@ -281,7 +281,7 @@ export default function Navbar() {
                         )}
                     </div>
 
-                    <Link href={"/#markets"}>
+                    <Link href={"/market"}>
                         <button
                             className={`relative px-4 py-2 transition-colors cursor-pointer ${activeSection === "testimonials"
                                 ? "text-foreground"

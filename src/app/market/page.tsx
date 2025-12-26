@@ -1,49 +1,47 @@
-"use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Settings } from "lucide-react"
-import MainContent from "@/components/markets/sports/main"
-import RightPanel from "@/components/markets/sports/right-panel"
-import Sidebar from "@/components/markets/sports/sidebar"
+import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { SearchAndFilters } from '@/components/markets/search-and-filters';
+import { MarketPageContent } from '@/components/markets/market-page-content';
+import { FeaturedMarkets } from '@/components/markets/featured-markets';
 
+// Server component wrapper
+export default async function MarketsPage({
+    searchParams
+}: {
+    searchParams: Promise<{ tag?: string }>;
+}) {
+    const params = await searchParams;
+    const queryClient = new QueryClient();
 
-export default function MarketPage() {
-    const [selectedTab, setSelectedTab] = useState("Games")
+    // Prefetch regular events (for non-mentions categories)
+    await queryClient.prefetchInfiniteQuery({
+        queryKey: ['events', 'trending', 'infinite', { limit: 50, tagSlug: params.tag }],
+        queryFn: () =>
+            api.get('/events/trending', {
+                params: { limit: 50, offset: 0, tag_slug: params.tag }
+            }).then(res => res.data),
+        initialPageParam: 0,
+    });
+
+    // Prefetch mentions if needed
+    await queryClient.prefetchInfiniteQuery({
+        queryKey: ['events', 'mentions', 'infinite'],
+        queryFn: () =>
+            api.get('/events/mentions', { params: { limit: 20, offset: 0 } })
+                .then(res => res.data),
+        initialPageParam: 0,
+    });
 
     return (
-        <div className="min-h-screen bg-background text-foreground font-sans">
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
-                <motion.h1 className="text-2xl font-bold text-cyan-500" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    Sports
-                </motion.h1>
-                <Settings className="w-5 h-5" />
+        <HydrationBoundary state={dehydrate(queryClient)}>
+
+            <div className="container mx-auto px-4 py-8">
+                <FeaturedMarkets />
+                <SearchAndFilters />
+                <MarketPageContent tagSlug={params.tag} />
             </div>
-
-            <div className="flex flex-col md:flex-row h-screen gap-0 md:gap-4">
-                {/* Sidebar - Hidden on mobile, visible on md+ */}
-                <div className="hidden md:block">
-                    <Sidebar />
-                </div>
-
-                {/* Main Content */}
-                <MainContent selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
-
-                {/* Right Panel - Hidden on mobile, visible on lg+ */}
-                <div className="hidden lg:block">
-                    {/* <RightPanel /> */}
-                </div>
-            </div>
-
-            {/* Mobile Right Panel */}
-            <motion.div
-                className="md:hidden border-t border-border bg-card p-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-            >
-                <RightPanel />
-            </motion.div>
-        </div>
-    )
+        </HydrationBoundary>
+    );
 }
+

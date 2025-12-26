@@ -1,9 +1,12 @@
 // app/page.tsx
 import { Metadata } from "next";
-import { baseUrl } from "@/utils";
-import MarketDashboardWrapper from "@/components/markets/market-dashboard-wrapper";
 import Hero from "@/components/home-page/hero";
 import { FeaturesGrid } from "@/components/home-page/features-grid";
+import { api } from "@/lib/api";
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import { SearchAndFilters } from "@/components/markets/search-and-filters";
+import { MarketPageContent } from "@/components/markets/market-page-content";
+import { cn } from "@/lib/utils";
 
 // Enable edge runtime for better performance
 
@@ -138,44 +141,50 @@ keywords: [
   }
 }
 
-// Fetch initial data with reduced payload
-async function getInitialMarkets() {
-  try {
-    // Fetch only first 50 markets for initial page load
-    const response = await fetch(`${baseUrl}/api/market?limit=50&offset=0&filter=${'trending'}`, {
-      next: { 
-        revalidate: 60,
-        tags: ['markets']
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch markets');
-    }
 
-
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching markets:', error);
-    // Return empty data structure to prevent page crash
-    return {
-      data: [],
-      hasMore: false,
-      total: 0
-    };
-  }
-}
 
 export default async function Page() {
   // Fetch initial data server-side
-  const initialData = await getInitialMarkets();
+
+  const queryClient = new QueryClient();
+  const params = { tag: undefined };
+
+  // Prefetch regular events (for non-mentions categories)
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: ['events', 'trending', 'infinite', { limit: 50, tagSlug: params }],
+    queryFn: () =>
+      api.get('/events/trending', {
+        params: { limit: 50, offset: 0, tag_slug: params?.tag }
+      }).then(res => res.data),
+    initialPageParam: 0,
+  });
+
+  // Prefetch mentions if needed
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: ['events', 'mentions', 'infinite'],
+    queryFn: () =>
+      api.get('/events/mentions', { params: { limit: 20, offset: 0 } })
+        .then(res => res.data),
+    initialPageParam: 0,
+  });
 
   return (
     <main className="flex-1 overflow-y-auto max-w-7xl mx-auto">
       <Hero/>
       <FeaturesGrid/>
-      <MarketDashboardWrapper initialData={initialData} />
+      <HydrationBoundary state={dehydrate(queryClient)}>
+         <h2
+                        className={cn(
+                            "via-foreground mb-8 bg-gradient-to-b mt-6 from-zinc-800 to-zinc-700 bg-clip-text text-center text-4xl font-semibold tracking-tighter text-transparent md:text-[54px] md:leading-[60px]",
+                        )}
+                    >
+                        Markets
+                    </h2>
+        <div className="container mx-auto px-4 py-8">
+          <SearchAndFilters />
+          <MarketPageContent tagSlug={params.tag} />
+        </div>
+      </HydrationBoundary>
     </main>
   );
 } 
