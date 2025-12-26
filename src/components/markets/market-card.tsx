@@ -38,6 +38,8 @@ export function MarketCard({ market }: { market: any }) {
     }
 
 
+    console.log(market)
+
     return (
         <div className="group relative" >
 

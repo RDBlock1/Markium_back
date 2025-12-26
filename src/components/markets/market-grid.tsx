@@ -73,6 +73,11 @@ export function MarketGrid({ tagSlug }: { tagSlug?: string }) {
     // ⭐ Apply Filters
     const filteredEvents = useMemo(() => {
         return all.filter((event: any) => {
+            // ⭐ FIRST: Skip events with empty markets array
+            if (!event.markets || event.markets.length === 0) {
+                return false;
+            }
+
             const eventTags = event.tags?.map((t: any) => t.slug.toLowerCase()) || [];
             const eventCategory = event.category?.toLowerCase() || '';
             const eventTitle = event.title?.toLowerCase() || '';
@@ -153,7 +158,7 @@ export function MarketGrid({ tagSlug }: { tagSlug?: string }) {
 
     return (
         <div>
-            <AnimatePresence mode="popLayout">4
+            <AnimatePresence mode="popLayout">
                 <motion.div
                     layout
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4"
