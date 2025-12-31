@@ -1,0 +1,477 @@
+//new prisma model file
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Account {
+  id                String  @id @default(cuid())
+  accountId         String? @map("account_id")  // optional
+  userId            String  @map("user_id")
+  type              String?                       // <- made optional
+  providerId          String?
+  providerAccountId String? @map("provider_account_id")
+  refresh_token     String? @db.Text
+  refreshToken String?
+  access_token      String? @db.Text
+  accessToken String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  idToken String?
+  session_state     String?
+accessTokenExpiresAt DateTime? @map("access_token_expires_at")
+createdAt        DateTime?  @map("created_at")
+updatedAt        DateTime?  @map("updated_at")
+sessionToken   String?  @map("session_token")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, providerAccountId])
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+
+
+model Session {
+  id           String    @id @default(cuid())
+  // Prisma field name matches Better-Auth payload (sessionToken)
+  // Map it to your DB column "session_token"
+  sessionToken String ?    @map("session_token") @default(uuid())
+  token        String?    @unique @default(uuid()) @map("token")  // Better-Auth primary lookup field
+
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Better-Auth sends `expiresAt` (Date). Map to your DB column "expires" (if that's what exists).
+  // Keep it optional initially to avoid destructive migration.
+  expiresAt    DateTime? @map("expires")
+
+  // Extra metadata Better-Auth may send
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+
+  // Timestamps (keep them in DB; non-destructive defaults)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
+  @@map("sessions")
+}
+
+
+model User {
+  id                    String               @id @default(cuid())
+  name                  String?
+  email                 String               @unique
+  emailVerified         Boolean?          @default(false) @map("email_verified")
+  password              String? // for Credentials
+  verifyToken           String? // for email verification
+  verifyTokenExpiry     DateTime? // for email verification
+    walletAddress   String?   @unique
+  clobApiKey      String?
+  clobSecret      String?  
+  clobPassphrase  String?  
+  image                 String?
+  accounts              Account[]
+  sessions              Session[]
+  blogPost              BlogPost[]
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  accessToken           String?              @map("access_token")
+  telegramIntegrationId String?              @map("telegram_integration_id")
+  telegramIntegration   TelegramIntegration?
+  watchLists            WatchList[]
+  conversations        Conversation[]
+  rulesConversations   RulesConversation[]
+
+
+  @@map("users")
+}
+
+// Add these models to your existing schema.prisma
+
+// Update your Verification model
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")  // ADD THIS LINE
+
+  @@unique([identifier, value])
+  @@map("verifications")
+}
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?  // Optional: first message or custom title
+  createdAt DateTime @default(now())
+    isFavorite Boolean  @default(false)  // Add this
+
+  updatedAt DateTime @updatedAt
+  
+  messages  Message[]
+  
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  type           String       // "user" or "system"
+  content        String       @db.Text
+  images         String[]     // Array of image URLs
+  completed      Boolean      @default(true)
+  
+  // Optional: Store market analysis metadata
+  marketData     Json?        // Store markets array as JSON
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([conversationId])
+  @@index([createdAt])
+}
+model RulesConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?  // Optional: first message or custom title
+  createdAt DateTime @default(now())
+    isFavorite Boolean  @default(false)  // Add this
+
+  updatedAt DateTime @updatedAt
+
+  messages  RulesMessage[]
+
+  @@index([userId])
+}
+
+model RulesMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   RulesConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  type           String       // "user" or "system"
+  content        String       @db.Text
+  images         String[]     // Array of image URLs
+  completed      Boolean      @default(true)
+  
+  // Optional: Store market analysis metadata
+  marketData     Json?        // Store markets array as JSON
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+
+model WatchList {
+  id            String   @id @default(cuid())
+  userId        String
+  marketId      String
+  triggerType   String   // e.g. "PRICE_ABOVE", "MARKET_CLOSE", "VOLUME_SPIKE"
+  triggerValue  Float?   // threshold, e.g. 0.7 for PRICE_ABOVE
+  frequency     String   @default("IMMEDIATE")
+  isActive      Boolean  @default(true)
+
+  isEmailNotification    Boolean @default(false)
+  isTelegramNotification Boolean @default(false)
+  lastNotifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+model TelegramIntegration {
+  id               String   @id @default(cuid())
+  userId           String   // or organizationId depending on your app's design
+  userName         String
+  chatId           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdById      String @unique
+  createdBy        User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+}
+
+
+
+
+model Market {
+  id            String    @id @default(cuid())
+  conditionId   String    @unique
+  marketId      String?
+  question      String    @db.Text
+  slug          String?
+  liquidity     Float     @default(0)
+  volume        Float     @default(0)
+  volume24hr    Float     @default(0)
+  active        Boolean   @default(true)
+  closed        Boolean   @default(false)
+  archived      Boolean   @default(false)
+  image         String?
+  category      String?
+  tags          String[]
+  outcomes      String[]
+  outcomePrices Float[]
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Indexes for better query performance
+  @@index([conditionId])
+  @@index([active, closed])
+  @@index([volume24hr])
+  @@index([liquidity])
+  @@index([createdAt])
+  @@index([category])
+  @@index([slug])
+}
+
+// Separate model for proxy wallets
+model ProxyWallet {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  createdAt DateTime @default(now())
+  
+  @@index([address])
+}
+
+// Optional: If you want to track sync history
+model SyncHistory {
+  id              String   @id @default(cuid())
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  marketsFound    Int      @default(0)
+  marketsStored   Int      @default(0)
+  marketsFailed   Int      @default(0)
+  walletsFound    Int      @default(0)
+  walletsStored   Int      @default(0)
+  status          SyncStatus @default(RUNNING)
+  error           String?
+  
+  @@index([startedAt])
+  @@index([status])
+}
+
+
+// Add these models to your existing schema.prisma file
+
+model UserAnalytics {
+  id                String              @id @default(cuid())
+  address           String              @unique
+  
+  // Overview metrics
+  totalVolume       Float               @default(0)
+  totalProfit       Float               @default(0)
+  positionValue     Float               @default(0)
+  totalTrades       Int                 @default(0)
+  totalPositions    Int                 @default(0)
+  averageWinRate    Float               @default(0)
+  avgMonthlyProfit  Float               @default(0)
+  avgMonthlyTrades  Int                 @default(0)
+  
+  // Trading insights
+  mostTradedCategory String?
+  tradingStyle       String?            // 'Buyer' | 'Seller'
+  riskProfile        String?            // 'High Risk' | 'Conservative'
+  
+  // Relationships
+  marketDistribution MarketDistribution[]
+  buySellData        BuySellData?
+  tradeSizeData      TradeSizeData?
+  priceStats         PriceStats?
+  monthlyPerformance MonthlyPerformance[]
+  weeklyWinRate      WeeklyWinRate[]
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  lastSyncedAt      DateTime?
+  
+  @@index([address])
+  @@index([updatedAt])
+}
+
+model MarketDistribution {
+  id             String         @id @default(cuid())
+  userId         String
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  market         String         // Category name
+  value          Int            // Percentage
+  trades         Int
+  volume         Float
+  uniqueMarkets  Int
+  
+  createdAt      DateTime       @default(now())
+  
+  @@index([userId])
+  @@unique([userId, market])
+}
+
+model BuySellData {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  buyPercentage  Int
+  sellPercentage Int
+  buyVolume      Float
+  sellVolume     Float
+  buyCount       Int
+  sellCount      Int
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model TradeSizeData {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  averageSize    Float
+  medianSize     Float
+  minSize        Float
+  maxSize        Float
+  smallTrades    Int           // < 100
+  mediumTrades   Int           // 100-1000
+  largeTrades    Int           // >= 1000
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model PriceStats {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  averagePrice   Float
+  minPrice       Float
+  maxPrice       Float
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model MonthlyPerformance {
+  id             String         @id @default(cuid())
+  userId         String
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  month          String         // Format: "Jan", "Feb", etc.
+  yearMonth      String         // Format: "2025-01" for sorting
+  profit         Float
+  volume         Float
+  trades         Int
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([userId])
+  @@index([yearMonth])
+  @@unique([userId, yearMonth])
+}
+
+model WeeklyWinRate {
+  id             String         @id @default(cuid())
+  userId         String
+  user           UserAnalytics  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  week           String         // Format: "W1", "W2", etc.
+  weekDate       DateTime       // Actual week start date
+  winRate        Float
+  totalTrades    Int
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([userId])
+  @@index([weekDate])
+  @@unique([userId, weekDate])
+}
+enum SyncStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+
+  // NEW FIELDS (nullable so this step is non-breaking)
+  description String?
+  date        DateTime?           // will backfill from createdAt
+  tagsArray   String[]  @default([]) @map("tags_array") // new array column
+  thumbnail   String?
+  featured    Boolean   @default(false)
+  readTime    String?
+  published   Boolean   @default(true)
+
+  // NEW AUTHOR FK (nullable)
+  authorUserId String?  @map("author_user_id")
+  authorUser   User?    @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  // OLD FIELDS (kept for now so we don't lose data)
+  content     String    @db.Text
+  tags        String    // old, single string
+  author      String?   // old, free-text author
+  // keep createdAt/updatedAt to help us backfill date
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([published])
+  @@index([date])
+}
+
+
+model Alert {
+  id            String   @id @default(cuid())
+  userId        String
+  userEmail     String
+  walletAddress String
+  tradeType     String   // 'both', 'buy', 'sell'
+  minAmount     String?
+  market        String   // 'all', 'sports', 'politics', 'crypto', 'pop-culture'
+  notifyVia     String   // 'app', 'email'
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([walletAddress])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  userEmail     String
+  walletAddress String
+  tradeType     String   // 'buy', 'sell'
+  amount        String
+  market        String
+  timestamp     DateTime @default(now())
+  read          Boolean  @default(false)
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([read])
+}
