@@ -247,10 +247,11 @@ export default async function RootLayout({
           gtag('config', '${GA_ID}');
         `}
       </Script>
-      <head>
-        <meta httpEquiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" /></head>
+      <head> 
+        <meta httpEquiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate" /> 
+     <meta httpEquiv="Pragma" content="no-cache" />
+ <meta httpEquiv="Expires" content="0" />
+ </head>
       <body
         className={` ${inconsolata.className}  antialiased bg-black`}
         
