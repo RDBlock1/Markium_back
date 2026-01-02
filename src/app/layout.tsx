@@ -8,6 +8,7 @@ import { cookieToInitialState } from "wagmi";
 
 import { headers } from "next/headers";
 import Script from "next/script";
+import { ChunkReloadHandler } from "./chunk-reload";
 
 
 const inconsolata = Inconsolata({
@@ -228,6 +229,7 @@ export default async function RootLayout({
   )
   return (
     <html lang="en" suppressContentEditableWarning suppressHydrationWarning>
+
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
         strategy="afterInteractive"
@@ -245,12 +247,17 @@ export default async function RootLayout({
           gtag('config', '${GA_ID}');
         `}
       </Script>
+      <head>
+        <meta httpEquiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" /></head>
       <body
         className={` ${inconsolata.className}  antialiased bg-black`}
         
       >
         <Provider initialState={initialState}>
-            {children}
+          <ChunkReloadHandler />
+          {children}
 
         </Provider>
 
