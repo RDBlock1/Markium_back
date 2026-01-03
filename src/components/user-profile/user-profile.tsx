@@ -3,12 +3,12 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { TrendingUp, Zap,Upload, AlertCircle, BarChart3, Target, Activity, AlertTriangle, Sparkles, Award, Copy } from "lucide-react"
+import { TrendingUp, Zap,Upload, AlertCircle, BarChart3, Target, Activity, AlertTriangle, Sparkles, Award, Copy, TrendingDown } from "lucide-react"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { motion, Variants } from "framer-motion"
 import { Skeleton } from "../ui/skeleton"
-import { Card, CardContent } from "../ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
@@ -810,18 +810,14 @@ export default function UserProfile({ address }: { address: string }) {
 
     const fetchAnalytics = useCallback(async () => {
         try {
-            const response = await fetch(`/api/market/analytics?address=${address}`)
+            const response = await fetch(`/api/polymarket/analytics?address=${address}`)
             if (!response.ok) throw new Error('Failed to fetch analytics')
             const data = await response.json()
+
+            console.log('📊 New Analytics Data:', data) // Debug log
             setAnalytics(data)
 
-            // Transform analytics data for the chart
-            if (data?.performanceData) {
-                const transformedData = data.performanceData.map((item: any) => ({
-                    date: item.month,
-                    value: item.profit
-                }))
-            }
+
         } catch (error) {
             console.error('Error fetching analytics:', error)
         }
@@ -1693,60 +1689,240 @@ export default function UserProfile({ address }: { address: string }) {
                                 ) : analytics ? (
 
                                     <>
-                                            <div className="space-y-8">
-                                                <div className="mb-8">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <Sparkles className="h-5 w-5 text-cyan-500" />
-                                                        <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
-                                                    </div>
-                                                    <p className="text-muted-foreground">Real-time trading performance and market insights</p>
-                                                </div>
 
-                                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                                    {[
-                                                        {
-                                                            label: "Total Profit",
-                                                            value: `${formatCurrency(metrics?.profit || 0)}`,
-                                                            icon: TrendingUp,
-                                                            color: "from-cyan-500/10 to-cyan-500/5",
-                                                        },
-                                                        {
-                                                            label: "Total Volume",
-                                                            value: `$${analytics.performanceData.reduce((sum: any, d: { volume: any }) => sum + d.volume, 0).toLocaleString()}`,
-                                                            icon: BarChart3,
-                                                            color: "from-emerald-500/10 to-emerald-500/5",
-                                                        },
-                                                        {
-                                                            label: "Win Rate",
-                                                            value: `${analytics.winRateData.length > 0 ? Math.round(analytics.winRateData[analytics.winRateData.length - 1].winRate) : 0}%`,
-                                                            icon: Award,
-                                                            color: "from-amber-500/10 to-amber-500/5",
-                                                        },
-                                                        {
-                                                            label: "Avg Trade Size",
-                                                            value: `$${analytics.tradeSizeDistribution.averageSize.toLocaleString()}`,
-                                                            icon: Zap,
-                                                            color: "from-orange-500/10 to-orange-500/5",
-                                                        },
-                                                    ].map((stat, idx) => {
-                                                        const Icon = stat.icon
-                                                        return (
-                                                            <div
-                                                                key={idx}
-                                                                className={`group relative rounded-xl border border-cyan-500/20 bg-gradient-to-br ${stat.color} backdrop-blur-lg p-6 transition-all duration-300 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/10`}
-                                                            >
-                                                                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-cyan-500/0 to-cyan-500/0 group-hover:from-cyan-500/5 group-hover:to-cyan-500/5 transition-all" />
-                                                                <div className="relative">
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                                                                        <Icon className="h-5 w-5 text-cyan-500/60 group-hover:text-cyan-500 transition-colors" />
+                                            <div className="mb-8">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Sparkles className="h-5 w-5 text-cyan-500" />
+                                                    <h1 className="text-3xl font-bold text-white">Enhanced Analytics</h1>
+                                                </div>
+                                                <p className="text-muted-foreground">Comprehensive trading performance insights</p>
+                                            </div>
+
+                                            {/* TOP METRICS ROW */}
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-3">
+                                                {/* Win Rate */}
+                                                <Card className=" bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-l border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+                                                    <CardContent className="p-6">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Win Rate</span>
+                                                            <Award className="h-4 w-4 text-emerald-500" />
+                                                        </div>
+                                                        <p className="text-3xl font-bold text-white mb-1">
+                                                            {analytics.overview.averageWinRate}%
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">
+                                                            {analytics.performanceMetrics.totalWins}W / {analytics.performanceMetrics.totalLosses}L
+                                                        </p>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Best Day */}
+                                                <Card className=" bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-l border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+                                                    <CardContent className="p-6">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Best Day</span>
+                                                            <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                                        </div>
+                                                        <p className="text-2xl font-bold text-emerald-400 mb-1">
+                                                            +{formatCurrency(analytics.overview.bestDay.profit)}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">{analytics.overview.bestDay.date}</p>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Current Streak */}
+                                                <Card className={` bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-l border transition-all ${analytics.performanceMetrics.currentStreak.type === 'win'
+                                                        ? 'border-emerald-500/20 hover:border-emerald-500/40'
+                                                        : 'border-red-500/20 hover:border-red-500/40'
+                                                    }`}>
+                                                    <CardContent className="p-6">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Current Streak</span>
+                                                            {analytics.performanceMetrics.currentStreak.type === 'win' ? (
+                                                                <span className="text-2xl">🔥</span>
+                                                            ) : (
+                                                                <TrendingDown className="h-4 w-4 text-red-500" />
+                                                            )}
+                                                        </div>
+                                                        <p className={`text-2xl font-bold mb-1 ${analytics.performanceMetrics.currentStreak.type === 'win'
+                                                                ? 'text-emerald-400'
+                                                                : 'text-red-400'
+                                                            }`}>
+                                                            {analytics.performanceMetrics.currentStreak.count}{' '}
+                                                            {analytics.performanceMetrics.currentStreak.type === 'win' ? 'Wins' : 'Losses'}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">
+                                                            Best: {analytics.performanceMetrics.longestWinStreak} wins
+                                                        </p>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+
+                                            {/* TRADING ACTIVITY HEATMAP */}
+                                            <Card className=" bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-lg border border-purple-500/20">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2">
+                                                        <Activity className="h-5 w-5 text-purple-500" />
+                                                        Trading Activity Heatmap
+                                                    </CardTitle>
+                                                    <p className="text-sm text-gray-400">24-hour trading pattern</p>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="grid grid-cols-24 gap-1">
+                                                        {analytics.tradingPatterns.hourlyActivity.map((hour:any) => {
+                                                            const maxTrades = Math.max(...analytics.tradingPatterns.hourlyActivity.map((h:any) => h.trades));
+                                                            const intensity = maxTrades > 0 ? hour.trades / maxTrades : 0;
+
+                                                            return (
+                                                                <div
+                                                                    key={hour.hour}
+                                                                    className="h-16 rounded cursor-pointer hover:scale-110 transition-all relative group"
+                                                                    style={{
+                                                                        backgroundColor: `rgba(6, 182, 212, ${intensity})`,
+                                                                        opacity: hour.trades === 0 ? 0.2 : 1
+                                                                    }}
+                                                                    title={`${hour.hour}:00 - ${hour.trades} trades`}
+                                                                >
+                                                                    <div className="absolute -bottom-6 text-xs text-gray-500 text-center w-full">
+                                                                        {hour.hour}
                                                                     </div>
-                                                                    <p className="text-2xl font-bold text-white">{stat.value}</p>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="mt-8 flex items-center justify-center gap-2">
+                                                        <Zap className="h-4 w-4 text-yellow-500" />
+                                                        <span className="text-sm text-gray-400">
+                                                            Most active: <strong className="text-cyan-400">
+                                                                {analytics.tradingPatterns.mostActiveHour}:00
+                                                            </strong>
+                                                        </span>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* POSITION HEALTH & WIN/LOSS COMPARISON */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {/* Open Positions Health */}
+                                                <Card className="bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-lg border border-cyan-500/20">
+                                                    <CardHeader>
+                                                        <CardTitle className="flex items-center gap-2">
+                                                            <Target className="h-5 w-5 text-cyan-500" />
+                                                            Open Positions Health
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10">
+                                                                <span className="text-emerald-400 font-medium">● Profitable</span>
+                                                                <span className="text-xl font-bold text-white">
+                                                                    {analytics.positionAnalysis.openPositions.profitable}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between p-3 rounded-lg bg-red-500/10">
+                                                                <span className="text-red-400 font-medium">● Losing</span>
+                                                                <span className="text-xl font-bold text-white">
+                                                                    {analytics.positionAnalysis.openPositions.losing}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-500/10">
+                                                                <span className="text-gray-400 font-medium">● Break-even</span>
+                                                                <span className="text-xl font-bold text-white">
+                                                                    {analytics.positionAnalysis.openPositions.breakeven}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="pt-4 border-t border-gray-700">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-gray-400">Unrealized P&L</span>
+                                                                    <span className={`text-xl font-bold ${analytics.positionAnalysis.openPositions.totalUnrealizedPnl >= 0
+                                                                            ? 'text-emerald-400'
+                                                                            : 'text-red-400'
+                                                                        }`}>
+                                                                        {formatCurrency(analytics.positionAnalysis.openPositions.totalUnrealizedPnl)}
+                                                                    </span>
                                                                 </div>
                                                             </div>
-                                                        )
-                                                    })}
-                                                </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Win vs Loss Comparison */}
+                                                <Card className=" bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-l border border-amber-500/20">
+                                                    <CardHeader>
+                                                        <CardTitle className="flex items-center gap-2">
+                                                            <BarChart3 className="h-5 w-5 text-amber-500" />
+                                                            Win vs Loss Analysis
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="space-y-6">
+                                                            <div>
+                                                                <div className="flex justify-between mb-2">
+                                                                    <span className="text-sm text-gray-400">Average Win</span>
+                                                                    <span className="text-sm font-bold text-emerald-400">
+                                                                        {formatCurrency(analytics.performanceMetrics.avgWinAmount)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="h-8 bg-gray-800 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center"
+                                                                        style={{
+                                                                            width: `${Math.min(
+                                                                                (analytics.performanceMetrics.avgWinAmount /
+                                                                                    (analytics.performanceMetrics.avgWinAmount + analytics.performanceMetrics.avgLossAmount)) * 100,
+                                                                                100
+                                                                            )}%`
+                                                                        }}
+                                                                    >
+                                                                        <span className="text-xs font-semibold text-white">
+                                                                            {formatCurrency(analytics.performanceMetrics.avgWinAmount)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div className="flex justify-between mb-2">
+                                                                    <span className="text-sm text-gray-400">Average Loss</span>
+                                                                    <span className="text-sm font-bold text-red-400">
+                                                                        {formatCurrency(analytics.performanceMetrics.avgLossAmount)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="h-8 bg-gray-800 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className="h-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center"
+                                                                        style={{
+                                                                            width: `${Math.min(
+                                                                                (analytics.performanceMetrics.avgLossAmount /
+                                                                                    (analytics.performanceMetrics.avgWinAmount + analytics.performanceMetrics.avgLossAmount)) * 100,
+                                                                                100
+                                                                            )}%`
+                                                                        }}
+                                                                    >
+                                                                        <span className="text-xs font-semibold text-white">
+                                                                            {formatCurrency(analytics.performanceMetrics.avgLossAmount)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="pt-4 border-t border-gray-700">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Win/Loss Ratio</span>
+                                                                    <span className="text-xl font-bold text-cyan-400">
+                                                                        {(analytics.performanceMetrics.avgWinAmount /
+                                                                            Math.max(analytics.performanceMetrics.avgLossAmount, 1)).toFixed(2)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                            <div className="space-y-8">
+
+
 
                                                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                                     {/* Profit Trend */}
@@ -1780,64 +1956,6 @@ export default function UserProfile({ address }: { address: string }) {
                                                     </div>
 
                                                     {/* Trading Volume */}
-                                                    <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-emerald-500/40">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <div>
-                                                                <h3 className="font-bold text-white text-lg">Trading Volume</h3>
-                                                                <p className="text-xs text-muted-foreground mt-0.5">Monthly transaction volume</p>
-                                                            </div>
-                                                            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                                                <BarChart3 className="h-4 w-4 text-emerald-500" />
-                                                            </div>
-                                                        </div>
-                                                        <ChartContainer config={{ volume: { label: "Volume", color: "#10b981" } }} className="h-[280px]">
-                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                <BarChart data={analytics.performanceData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(15 23 42 / 0.5)" vertical={false} />
-                                                                    <XAxis dataKey="month" stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
-                                                                    <YAxis stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
-                                                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                                                    <Bar dataKey="volume" fill="#10b981" radius={[8, 8, 0, 0]} />
-                                                                </BarChart>
-                                                            </ResponsiveContainer>
-                                                        </ChartContainer>
-                                                    </div>
-                                                </div>
-
-                                                {/* Secondary Grid */}
-                                                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                                                    {/* Win Rate Trend */}
-                                                    <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-amber-500/40">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <div>
-                                                                <h3 className="font-bold text-white text-lg">Win Rate Trend</h3>
-                                                                <p className="text-xs text-muted-foreground mt-0.5">Weekly success rate</p>
-                                                            </div>
-                                                            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                                                                <Target className="h-4 w-4 text-amber-500" />
-                                                            </div>
-                                                        </div>
-                                                        <ChartContainer config={{ winRate: { label: "Win Rate %", color: "#f59e0b" } }} className="h-[280px]">
-                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                <LineChart data={analytics.winRateData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(15 23 42 / 0.5)" vertical={false} />
-                                                                    <XAxis dataKey="week" stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
-                                                                    <YAxis domain={[0, 100]} stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
-                                                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                                                    <Line
-                                                                        type="monotone"
-                                                                        dataKey="winRate"
-                                                                        stroke="#f59e0b"
-                                                                        strokeWidth={3}
-                                                                        dot={{ fill: "#f59e0b", r: 5 }}
-                                                                        activeDot={{ r: 7 }}
-                                                                    />
-                                                                </LineChart>
-                                                            </ResponsiveContainer>
-                                                        </ChartContainer>
-                                                    </div>
-
-                                                    {/* Market Distribution */}
                                                     <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-purple-500/40">
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <div>
@@ -1866,6 +1984,92 @@ export default function UserProfile({ address }: { address: string }) {
                                                             ))}
                                                         </div>
                                                     </div>
+                                                    {/* <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-emerald-500/40">
+                                                        <div className="mb-4 flex items-center justify-between">
+                                                            <div>
+                                                                <h3 className="font-bold text-white text-lg">Trading Volume</h3>
+                                                                <p className="text-xs text-muted-foreground mt-0.5">Monthly transaction volume</p>
+                                                            </div>
+                                                            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                                                <BarChart3 className="h-4 w-4 text-emerald-500" />
+                                                            </div>
+                                                        </div>
+                                                        <ChartContainer config={{ volume: { label: "Volume", color: "#10b981" } }} className="h-[280px]">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart data={analytics.performanceData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(15 23 42 / 0.5)" vertical={false} />
+                                                                    <XAxis dataKey="month" stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
+                                                                    <YAxis stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
+                                                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                                                    <Bar dataKey="volume" fill="#10b981" radius={[8, 8, 0, 0]} />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        </ChartContainer>
+                                                    </div> */}
+                                                </div>
+
+                                                {/* Secondary Grid */}
+                                                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+                                                    {/* <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-amber-500/40">
+                                                        <div className="mb-4 flex items-center justify-between">
+                                                            <div>
+                                                                <h3 className="font-bold text-white text-lg">Win Rate Trend</h3>
+                                                                <p className="text-xs text-muted-foreground mt-0.5">Weekly success rate</p>
+                                                            </div>
+                                                            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                                                <Target className="h-4 w-4 text-amber-500" />
+                                                            </div>
+                                                        </div>
+                                                        <ChartContainer config={{ winRate: { label: "Win Rate %", color: "#f59e0b" } }} className="h-[280px]">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <LineChart data={analytics.winRateData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(15 23 42 / 0.5)" vertical={false} />
+                                                                    <XAxis dataKey="week" stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
+                                                                    <YAxis domain={[0, 100]} stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
+                                                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                                                    <Line
+                                                                        type="monotone"
+                                                                        dataKey="winRate"
+                                                                        stroke="#f59e0b"
+                                                                        strokeWidth={3}
+                                                                        dot={{ fill: "#f59e0b", r: 5 }}
+                                                                        activeDot={{ r: 7 }}
+                                                                    />
+                                                                </LineChart>
+                                                            </ResponsiveContainer>
+                                                        </ChartContainer>
+                                                    </div> */}
+
+
+                                                    {/* <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-purple-500/40">
+                                                        <div className="mb-4 flex items-center justify-between">
+                                                            <div>
+                                                                <h3 className="font-bold text-white text-lg">Market Distribution</h3>
+                                                                <p className="text-xs text-muted-foreground mt-0.5">Trading breakdown by market</p>
+                                                            </div>
+                                                            <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                                                <Activity className="h-4 w-4 text-purple-500" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-4">
+                                                            {analytics.marketDistribution.map((market: { market: string; value: number; trades: number }, index: number) => (
+                                                                <div key={market.market} className="space-y-1.5">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-medium text-white">{market.market}</span>
+                                                                        <span className="text-sm font-bold text-cyan-500">{market.value}%</span>
+                                                                    </div>
+                                                                    <div className="h-2 rounded-full bg-white/5 overflow-hidden border border-white/10">
+                                                                        <div
+                                                                            className="h-full rounded-full transition-all duration-500"
+                                                                            style={{ width: `${market.value}%`, backgroundColor: COLORS[index % COLORS.length] }}
+                                                                        />
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground">{market.trades} trades</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div> */}
                                                 </div>
 
                                                 {/* Bottom Grid */}
