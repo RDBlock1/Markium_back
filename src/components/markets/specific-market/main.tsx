@@ -505,55 +505,140 @@ export default function SpecificMarketMain({ params, marketData }: MarketPagePro
                     </div>
 
                     {/* Chart Component */}
-                    <div>
-                        {isChartDataReady && top4ClobTokenIds.length > 0 ? (
-                            <MultiHistoryChart
-                                clobIds={top4ClobTokenIds}
-                                marketNames={top4Markets.map((m: any) => m?.groupItemTitle || m?.name || "Market")}
-                                startTs={startTimestamp}
-                            />
-                        ) : (
-                            <div className="text-center text-zinc-400 py-6">Loading chart...</div>
-                        )}
-                    </div>
+                {
+                    marketData.closed === true ? (
+                        <div className="w-full p-6 rounded-lg bg-neutral-900 border border-zinc-700 flex flex-col items-center gap-6">
+                            <div className="flex items-center gap-4">
+                                {/* Inline resolved icon */}
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-emerald-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
 
-                    <div className="w-full">
-                        <div className="flex justify-between mt-8 px-2 mx-auto text-muted-foreground/75 font-medium">
-                            <p>Group Title</p>
-                            <p>Chance</p>
-                            <p>Trade</p>
+                                <div className="text-center">
+                                    <h2 className="text-xl font-bold text-white">This market is closed</h2>
+                                    <p className="text-sm text-muted-foreground">The market has resolved. Final outcomes and volumes are shown below.</p>
+                                </div>
+                            </div>
+
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {marketData.markets?.map((m: any, i: number) => {
+                                    const prices = (() => {
+                                        try {
+                                            return JSON.parse(m.outcomePrices || "[]") as string[];
+                                        } catch {
+                                            const s = String(m.outcomePrices || "[]").replace(/[\[\]\s"']+/g, "");
+                                            return s.split(",").filter(Boolean);
+                                        }
+                                    })();
+                                    const yes = Number.parseFloat(prices[0] ?? "0");
+                                    const no = Number.parseFloat(prices[1] ?? "0");
+                                    return (
+                                        <div key={i} className="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-white truncate">
+                                                        {m.groupItemTitle || m.question || `Outcome ${i + 1}`}
+                                                    </h3>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        Volume: {m?.volume ? formatVolume(Number(m.volume)) : "—"}
+                                                    </p>
+                                                </div>
+
+                                                <div className="text-right">
+                                                    <p className="text-lg font-bold text-white">
+                                                        {(yes * 100).toFixed(0)}%
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {(no * 100).toFixed(0)}% (other)
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {m.resolution && (
+                                                <p className="mt-3 text-xs text-muted-foreground">
+                                                    Resolved as: <span className="text-sm text-white font-medium ml-1">{String(m.resolution)}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button variant="default" disabled>Market Closed</Button>
+                                <Button variant="ghost" className="ml-2" onClick={() => {
+                                    // lightweight client-side navigation or analytics hook could go here
+                                    console.log('View history clicked');
+                                }}>
+                                    View market history
+                                </Button>
+                                <Button variant="outline" className="ml-2" onClick={() => {
+                                    console.log('Explore similar markets');
+                                }}>
+                                    Explore similar markets
+                                </Button>
+                            </div>
                         </div>
 
-                        {/* Top 3 Markets */}
-                        {top3Markets.map((market: any, index) => (
-                            <MarketRow key={`top3-${index}`} market={market} index={index} />
-                        ))}
-
-                        {/* More Markets toggle */}
-                        {!isMoreMarketOpen && otherMarkets.length > 0 && (
-                            <div
-                                className="py-4 font-medium ml-1 cursor-pointer hover:text-primary transition-colors"
-                                onClick={() => setIsMoreMarketOpen(!isMoreMarketOpen)}
-                            >
-                                More Markets ({otherMarkets.length})
-                            </div>
+                    )
+                    :
+                    (
+                                <div>
+                        {isChartDataReady && top4ClobTokenIds.length > 0 ? (
+                    <MultiHistoryChart
+                        clobIds={top4ClobTokenIds}
+                        marketNames={top4Markets.map((m: any) => m?.groupItemTitle || m?.name || "Market")}
+                        startTs={startTimestamp}
+                    />
+                    ) : (
+                    <div className="text-center text-zinc-400 py-6">Loading chart...</div>
                         )}
+                </div>
+                    )
+                }
 
-                        {/* Other Markets */}
-                        {isMoreMarketOpen && otherMarkets.map((market: any, index) => (
-                            <MarketRow key={`other-${index}`} market={market} index={index + top3Markets.length} />
-                        ))}
+                 
+                {
+                    marketData.closed !== true && (
+                            <div className="w-full">
+                                <div className="flex justify-between mt-8 px-2 mx-auto text-muted-foreground/75 font-medium">
+                                    <p>Group Title</p>
+                                    <p>Chance</p>
+                                    <p>Trade</p>
+                                </div>
 
-                        {/* Show Less toggle */}
-                        {isMoreMarketOpen && (
-                            <div
-                                className="py-4 font-medium ml-1 cursor-pointer hover:text-primary transition-colors"
-                                onClick={() => setIsMoreMarketOpen(!isMoreMarketOpen)}
-                            >
-                                Show Less ^
+                                {/* Top 3 Markets */}
+                                {top3Markets.map((market: any, index) => (
+                                    <MarketRow key={`top3-${index}`} market={market} index={index} />
+                                ))}
+
+                                {/* More Markets toggle */}
+                                {!isMoreMarketOpen && otherMarkets.length > 0 && (
+                                    <div
+                                        className="py-4 font-medium ml-1 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => setIsMoreMarketOpen(!isMoreMarketOpen)}
+                                    >
+                                        More Markets ({otherMarkets.length})
+                                    </div>
+                                )}
+
+                                {/* Other Markets */}
+                                {isMoreMarketOpen && otherMarkets.map((market: any, index) => (
+                                    <MarketRow key={`other-${index}`} market={market} index={index + top3Markets.length} />
+                                ))}
+
+                                {/* Show Less toggle */}
+                                {isMoreMarketOpen && (
+                                    <div
+                                        className="py-4 font-medium ml-1 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => setIsMoreMarketOpen(!isMoreMarketOpen)}
+                                    >
+                                        Show Less ^
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                    )
+                }
 
                     <div>
                         <div className="flex items-center justify-between mt-10 mb-4 px-2">

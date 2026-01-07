@@ -33,6 +33,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import PolymarketPositionCard, { PositionCard } from "./polymarket-position-card"
 import UserAlertSystem from "./user-alert-system"
+import { TradingActivityHeatmap } from "./trading-heatmap"
 
 
 const PositionItem = ({
@@ -251,7 +252,7 @@ const PositionItem = ({
                         {
                             isOpen ? (
                                 <>
-                                    <Link href={`/market/${position.eventSlug}`} target="_blank" rel="noopener noreferrer" className="col-span-5 flex items-center gap-3">
+                                    <Link href={`/market/${position.eventSlug}`} target="_blank" rel="noopener noreferrer" className="col-span-8 flex items-center gap-3">
                                         <div className="relative">
                                             {position.icon ? (
                                                 <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
@@ -285,44 +286,53 @@ const PositionItem = ({
                                         </div>
                                     </Link>
 
-                                    <div className="col-span-2 text-center">
-                                        <p className="text-white font-semibold">
-                                            {isOpen ? formatNumber(position.shares) : formatNumber(position.totalBought)}
-                                        </p>
-                                        <p className="text-gray-400 text-xs">shares</p>
-                                    </div>
+
 
                                     <div className="col-span-1 text-center">
-                                        <p className="text-white font-semibold">{(position.avgPrice * 100).toFixed(1)}¢</p>
+                                        <p className="text-white font-semibold">
+                                            {(() => {
+                                                const cents = position.avgPrice * 100;
+                                                const display = Number.isInteger(cents) ? cents : Math.ceil(cents);
+                                                return `${display}¢`;
+                                            })()}
+                                        </p>
                                         <p className="text-gray-400 text-xs">avg</p>
                                     </div>
 
                                     <div className="col-span-1 text-center">
-                                        <p className="text-white font-semibold">{(position.currentPrice * 100).toFixed(1)}¢</p>
+                                        <p className="text-white font-semibold">
+                                            {(() => {
+                                                const cents = position.currentPrice * 100;
+                                                const display = Number.isInteger(cents) ? cents : Math.ceil(cents);
+                                                return `${display}¢`;
+                                            })()}
+                                        </p>
                                         <p className="text-gray-400 text-xs">current</p>
                                     </div>
 
-                                    <div className="col-span-3 text-right">
-                                        <p className="text-white font-semibold">
-                                            {isOpen ? formatCurrency(position.currentValue) : formatCurrency(position.pnl)}
-                                        </p>
-                                        <p className={`text-sm font-medium ${isOpen
-                                            ? position.percentPnl > 0
-                                                ? "text-emerald-400"
-                                                : position.percentPnl < 0
-                                                    ? "text-red-400"
-                                                    : "text-gray-400"
-                                            : position.realizedPnl > 0
-                                                ? "text-emerald-400"
-                                                : position.realizedPnl < 0
-                                                    ? "text-red-400"
-                                                    : "text-gray-400"
-                                            }`}>
-                                            {isOpen
-                                                ? `${position.percentPnl > 0 ? "+" : ""}${position.percentPnl.toFixed(1)}%`
-                                                : `${position.realizedPnl > 0 ? "+" : ""}${position.realizedPnl.toFixed(1)}%`}
-                                        </p>
+                                    <div className="col-span-1 text-right flex gap-x-5">
+                                      <div>
+                                            <p className="text-white font-semibold">
+                                                {isOpen ? formatCurrency(position.currentValue) : formatCurrency(position.pnl)}
+                                            </p>
+                                            <p className={`text-sm font-medium ${isOpen
+                                                ? position.percentPnl > 0
+                                                    ? "text-emerald-400"
+                                                    : position.percentPnl < 0
+                                                        ? "text-red-400"
+                                                        : "text-gray-400"
+                                                : position.realizedPnl > 0
+                                                    ? "text-emerald-400"
+                                                    : position.realizedPnl < 0
+                                                        ? "text-red-400"
+                                                        : "text-gray-400"
+                                                }`}>
+                                                {isOpen
+                                                    ? `${position.percentPnl > 0 ? "+" : ""}${position.percentPnl.toFixed(1)}%`
+                                                    : `${position.realizedPnl > 0 ? "+" : ""}${position.realizedPnl.toFixed(1)}%`}
+                                            </p>
 
+                                      </div>
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -339,7 +349,7 @@ const PositionItem = ({
                                 :
 
                                 <>
-                                    <Link href={`/market/${position.eventSlug}`} target="_blank" rel="noopener noreferrer" className="col-span-5 flex items-center gap-3">
+                                    <Link href={`/market/${position.eventSlug}`} target="_blank" rel="noopener noreferrer" className="col-span-8 flex items-center gap-3">
                                         <div className="relative">
                                             {position.icon ? (
                                                 <img src={position.icon} alt="" className="w-10 h-10 rounded-lg" />
@@ -390,7 +400,7 @@ const PositionItem = ({
 
 
 
-                                    <div className="col-span-1 text-center">
+                                    <div className="col-span-2 text-center">
                                         <p className="text-white font-semibold">
                                             $
                                             {
@@ -402,43 +412,24 @@ const PositionItem = ({
                                                 })
                                             }
                                         </p>
-                                    </div>
-
-                                    <div className="col-span-1 text-center">
-                                        <p className="text-white font-semibold">
-                                            $
-                                            {
-                                                calculateProfit({
-                                                    avgPrice: position.avgPrice,
-                                                    totalBought: position.totalBought,
-                                                    realizedPnl: position.realizedPnl,
-                                                    curPrice: position.currentPrice
-                                                })
-                                            }
-                                        </p>
-                                    </div>
-
-
-                                    <div className="col-span-3 text-right  flex  w-full items-center justify-end gap-x-4">
-                                       <div>
-                                            {calculateProfitPercentage({
+                                        {(() => {
+                                            const profit = calculateProfit({
                                                 avgPrice: position.avgPrice,
                                                 totalBought: position.totalBought,
                                                 realizedPnl: position.realizedPnl,
                                                 curPrice: position.currentPrice
-                                            })}%
-                                       </div>
-
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => handleCreatePositionCard(position!)}
-                                            className="bg-gradient-to-r from-cyan-600/20 to-cyan-600/20 border-cyan-500/30 hover:from-cyan-600/30 hover:to-cyan-600/30 text-cyan-300 hover:text-cyan-200 transition-all duration-200"
-                                        >
-                                            <Upload className="h-4 w-4" />
-                                        </Button>
+                                            })
+                                            const num = Number(profit)
+                                            const cls = num > 0 ? "text-emerald-400 font-semibold" : num < 0 ? "text-red-400 font-semibold" : "text-gray-400"
+                                            return (
+                                                <span className={cls}>
+                                                    {typeof profit === "number" ? formatCurrency(num) : profit}
+                                                </span>
+                                            )
+                                        })()}
 
                                     </div>
+
 
                                 </>
 
@@ -1472,23 +1463,20 @@ export default function UserProfile({ address }: { address: string }) {
                             ) : (
                                 <>
                                     {/* Desktop Table Header */}
-                                    <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 text-sm text-gray-400 font-semibold border-b border-zinc-800 bg-zinc-900/50 rounded-t-lg">
+                                    <div className="hidden md:grid md:grid-cols-12 gap-4  px-6 py-4 text-sm text-gray-400 font-semibold border-b border-zinc-800 bg-zinc-900/50 rounded-t-lg">
                                         {
                                             positionFilter == "open" ? (
                                                 <>
-                                                    <div className="col-span-5">MARKET</div>
-                                                    <div className="col-span-2 text-center">SHARES</div>
+                                                    <div className="col-span-8">MARKET</div>
                                                     <div className="col-span-1 text-center">AVG</div>
                                                     <div className="col-span-1 text-center">CURRENT</div>
-                                                    <div className="col-span-3 text-right">VALUE / P&L</div>
+                                                    <div className="col-span-1 text-right">VALUE</div>
                                                 </>
                                             ) : positionFilter === "closed" ? (
                                                 <>
-                                                    <div className="col-span-5">MARKET</div>
+                                                    <div className="col-span-8">MARKET</div>
                                                     <div className="col-span-2 text-center">TOTAL BET</div>
-                                                    <div className="col-span-1 text-center">AMOUNT</div>
-                                                    <div className="col-span-1 text-center">PROFIT</div>
-                                                    <div className="col-span-3 text-right">PROFIT %</div>
+                                                    <div className="col-span-2 text-center">AMOUNT</div>
                                                 </>
                                             ) : null}
                                     </div>
@@ -1708,7 +1696,7 @@ export default function UserProfile({ address }: { address: string }) {
                                                             <Award className="h-4 w-4 text-emerald-500" />
                                                         </div>
                                                         <p className="text-3xl font-bold text-white mb-1">
-                                                            {analytics.overview.averageWinRate}%
+                                                            {analytics.overview.averageWinRate.toFixed(1)}%
                                                         </p>
                                                         <p className="text-xs text-gray-400">
                                                             {analytics.performanceMetrics.totalWins}W / {analytics.performanceMetrics.totalLosses}L
@@ -1759,47 +1747,11 @@ export default function UserProfile({ address }: { address: string }) {
                                             </div>
 
                                             {/* TRADING ACTIVITY HEATMAP */}
-                                            <Card className=" bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-lg border border-purple-500/20">
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center gap-2">
-                                                        <Activity className="h-5 w-5 text-purple-500" />
-                                                        Trading Activity Heatmap
-                                                    </CardTitle>
-                                                    <p className="text-sm text-gray-400">24-hour trading pattern</p>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <div className="grid grid-cols-24 gap-1">
-                                                        {analytics.tradingPatterns.hourlyActivity.map((hour:any) => {
-                                                            const maxTrades = Math.max(...analytics.tradingPatterns.hourlyActivity.map((h:any) => h.trades));
-                                                            const intensity = maxTrades > 0 ? hour.trades / maxTrades : 0;
+                                            <TradingActivityHeatmap
+                                                hourlyActivity={analytics.tradingPatterns.hourlyActivity}
+                                                mostActiveHour={analytics.tradingPatterns.mostActiveHour}
+                                            />
 
-                                                            return (
-                                                                <div
-                                                                    key={hour.hour}
-                                                                    className="h-16 rounded cursor-pointer hover:scale-110 transition-all relative group"
-                                                                    style={{
-                                                                        backgroundColor: `rgba(6, 182, 212, ${intensity})`,
-                                                                        opacity: hour.trades === 0 ? 0.2 : 1
-                                                                    }}
-                                                                    title={`${hour.hour}:00 - ${hour.trades} trades`}
-                                                                >
-                                                                    <div className="absolute -bottom-6 text-xs text-gray-500 text-center w-full">
-                                                                        {hour.hour}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                    <div className="mt-8 flex items-center justify-center gap-2">
-                                                        <Zap className="h-4 w-4 text-yellow-500" />
-                                                        <span className="text-sm text-gray-400">
-                                                            Most active: <strong className="text-cyan-400">
-                                                                {analytics.tradingPatterns.mostActiveHour}:00
-                                                            </strong>
-                                                        </span>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
 
                                             {/* POSITION HEALTH & WIN/LOSS COMPARISON */}
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1956,7 +1908,7 @@ export default function UserProfile({ address }: { address: string }) {
                                                     </div>
 
                                                     {/* Trading Volume */}
-                                                    <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-purple-500/40">
+                                                    {/* <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-purple-500/40">
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <div>
                                                                 <h3 className="font-bold text-white text-lg">Market Distribution</h3>
@@ -1983,7 +1935,7 @@ export default function UserProfile({ address }: { address: string }) {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                    </div>
+                                                    </div> */}
                                                     {/* <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-emerald-500/40">
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <div>
@@ -2006,7 +1958,38 @@ export default function UserProfile({ address }: { address: string }) {
                                                             </ResponsiveContainer>
                                                         </ChartContainer>
                                                     </div> */}
+
+                                                    <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-amber-500/40">
+                                                        <div className="mb-4 flex items-center justify-between">
+                                                            <div>
+                                                                <h3 className="font-bold text-white text-lg">Win Rate Trend</h3>
+                                                                <p className="text-xs text-muted-foreground mt-0.5">Weekly success rate</p>
+                                                            </div>
+                                                            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                                                <Target className="h-4 w-4 text-amber-500" />
+                                                            </div>
+                                                        </div>
+                                                        <ChartContainer config={{ winRate: { label: "Win Rate %", color: "#f59e0b" } }} className="h-[280px]">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <LineChart data={analytics.winRateData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(15 23 42 / 0.5)" vertical={false} />
+                                                                    <XAxis dataKey="week" stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
+                                                                    <YAxis domain={[0, 100]} stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
+                                                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                                                    <Line
+                                                                        type="monotone"
+                                                                        dataKey="winRate"
+                                                                        stroke="#f59e0b"
+                                                                        strokeWidth={3}
+                                                                        dot={{ fill: "#f59e0b", r: 5 }}
+                                                                        activeDot={{ r: 7 }}
+                                                                    />
+                                                                </LineChart>
+                                                            </ResponsiveContainer>
+                                                        </ChartContainer>
+                                                    </div>
                                                 </div>
+
 
                                                 {/* Secondary Grid */}
                                                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -2041,8 +2024,8 @@ export default function UserProfile({ address }: { address: string }) {
                                                         </ChartContainer>
                                                     </div> */}
 
-
-                                                    {/* <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-purple-500/40">
+{/* 
+                                                    <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-lg p-6 transition-all hover:border-purple-500/40">
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <div>
                                                                 <h3 className="font-bold text-white text-lg">Market Distribution</h3>
