@@ -66,7 +66,21 @@ export async function PATCH(
       where: {
         id: id,
         userEmail: session.user.email
-      }
+      },
+       select: {
+    id: true,
+    userId: true,
+    userEmail: true,
+    walletAddress: true,
+    tradeType: true,
+    minAmount: true,
+    market: true,
+    notifyVia: true,
+    telegramNotify: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  }
     });
 
     if (!existingAlert) {
