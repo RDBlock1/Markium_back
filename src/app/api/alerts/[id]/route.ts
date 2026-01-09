@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/alerts/[id]/route.ts - Updated with monitoring unregistration
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -62,12 +63,14 @@ export async function PATCH(
     }
 
     // Check if alert exists and belongs to user
- const existingAlert = await prisma.alert.findUnique({
-  where: { id }
-}) as {
-  telegramNotify: boolean;
-  userEmail: string;
-};
+const existingAlert = await prisma.alert.findUnique({
+  where: { id },
+  select: {
+    userEmail: true,
+    telegramNotify: true,
+  } as any,
+});
+
 
     if (!existingAlert) {
       return NextResponse.json({ error: 'Alert not found' }, { status: 404 });
