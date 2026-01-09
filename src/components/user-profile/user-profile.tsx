@@ -1969,22 +1969,43 @@ export default function UserProfile({ address }: { address: string }) {
                                                                 <Target className="h-4 w-4 text-amber-500" />
                                                             </div>
                                                         </div>
-                                                        <ChartContainer config={{ winRate: { label: "Win Rate %", color: "#f59e0b" } }} className="h-[280px]">
+                                                        <ChartContainer
+                                                            config={{
+                                                                winRate: { label: "Win Rate %", color: "#f59e0b" },
+                                                                totalTrades: { label: "Total Trades", color: "#6366f1" }
+                                                            }}
+                                                            className="h-[280px]"
+                                                        >
                                                             <ResponsiveContainer width="100%" height="100%">
-                                                                <LineChart data={analytics.winRateData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(15 23 42 / 0.5)" vertical={false} />
-                                                                    <XAxis dataKey="week" stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
-                                                                    <YAxis domain={[0, 100]} stroke="rgb(100 116 139)" style={{ fontSize: "12px" }} />
-                                                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                                                    <Line
-                                                                        type="monotone"
-                                                                        dataKey="winRate"
-                                                                        stroke="#f59e0b"
-                                                                        strokeWidth={3}
-                                                                        dot={{ fill: "#f59e0b", r: 5 }}
-                                                                        activeDot={{ r: 7 }}
+                                                                <BarChart
+                                                                    data={analytics.winRateData}
+                                                                    margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+                                                                >
+                                                                    <CartesianGrid
+                                                                        strokeDasharray="3 3"
+                                                                        stroke="rgb(15 23 42 / 0.5)"
+                                                                        vertical={false}
                                                                     />
-                                                                </LineChart>
+                                                                    <XAxis
+                                                                        dataKey="week"
+                                                                        stroke="rgb(100 116 139)"
+                                                                        style={{ fontSize: "12px" }}
+                                                                    />
+                                                                    <YAxis
+                                                                        domain={[0, 100]}
+                                                                        stroke="rgb(100 116 139)"
+                                                                        style={{ fontSize: "12px" }}
+                                                                    />
+                                                                    <ChartTooltip
+                                                                        content={<ChartTooltipContent />}
+                                                                    />
+                                                                    <Bar
+                                                                        dataKey="winRate"
+                                                                        fill="#f59e0b"
+                                                                        radius={[4, 4, 0, 0]}
+                                                                        maxBarSize={40}
+                                                                    />
+                                                                </BarChart>
                                                             </ResponsiveContainer>
                                                         </ChartContainer>
                                                     </div>

@@ -29,10 +29,10 @@ interface ChatInputProps {
 }
 
 const defaultTrendingMarkets = [
-    "Fed decision in December?",
+    "Will Trump acquire Greenland before 2027?",
     "Super Bowl Champion 2026",
-    "When will the Government shutdown end?",
-    "Gemini 3.0 released by...?",
+    "2026 FIFA World Cup Winner?",
+    "Russian x Ukraine ceasefire by January 31, 2026?",
     "Democratic Presidential Nominee 2028",
 ]
 

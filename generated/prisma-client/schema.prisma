@@ -13,8 +13,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
-
 // ============================================================================
 // EXISTING MODELS (Keep your existing User, Session, Account, etc.)
 // ============================================================================
@@ -48,27 +46,27 @@ model User {
 }
 
 model Account {
-  id                    String    @id @default(cuid())
-  accountId             String?   @map("account_id")
-  userId                String    @map("user_id")
-  type                  String?
-  providerId            String?
-  providerAccountId     String?   @map("provider_account_id")
-  refresh_token         String?   @db.Text
-  refreshToken          String?
-  access_token          String?   @db.Text
-  accessToken           String?
-  expires_at            Int?
-  token_type            String?
-  scope                 String?
-  id_token              String?   @db.Text
-  idToken               String?
-  session_state         String?
-  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
-  createdAt             DateTime? @map("created_at")
-  updatedAt             DateTime? @map("updated_at")
-  sessionToken          String?   @map("session_token")
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(cuid())
+  accountId            String?   @map("account_id")
+  userId               String    @map("user_id")
+  type                 String?
+  providerId           String?
+  providerAccountId    String?   @map("provider_account_id")
+  refresh_token        String?   @db.Text
+  refreshToken         String?
+  access_token         String?   @db.Text
+  accessToken          String?
+  expires_at           Int?
+  token_type           String?
+  scope                String?
+  id_token             String?   @db.Text
+  idToken              String?
+  session_state        String?
+  accessTokenExpiresAt DateTime? @map("access_token_expires_at")
+  createdAt            DateTime? @map("created_at")
+  updatedAt            DateTime? @map("updated_at")
+  sessionToken         String?   @map("session_token")
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, providerAccountId])
   @@unique([providerId, accountId])
@@ -110,11 +108,11 @@ model Alert {
   id              String            @id @default(cuid())
   userId          String
   userEmail       String
-  walletAddress   String            // Polymarket proxy wallet address
-  tradeType       String            // 'both', 'buy', 'sell'
+  walletAddress   String // Polymarket proxy wallet address
+  tradeType       String // 'both', 'buy', 'sell'
   minAmount       String?
-  market          String            // 'all', 'sports', 'politics', 'crypto', 'pop-culture'
-  notifyVia       String            // 'app', 'email', 'both'
+  market          String // 'all', 'sports', 'politics', 'crypto', 'pop-culture'
+  notifyVia       String // 'app', 'email', 'both'
   telegramNotify  Boolean           @default(false)
   isActive        Boolean           @default(true)
   createdAt       DateTime          @default(now())
@@ -157,8 +155,8 @@ model MonitoredWallet {
   proxyWallet           String   @unique // Polymarket proxy wallet address
   alertId               String   @unique // Link to the alert
   alert                 Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  lastActivityTimestamp Int?     // Unix timestamp of last processed activity
-  lastActivityHash      String?  // Transaction hash to prevent duplicates
+  lastActivityTimestamp Int? // Unix timestamp of last processed activity
+  lastActivityHash      String? // Transaction hash to prevent duplicates
   totalActivities       Int      @default(0)
   lastCheckedAt         DateTime @default(now())
   isActive              Boolean  @default(true)
@@ -175,15 +173,15 @@ model MonitoredWallet {
 model PolymarketActivity {
   id               String   @id @default(cuid())
   proxyWallet      String
-  timestamp        Int      // Unix timestamp from API
+  timestamp        Int // Unix timestamp from API
   conditionId      String
-  type             String   // 'BUY', 'SELL', 'REDEEM', etc.
+  type             String // 'BUY', 'SELL', 'REDEEM', etc.
   size             Float
   usdcSize         Float
   transactionHash  String   @unique
   price            Float?
   asset            String?
-  side             String?  // 'YES' or 'NO'
+  side             String? // 'YES' or 'NO'
   outcomeIndex     Int?
   title            String
   slug             String
@@ -206,12 +204,12 @@ model PolymarketActivity {
 model MonitoringJobLog {
   id                  String    @id @default(cuid())
   jobType             String    @default("wallet_monitor")
-  status              String    // 'started', 'completed', 'failed'
+  status              String // 'started', 'completed', 'failed'
   walletsChecked      Int       @default(0)
   activitiesFound     Int       @default(0)
   activitiesProcessed Int       @default(0)
   notificationsQueued Int       @default(0)
-  duration            Int?      // milliseconds
+  duration            Int? // milliseconds
   error               String?
   startedAt           DateTime  @default(now())
   completedAt         DateTime?
@@ -233,14 +231,14 @@ model NotificationQueue {
   userEmail     String
   alertId       String
   walletAddress String
-  activityId    String?            // Reference to PolymarketActivity
-  tradeType     String             // 'buy', 'sell', 'redeem'
+  activityId    String? // Reference to PolymarketActivity
+  tradeType     String // 'buy', 'sell', 'redeem'
   amount        String
   market        String
   marketId      String?
   marketUrl     String?
   marketIcon    String?
-  notifyVia     String             // 'email', 'telegram', or 'both'
+  notifyVia     String // 'email', 'telegram', or 'both'
   status        NotificationStatus @default(PENDING)
   attempts      Int                @default(0)
   maxAttempts   Int                @default(3)
@@ -273,12 +271,12 @@ model NotificationLog {
   alertId       String
   alert         Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
   walletAddress String
-  activityId    String?  // Reference to PolymarketActivity
+  activityId    String? // Reference to PolymarketActivity
   tradeType     String
   amount        String
   market        String
-  notifyVia     String   // 'email' or 'telegram'
-  status        String   // 'sent', 'failed'
+  notifyVia     String // 'email' or 'telegram'
+  status        String // 'sent', 'failed'
   error         String?
   sentAt        DateTime @default(now())
 
@@ -292,11 +290,11 @@ model NotificationLog {
 // Track notification cron job runs
 model CronJobLog {
   id          String    @id @default(cuid())
-  jobType     String    // 'notification_processor', 'cleanup', etc.
-  status      String    // 'started', 'completed', 'failed'
+  jobType     String // 'notification_processor', 'cleanup', etc.
+  status      String // 'started', 'completed', 'failed'
   processed   Int       @default(0)
   failed      Int       @default(0)
-  duration    Int?      // milliseconds
+  duration    Int? // milliseconds
   error       String?
   startedAt   DateTime  @default(now())
   completedAt DateTime?
