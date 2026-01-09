@@ -62,26 +62,12 @@ export async function PATCH(
     }
 
     // Check if alert exists and belongs to user
-    const existingAlert = await prisma.alert.findFirst({
-      where: {
-        id: id,
-        userEmail: session.user.email
-      },
-       select: {
-    id: true,
-    userId: true,
-    userEmail: true,
-    walletAddress: true,
-    tradeType: true,
-    minAmount: true,
-    market: true,
-    notifyVia: true,
-    telegramNotify: true,
-    isActive: true,
-    createdAt: true,
-    updatedAt: true,
-  }
-    });
+ const existingAlert = await prisma.alert.findUnique({
+  where: { id }
+}) as {
+  telegramNotify: boolean;
+  userEmail: string;
+};
 
     if (!existingAlert) {
       return NextResponse.json({ error: 'Alert not found' }, { status: 404 });
@@ -90,23 +76,10 @@ export async function PATCH(
     const body = await request.json();
     const { walletAddress, tradeType, minAmount, market, notifyVia, telegramNotify } = body;
 
-    // If telegramNotify is being enabled, verify user has Telegram integration
-    if (telegramNotify && !existingAlert.telegramNotify) {
-      const telegramIntegration = await prisma.telegramIntegration.findFirst({
-        where: {
-          createdBy: {
-            email: session.user.email
-          }
-        }
-      });
+if (!existingAlert || existingAlert.userEmail !== session.user.email) {
+  return NextResponse.json({ error: 'Alert not found' }, { status: 404 });
+}
 
-      if (!telegramIntegration) {
-        return NextResponse.json(
-          { error: 'Telegram integration not found. Please connect your Telegram account first.' },
-          { status: 400 }
-        );
-      }
-    }
 
     const updatedAlert = await prisma.alert.update({
       where: {
